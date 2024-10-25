@@ -118,6 +118,6 @@ export class MessageCommand {
           }
         }
       }
-    }, 200);
+    }, 50);
   }
 }
