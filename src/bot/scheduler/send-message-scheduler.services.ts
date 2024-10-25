@@ -203,7 +203,7 @@ export class SendMessageSchedulerService {
           },
         },
       );
-      const { userOffFullday } = await this.utilsService.getUserOffWork(null);
+      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
       const usernameList = [];
       await Promise.all(
         listsUser.data.map(async (user) => {
@@ -262,7 +262,7 @@ export class SendMessageSchedulerService {
       const userListNotCheckOut = listsUser.data.filter(
         (user) => user.checkout === null,
       );
-      const { userOffFullday } = await this.utilsService.getUserOffWork(null);
+      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
       const usernameList = [];
       await Promise.all(
         userListNotCheckOut.map(async (user) => {
