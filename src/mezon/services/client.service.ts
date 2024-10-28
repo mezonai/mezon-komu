@@ -31,26 +31,34 @@ export class MezonClientService {
   }
 
   async sendMessage(replyMessage: ReplyMezonMessage) {
-    return await this.client.sendMessage(
-      replyMessage.clan_id,
-      replyMessage.channel_id,
-      replyMessage.mode,
-      replyMessage.is_public,
-      replyMessage.msg,
-      replyMessage.mentions,
-      replyMessage.attachments,
-      replyMessage.ref,
-    );
+    try {
+      return await this.client.sendMessage(
+        replyMessage.clan_id,
+        replyMessage.channel_id,
+        replyMessage.mode,
+        replyMessage.is_public,
+        replyMessage.msg,
+        replyMessage.mentions,
+        replyMessage.attachments,
+        replyMessage.ref,
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 
   async sendMessageToUser(messageToUser: ReplyMezonMessage) {
-    return await this.client.sendDMChannelMessage(
-      messageToUser.channelDmId,
-      messageToUser.textContent ?? '',
-      messageToUser.messOptions ?? {},
-      messageToUser.attachments ?? [],
-      messageToUser.refs ?? [],
-    );
+    try {
+      return await this.client.sendDMChannelMessage(
+        messageToUser.channelDmId,
+        messageToUser.textContent ?? '',
+        messageToUser.messOptions ?? {},
+        messageToUser.attachments ?? [],
+        messageToUser.refs ?? [],
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 
   async createDMchannel(userId: string) {

@@ -6,6 +6,8 @@ import { EMessageMode, EUserType } from '../constants/configs';
 import { ClientConfigService } from '../config/client-config.service';
 import { MessageQueue } from './messageQueue.service';
 import { Injectable } from '@nestjs/common';
+import { ReactMessageChannel } from '../asterisk-commands/dto/replyMessage.dto';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class PollService {
@@ -17,6 +19,7 @@ export class PollService {
     @InjectRepository(User) private userRepository: Repository<User>,
     private clientConfig: ClientConfigService,
     private messageQueue: MessageQueue,
+    private clientService: MezonClientService,
   ) {}
   private emojiIdDefauly = {
     '1': '7249623295590321017',
@@ -108,7 +111,10 @@ export class PollService {
       );
 
       const findChannel = await this.channelRepository.findOne({
-        where: { channel_id: findMessagePoll.channelId },
+        where: {
+          channel_id: findMessagePoll.channelId,
+          clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+        },
       });
       const findUser = await this.userRepository.findOne({
         where: { userId: findMessagePoll.userId, user_type: EUserType.MEZON },
@@ -136,6 +142,41 @@ export class PollService {
       this.messageQueue.addMessage(replyMessage);
     } catch (error) {
       console.log('handleResultPoll', error);
+    }
+  }
+
+  async handelReactPollMessage(message, messageSent) {
+    if (message.msg.t.startsWith('```[Poll]') && messageSent.message_id) {
+      const dataMezonBotMessage = {
+        messageId: messageSent.message_id,
+        userId: message.sender_id,
+        channelId: message.channel_id,
+        content: message.msg.t + '',
+        createAt: Date.now(),
+        pollResult: [],
+      };
+      await this.mezonBotMessageRepository.insert(dataMezonBotMessage);
+      const options = this.getOptionPoll(message.msg.t);
+      options.push('checked');
+      options.forEach(async (option, index) => {
+        const listEmoji = this.getEmojiDefault();
+        const dataReact: ReactMessageChannel = {
+          clan_id: message.clan_id,
+          channel_id: message.channel_id,
+          is_public: message.is_public,
+          is_parent_public: message.is_parent_public,
+          message_id: messageSent.message_id,
+          emoji_id:
+            option === 'checked'
+              ? listEmoji[option]
+              : listEmoji[index + 1 + ''],
+          emoji: option === 'checked' ? option : index + '',
+          count: 1,
+          mode: message.mode,
+          message_sender_id: process.env.BOT_KOMU_ID,
+        };
+        await this.clientService.reactMessageChannel(dataReact);
+      });
     }
   }
 }

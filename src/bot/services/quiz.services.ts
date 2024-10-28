@@ -28,13 +28,13 @@ export class QuizService {
     let roles;
     let roleRandom;
     if (!roleSelect) {
-      if (userInput.roles && userInput.roles.length > 0) {
-        roles = [...userInput.roles, 'policy', 'english'];
-        roleRandom =
-          roles[Math.floor(Math.random() * roles.length)].toLowerCase();
-      } else {
-        roleRandom = 'policy';
-      }
+      // if (userInput.roles && userInput.roles.length > 0) {
+      roles = ['policy', 'english', 'excel', 'dev'];
+      roleRandom =
+        roles[Math.floor(Math.random() * roles.length)].toLowerCase();
+      // } else {
+      //   roleRandom = 'policy';
+      // }
     } else {
       roleRandom = roleSelect;
     }
