@@ -3,9 +3,9 @@ import { GetUserIdByUsernameDTO } from '../dto/getUserIdByUsername';
 import { ClientConfigService } from '../config/client-config.service';
 import { Brackets, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Daily, Uploadfile, User } from '../models';
+import { ChannelMezon, Daily, Uploadfile, User } from '../models';
 import { SendMessageToUserDTO } from '../dto/sendMessageToUser';
-import { EUserType, FileType } from '../constants/configs';
+import { EMessageMode, EUserType, FileType } from '../constants/configs';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
 import { join } from 'path';
@@ -29,6 +29,8 @@ export class KomubotrestService {
     @InjectRepository(Daily)
     private dailyRepository: Repository<Daily>,
     private utilsService: UtilsService,
+    @InjectRepository(ChannelMezon)
+    private channelRepository: Repository<ChannelMezon>,
   ) {}
 
   async findUserData(_pramams) {
@@ -166,7 +168,6 @@ export class KomubotrestService {
   };
 
   sendMessageToChannel = async (
-    client,
     sendMessageToChannelDTO: SendMessageToChannelDTO,
     header,
     res,
@@ -176,7 +177,7 @@ export class KomubotrestService {
       return;
     }
 
-    if (!sendMessageToChannelDTO.channelid) {
+    if (!sendMessageToChannelDTO.channelId) {
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
     }
@@ -194,26 +195,46 @@ export class KomubotrestService {
       return;
     }
     let message = sendMessageToChannelDTO.message;
-    const channelid = sendMessageToChannelDTO.channelid;
+    const channelId = sendMessageToChannelDTO.channelId;
 
-    if (
-      sendMessageToChannelDTO.machleo &&
-      sendMessageToChannelDTO.machleo_userid !== undefined
-    ) {
-      // message = this.getWFHWarninghMessage(
-      //   message,
-      //   sendMessageToChannelDTO.machleo_userid,
-      //   sendMessageToChannelDTO.wfhid,
-      // ) as any;
-    }
-
-    if (sendMessageToChannelDTO.timesheet) {
-      message = await this.processMessage(message);
-    }
+    // get mentions in text
+    const mentions = await Promise.all(
+      [...message.matchAll(/@\S+/g)].map(async (match) => {
+        const username = match[0].slice(1);
+        const findUser = await this.userRepository.findOne({
+          where: { username, user_type: EUserType.MEZON },
+        });
+        if (!findUser) return null;
+        return {
+          user_id: findUser.userId,
+          s: match.index,
+          e: match.index + match[0].length,
+        };
+      }),
+    );
 
     try {
-      const channel = await client.channels.fetch(channelid);
-      await channel.send(message);
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: channelId },
+      });
+      const isThread =
+        findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+      const replyMessage = {
+        clan_id: this.clientConfig.clandNccId,
+        channel_id: channelId,
+        is_public: findChannel ? !findChannel?.channel_private : false,
+        is_parent_public: findChannel ? findChannel?.is_parent_public : true,
+        parent_id: '0',
+        mode: EMessageMode.CHANNEL_MESSAGE,
+        // mode: isThread
+        //   ? EMessageMode.THREAD_MESSAGE
+        //   : EMessageMode.CHANNEL_MESSAGE,
+        msg: {
+          t: message,
+        },
+        mentions: mentions.filter((user) => user) || [],
+      };
+      this.messageQueue.addMessage(replyMessage);
       res.status(200).send({ message: 'Successfully!' });
     } catch (error) {
       console.log('error', error);
