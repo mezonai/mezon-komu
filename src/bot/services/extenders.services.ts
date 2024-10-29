@@ -5,11 +5,6 @@ import { User } from '../models/user.entity';
 import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { EUserType } from '../constants/configs';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { ChannelDMMezon } from '../models/channelDmMezon.entity';
-import { ChannelMezon } from '../models';
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 @Injectable()
 export class ExtendersService {
   private client: MezonClient;
@@ -17,7 +12,7 @@ export class ExtendersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private clientService: MezonClientService
+    private clientService: MezonClientService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -42,7 +37,7 @@ export class ExtendersService {
       findUser.flags = 0;
       findUser.last_message_id = message.message_id;
       findUser.last_message_time = Date.now();
-      findUser.deactive = false;
+      findUser.deactive = findUser.deactive;
       findUser.botPing = findUser.botPing;
       findUser.scores_workout = 0;
       findUser.not_workout = 0;

@@ -20,6 +20,7 @@ export class HelpCommand extends CommandMessage {
       'toggleactive',
       'checkchannel',
       'toggleprivatechannel',
+      'togglechannel',
     ];
     const allCommandKeys = Array.from(allCommands.keys()).filter(
       (item) => !hidenCommandList.includes(item),
