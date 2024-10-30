@@ -1,4 +1,5 @@
 export const TABLE = {
+  NEWS: 'komu_news',
   DAILY: 'komu_daily',
   WORKOUT: 'komu_workout',
   OPEN_TALK: 'komu_opentalk',

@@ -50,6 +50,7 @@ import {
   MezonBotMessage,
   RoleMezon,
   DynamicMezon,
+  News,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -130,6 +131,7 @@ import { WeatherCommand } from './asterisk-commands/commands/weather/weather.com
 import { DynamicCommand } from './asterisk-commands/commands/register/register.command';
 import { DynamicExcuteCommand } from './asterisk-commands/commands/dynamic/dynamic.command';
 import { DynamicCommandService } from './services/dynamic.service';
+import { NewsScheduler } from './scheduler/news-scheduler.service';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -188,6 +190,7 @@ import { DynamicCommandService } from './services/dynamic.service';
       MezonBotMessage,
       RoleMezon,
       DynamicMezon,
+      News,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -265,7 +268,8 @@ import { DynamicCommandService } from './services/dynamic.service';
     EventSchedulerService,
     Ncc8SchedulerService,
     WeatherCommand,
-    DynamicCommandService
+    DynamicCommandService,
+    NewsScheduler,
   ],
   controllers: [KomubotrestController],
 })

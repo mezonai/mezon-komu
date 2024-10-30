@@ -67,7 +67,7 @@ export class EventSchedulerService {
     return listVoiceChannelAvalable;
   }
 
-  // @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
   async tagEvent() {
     this.logger.warn(
       `time ${CronExpression.EVERY_MINUTE} for job tagEvent to run!`,

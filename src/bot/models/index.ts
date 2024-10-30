@@ -44,3 +44,4 @@ export { QuizMsg } from './quizMsg.entity';
 export { MezonBotMessage } from './mezonBotMessage.entity';
 export { RoleMezon } from './roleMezon.entity';
 export { DynamicMezon } from './dynamicMezon.entity';
+export { News } from './news.entity';

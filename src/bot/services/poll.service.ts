@@ -146,7 +146,7 @@ export class PollService {
   }
 
   async handelReactPollMessage(message, messageSent) {
-    if (message.msg.t.startsWith('```[Poll]') && messageSent.message_id) {
+    if (message.msg.t?.startsWith('```[Poll]') && messageSent.message_id) {
       const dataMezonBotMessage = {
         messageId: messageSent.message_id,
         userId: message.sender_id,
