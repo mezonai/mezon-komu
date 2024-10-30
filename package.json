@@ -36,6 +36,7 @@
     "axios": "^1.7.5",
     "base64-arraybuffer": "^1.0.2",
     "broadcast-address": "^1.0.2",
+    "cheerio": "^1.0.0",
     "chrono-node": "^1.4.9",
     "class-validator": "^0.14.1",
     "date-fns": "^3.6.0",
@@ -52,6 +53,7 @@
     "parse-duration": "^1.1.0",
     "pg": "^8.12.0",
     "reflect-metadata": "^0.2.0",
+    "rss-parser": "^3.13.0",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.20",
     "wake_on_lan": "^1.0.0"
