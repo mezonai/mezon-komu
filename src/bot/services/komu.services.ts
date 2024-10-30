@@ -197,13 +197,17 @@ export class KomuService {
     const findChannel = await this.channelRepository.findOne({
       where: { channel_id: channelId },
     });
+    const isThread =
+      findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
       channel_id: channelId,
       is_public: findChannel ? !findChannel?.channel_private : false,
       is_parent_public: true,
       parent_id: '0',
-      mode: EMessageMode.CHANNEL_MESSAGE,
+      mode: isThread
+        ? EMessageMode.THREAD_MESSAGE
+        : EMessageMode.CHANNEL_MESSAGE,
       msg: {
         t: message,
       },

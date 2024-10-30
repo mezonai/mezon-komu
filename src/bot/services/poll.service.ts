@@ -116,6 +116,8 @@ export class PollService {
           clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
         },
       });
+      const isThread =
+        findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
       const findUser = await this.userRepository.findOne({
         where: { userId: findMessagePoll.userId, user_type: EUserType.MEZON },
       });
@@ -127,7 +129,9 @@ export class PollService {
         is_public: findChannel ? !findChannel?.channel_private : false,
         is_parent_public: findChannel ? findChannel?.is_parent_public : true,
         parent_id: '0',
-        mode: EMessageMode.CHANNEL_MESSAGE,
+        mode: isThread
+          ? EMessageMode.THREAD_MESSAGE
+          : EMessageMode.CHANNEL_MESSAGE,
         msg: {
           t: messageContent + textCreated,
           mk: [

@@ -10,6 +10,7 @@ export enum EUserType {
 export enum EMessageMode {
   CHANNEL_MESSAGE = 2,
   DM_MESSAGE = 4,
+  THREAD_MESSAGE = 6,
 }
 
 export enum FileType {

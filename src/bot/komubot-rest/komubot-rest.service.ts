@@ -217,6 +217,10 @@ export class KomubotrestService {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: channelId },
       });
+      if (!findChannel) {
+        res.status(400).send({ message: 'Cannot find this channel!s' });
+        return;
+      }
       const isThread =
         findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
       const replyMessage = {
@@ -225,10 +229,9 @@ export class KomubotrestService {
         is_public: findChannel ? !findChannel?.channel_private : false,
         is_parent_public: findChannel ? findChannel?.is_parent_public : true,
         parent_id: '0',
-        mode: EMessageMode.CHANNEL_MESSAGE,
-        // mode: isThread
-        //   ? EMessageMode.THREAD_MESSAGE
-        //   : EMessageMode.CHANNEL_MESSAGE,
+        mode: isThread
+          ? EMessageMode.THREAD_MESSAGE
+          : EMessageMode.CHANNEL_MESSAGE,
         msg: {
           t: message,
         },
