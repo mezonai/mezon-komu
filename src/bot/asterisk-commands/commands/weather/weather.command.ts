@@ -103,6 +103,27 @@ export class WeatherCommand extends CommandMessage {
     let location = args.join(' ');
     const formatNumber = ' '.repeat(15);
     try {
+      if (!args[0]) {
+        const messageContent =
+          '```' +
+          '- Command: *weather location -> current weather in location' +
+          '\n' +
+          `  Example: *weather vinh\n` +
+          '- Command: *weather forecast dd/mm/yyyy location -> forecast weather in location at dd/mm/yyyy all day' +
+          '\n' +
+          `  Example: *weather forecast 05/11/2024 vinh\n` +
+          '- Command: *weather forecast dd/mm/yyyy hh:mm location -> forecast weather in location at dd/mm/yyyy hh:mm' +
+          '\n' +
+          `  Example: *weather forecast 05/11/2024 09:00 vinh` +
+          '```';
+        return this.replyMessageGenerate(
+          {
+            messageContent,
+            mk: [{ type: 't', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
+      }
       if (args[0] === 'forecast') {
         location = args.slice(hasHour ? 3 : 2).join(' ');
         const checkArg =
