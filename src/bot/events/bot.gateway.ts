@@ -17,6 +17,10 @@ import {
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ExtendersService } from '../services/extenders.services';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { User } from '../models';
+import { IsNull, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EUserType } from '../constants/configs';
 
 @Injectable()
 export class BotGateway {
@@ -27,6 +31,8 @@ export class BotGateway {
     private clientService: MezonClientService,
     private extendersService: ExtendersService,
     private eventEmitter: EventEmitter2,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {
     this.client = clientService.getClient();
   }
@@ -103,6 +109,11 @@ export class BotGateway {
     } catch (e) {
       console.log(e);
     }
+    const webhook = await this.userRepository.find({
+      where: { roles: IsNull(), user_type: EUserType.MEZON },
+    });
+    const webhookId = webhook.map((item) => item.userId);
+    if (webhookId.includes(msg.sender_id)) return;
     this.eventEmitter.emit(Events.ChannelMessage, msg);
   };
 }
