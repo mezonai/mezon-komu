@@ -84,7 +84,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
         };
         const replyMessage = {
           clan_id: data.clan_id,
-          channel_id: process.env.MEZON_BET_CHANNEL_ID,
+          channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
           is_public: false,
           parent_id: '0',
           mode: EMessageMode.THREAD_MESSAGE,
@@ -190,7 +190,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
     messageText += '```';
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-      channel_id: process.env.MEZON_BET_CHANNEL_ID,
+      channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
       is_public: false,
       parent_id: '0',
       mode: EMessageMode.THREAD_MESSAGE,

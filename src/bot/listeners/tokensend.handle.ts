@@ -64,7 +64,7 @@ export class EventTokenSend extends BaseHandleEvent {
           '```';
         const replyMessage = {
           clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-          channel_id: process.env.MEZON_BET_CHANNEL_ID,
+          channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
           is_public: false,
           parent_id: '0',
           mode: EMessageMode.THREAD_MESSAGE,
