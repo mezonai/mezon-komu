@@ -45,3 +45,5 @@ export { MezonBotMessage } from './mezonBotMessage.entity';
 export { RoleMezon } from './roleMezon.entity';
 export { DynamicMezon } from './dynamicMezon.entity';
 export { News } from './news.entity';
+export { EventMezon } from './eventMezon.entity';
+export { BetEventMezon } from './betEventMezon.entity';

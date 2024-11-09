@@ -4,6 +4,7 @@ import {
   MezonClient,
   Events,
   ChannelMessage,
+  TokenSentEvent,
 } from 'mezon-sdk';
 
 import {
@@ -39,7 +40,10 @@ export class BotGateway {
 
   initEvent() {
     for (const event in Events) {
-      const eventValue = Events[event].replace(/_event/g, '').replace(/_/g, '');
+      const eventValue =
+        Events[event] === 'clan_event_created'
+          ? Events[event].replace(/_/g, '')
+          : Events[event].replace(/_event/g, '').replace(/_/g, '');
       this.logger.log(`Init event ${eventValue}`);
       const key = `handle${eventValue}`;
       if (key in this) {
@@ -48,6 +52,13 @@ export class BotGateway {
     }
   }
   // processMessage(msg: ChannelMessage) {}
+  handletokensent = (data: TokenSentEvent) => {
+    this.eventEmitter.emit(Events.TokenSend, data);
+  };
+
+  handleclaneventcreated = (data) => {
+    this.eventEmitter.emit(Events.ClanEventCreated, data);
+  };
 
   handlemessagereaction = async (msg: ApiMessageReaction) => {
     this.eventEmitter.emit(Events.MessageReaction, msg);
