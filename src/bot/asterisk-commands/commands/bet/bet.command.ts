@@ -38,7 +38,7 @@ export class BetCommand extends CommandMessage {
       const qrCodeDataUrl = await QRCode.toDataURL(text);
       return qrCodeDataUrl;
     } catch (error) {
-      throw new Error('Không thể tạo mã QR.');
+      throw new Error('Can not generate QR code!');
     }
   }
 

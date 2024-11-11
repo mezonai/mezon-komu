@@ -1,29 +1,25 @@
-import { ChannelMessage, MezonClient } from 'mezon-sdk';
+import { ChannelMessage } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
-import { UserStatusService } from '../user-status/userStatus.service';
+import { DynamicCommandService } from 'src/bot/services/dynamic.service';
+import * as QRCode from 'qrcode';
+import { EUserType } from 'src/bot/constants/configs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import { EmbedProps, EUserType } from 'src/bot/constants/configs';
+import { User } from 'src/bot/models';
 import { EUserError } from 'src/bot/constants/error';
-import { MezonClientService } from 'src/mezon/services/client.service';
-import { getRandomColor } from 'src/bot/utils/helper';
 
-@Command('avatar')
-export class AvatarCommand extends CommandMessage {
-  private client: MezonClient;
+@Command('qr')
+export class QRCodeCommand extends CommandMessage {
   constructor(
+    private dynamicCommandService: DynamicCommandService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private clientService: MezonClientService,
   ) {
     super();
-    this.client = this.clientService.getClient();
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    let messageContent: string;
     let userQuery: string;
 
     if (Array.isArray(message.references) && message.references.length) {
@@ -71,28 +67,24 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
-    const embed: EmbedProps = {
-      color: getRandomColor(),
-      title: `${findUser.username}'s avatar`,
-      author: {
-        name: findUser.username,
-        icon_url: findUser.avatar,
-        url: findUser.avatar,
-      },
-      image: {
-        url: findUser.avatar,
-      },
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Powered by Mezon',
-        icon_url:
-          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-      },
+    const messageContent = '```' +`QR send token to ${findUser.username} generated successful!`+ '```';
+    const sendTokenData = {
+      sender_id: message.sender_id,
+      sender_name: message.username,
+      receiver_id: findUser.userId,
+      receiver_name: findUser.username
     };
-
+    const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(sendTokenData));
     return this.replyMessageGenerate(
       {
-        embed,
+        messageContent,
+        mk: [{type: 't', s: 0, e: messageContent.length}],
+        attachments: [
+          {
+            url: qrCodeDataUrl + '',
+            filetype: 'image/jpeg',
+          },
+        ],
       },
       message,
     );

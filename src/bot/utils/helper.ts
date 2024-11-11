@@ -106,3 +106,20 @@ export const imageName = (req, file, cb) => {
 export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function getRandomColor(): string {
+  const colors: string[] = [
+    '#FF6B6B', // Đỏ tươi
+    '#FFBE0B', // Vàng cam sáng
+    '#FFD93D', // Vàng sáng
+    '#6BCB77', // Xanh lá sáng
+    '#4D96FF', // Xanh da trời sáng
+    '#FF5F7E', // Đỏ hồng sáng
+    '#FFA500', // Cam sáng
+    '#5BE7C4', // Xanh ngọc sáng
+    '#FFD700', // Vàng hoàng gia,
+    '#1E9F2E', // Xanh lá
+  ];
+  const randomIndex = Math.floor(Math.random() * colors.length);
+  return colors[randomIndex];
+}

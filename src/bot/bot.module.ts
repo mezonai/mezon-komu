@@ -137,6 +137,7 @@ import { NewsScheduler } from './scheduler/news-scheduler.service';
 import { EventClanEventCreated } from './listeners/claneventcreated.handle';
 import { BetCommand } from './asterisk-commands/commands/bet/bet.command';
 import { EventTokenSend } from './listeners/tokensend.handle';
+import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -280,6 +281,7 @@ import { EventTokenSend } from './listeners/tokensend.handle';
     EventClanEventCreated,
     EventTokenSend,
     BetCommand,
+    QRCodeCommand
   ],
   controllers: [KomubotrestController],
 })

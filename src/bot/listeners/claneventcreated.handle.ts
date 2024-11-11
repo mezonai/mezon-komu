@@ -49,12 +49,12 @@ export class EventClanEventCreated extends BaseHandleEvent {
           author: {
             name: 'KOMU',
             icon_url:
-              'https://cdn.mezon.vn/1775731152322039808/1820659489792069632/mezon_logo.png',
-            url: 'https://cdn.mezon.vn/1775731152322039808/1820659489792069632/mezon_logo.png',
+              'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+            url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
           },
-          // description: '',
+          description: 'Đoán xem số người đã tham gia tại thời điểm event opentalk kết thúc!!!',
           thumbnail: {
-            url: 'https://cdn.mezon.vn/1775731152322039808/1820659489792069632/mezon_logo.png',
+            url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
           },
           fields: [
             {
@@ -68,7 +68,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
             },
             {
               name: '• Tiền thưởng',
-              value: `Nếu bạn đoán đúng, KOMU sẽ gửi cho bạn số lượng token tương đương với số token bạn đã BET với KOMU. Còn nếu bạn thua, bạn sẽ mất lượng token đó.`,
+              value: `Nếu bạn đoán đúng, KOMU sẽ gửi cho bạn số lượng token tương đương với 2 LẦN số token bạn đã BET với KOMU. Còn nếu bạn thua, bạn sẽ mất lượng token đó.`,
             },
             {
               name: 'Cơ hội cho mọi người là như nhau. Cùng BET thôi!',
@@ -79,7 +79,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
           footer: {
             text: 'Powered by Mezon',
             icon_url:
-              'https://cdn.mezon.vn/1775731152322039808/1820659489792069632/mezon_logo.png',
+              'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
           },
         };
         const replyMessage = {
@@ -142,7 +142,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
         );
         const messageUser =
           '```' +
-          `Id bet: ${dataBetWin[i].id}\nYou Won! KOMU just sent ${dataBetWin[i].amount} token for you. Please check your wallet!` +
+          `Id bet: ${dataBetWin[i].id}\nYou Won! KOMU just sent ${+dataBetWin[i].amount * 2} token for you. Please check your wallet!` +
           '```';
         const messageToUser: ReplyMezonMessage = {
           userId: dataBetWin[i].userId,
