@@ -92,6 +92,7 @@ export class BetCommand extends CommandMessage {
         sender_id: message.sender_id,
         sender_name: message.username,
         receiver_id: process.env.BOT_KOMU_ID,
+        receiver_name: 'KOMU'
       };
       const qrCodeImage = await this.generateQRCode(
         JSON.stringify(sendTokenData),
