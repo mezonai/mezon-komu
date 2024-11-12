@@ -38,7 +38,6 @@ export class CheckChannelCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -55,7 +54,6 @@ export class CheckChannelCommand extends CommandMessage {
     return this.replyMessageGenerate(
       {
         messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
       },
       message,
     );

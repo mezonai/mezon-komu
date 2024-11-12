@@ -36,7 +36,6 @@ export class ToggleCheckChannelCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
         },
         message,
       );
