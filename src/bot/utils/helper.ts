@@ -88,15 +88,19 @@ export function checkAnswerFormat(answer: string, maxAnswer: number) {
 }
 
 export const fileFilter = (req, file, cb) => {
-  if (file.mimetype === "audio/mpeg" || file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
+  if (
+    file.mimetype === 'audio/mpeg' ||
+    file.mimetype === 'image/jpeg' ||
+    file.mimetype === 'image/png'
+  ) {
     cb(null, true);
   } else {
-    cb(new Error("You can only upload mp3 file"), false);
+    cb(new Error('You can only upload mp3 file'), false);
   }
 };
 
 export const fileName = (req, file, cb) => {
-  cb(null, file.fieldname + "-" + Date.now() + ".mp3");
+  cb(null, file.fieldname + '-' + Date.now() + '.mp3');
 };
 
 export const imageName = (req, file, cb) => {
@@ -122,4 +126,12 @@ export function getRandomColor(): string {
   ];
   const randomIndex = Math.floor(Math.random() * colors.length);
   return colors[randomIndex];
+}
+
+export function convertName(fullName: string): string {
+  const parts = fullName.toLowerCase().split(' ');
+  const firstLetter = parts[0];
+  const lastName = parts.slice(1).join('');
+  const username = `${firstLetter}.${lastName}`;
+  return username;
 }
