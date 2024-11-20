@@ -53,5 +53,6 @@ export const TABLE = {
   MEZON_BOT_MESSAGE: 'komu_mezonBotMessage',
   ROLE_MEZON: 'komu_roleMezon',
   EVENT_MEZON: 'komu_eventMezon',
-  BET_EVENT_MEZON: 'komu_betEventMezon'
+  BET_EVENT_MEZON: 'komu_betEventMezon',
+  MEZON_TRACKER_STREAMING: 'komu_mezonTrackerStreaming'
 };

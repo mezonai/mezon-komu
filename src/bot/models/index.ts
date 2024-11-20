@@ -47,3 +47,4 @@ export { DynamicMezon } from './dynamicMezon.entity';
 export { News } from './news.entity';
 export { EventMezon } from './eventMezon.entity';
 export { BetEventMezon } from './betEventMezon.entity';
+export { MezonTrackerStreaming } from './timeTrackerStreaming.entity';

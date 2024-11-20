@@ -313,7 +313,9 @@ export class EventListenerChannelMessage {
                 if (!checkAnswerFormat(answer, question['options'].length)) {
                   mess = `Bạn vui lòng trả lời đúng số thứ tự các đáp án câu hỏi`;
                 } else {
-                  if (Number(answer) === Number(question['correct'])) {
+                  const correctAnser =
+                    Number(answer) === Number(question['correct']);
+                  if (correctAnser) {
                     const newUser = await this.quizService.addScores(
                       userQuiz['userId'],
                     );
@@ -332,25 +334,27 @@ export class EventListenerChannelMessage {
                       Number(answer),
                     );
                   }
-
-                  mess = `${mess}\nClick on the following link if you want to complain `;
                   const link = `https://quiz.nccsoft.vn/question/update/${userQuiz['quizId']}`;
-                  messOptions['lk'] = [
+                  messOptions['embed'] = [
                     {
-                      s: mess.length,
-                      e: mess.length + link.length,
+                      color: `${correctAnser ? '#1E9F2E' : '#ff0101'}`,
+                      title: `${mess}`,
+                    },
+                    {
+                      color: `${'#ff0101'}`,
+                      title: `Complain`,
+                      url: link,
                     },
                   ];
-                  mess = mess + link;
                 }
               }
             }
             const messageToUser: ReplyMezonMessage = {
               userId: msg.sender_id,
-              textContent: mess,
+              textContent: userQuiz['answer'] ? mess : '',
               messOptions: messOptions,
               attachments: [],
-              refs: refGenerate(msg),
+              refs: refGenerate({ ...msg, attachments: [{}] }),
             };
             this.messageQueue.addMessage(messageToUser);
           }

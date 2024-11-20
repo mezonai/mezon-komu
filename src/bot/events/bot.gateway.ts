@@ -5,6 +5,8 @@ import {
   Events,
   ChannelMessage,
   TokenSentEvent,
+  StreamingJoinedEvent,
+  StreamingLeavedEvent,
 } from 'mezon-sdk';
 
 import {
@@ -54,6 +56,18 @@ export class BotGateway {
   // processMessage(msg: ChannelMessage) {}
   handletokensent = (data: TokenSentEvent) => {
     this.eventEmitter.emit(Events.TokenSend, data);
+  };
+
+  handlemessagebuttonclicked = (data) => {
+    this.eventEmitter.emit(Events.MessageButtonClicked, data);
+  };
+
+  handlestreamingjoined = (data: StreamingJoinedEvent) => {
+    this.eventEmitter.emit(Events.StreamingJoinedEvent, data);
+  };
+
+  handlestreamingleaved = (data: StreamingLeavedEvent) => {
+    this.eventEmitter.emit(Events.StreamingLeavedEvent, data);
   };
 
   handleclaneventcreated = (data) => {

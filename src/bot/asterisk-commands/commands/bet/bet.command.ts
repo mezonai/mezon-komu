@@ -35,7 +35,9 @@ export class BetCommand extends CommandMessage {
 
   async generateQRCode(text: string): Promise<string> {
     try {
-      const qrCodeDataUrl = await QRCode.toDataURL(text);
+      const qrCodeDataUrl = await QRCode.toDataURL(text, {
+        errorCorrectionLevel: 'L',
+      });
       return qrCodeDataUrl;
     } catch (error) {
       throw new Error('Can not generate QR code!');
@@ -53,7 +55,7 @@ export class BetCommand extends CommandMessage {
           },
           message,
         );
-      };
+      }
       const findEvent = await this.eventMezonRepository.findOne({
         where: {
           id: args[0],
@@ -61,7 +63,9 @@ export class BetCommand extends CommandMessage {
         },
       });
       if (!findEvent || !this.isNumber(args[1]) || +args[1] < 0) {
-        const messageContent = !findEvent ? '```Bet fail. Cannot found BET id!```' : '```Bet fail. User number only take number!```';
+        const messageContent = !findEvent
+          ? '```Bet fail. Cannot found BET id!```'
+          : '```Bet fail. User number only take number!```';
         return this.replyMessageGenerate(
           {
             messageContent,
@@ -69,7 +73,7 @@ export class BetCommand extends CommandMessage {
           },
           message,
         );
-      };;
+      }
       const timestampNow = new Date().getTime() + this.TIME_UTC; // utc +7
       if (!findEvent.activeBet || findEvent.timeStart < timestampNow) {
         const messageContent = '```Event was finished!```';
@@ -92,14 +96,15 @@ export class BetCommand extends CommandMessage {
         sender_id: message.sender_id,
         sender_name: message.username,
         receiver_id: process.env.BOT_KOMU_ID,
-        receiver_name: 'KOMU'
+        receiver_name: 'KOMU',
+        note: `[BET - ${saveData.id}]\nPayout for BET event`,
       };
       const qrCodeImage = await this.generateQRCode(
         JSON.stringify(sendTokenData),
       );
       const messageUser =
         '```' +
-        `Id bet: ${saveData.id}\nPlease use your phone to scan to confirm and transfer token to\nEvent: ${findEvent.title}\nId: ${findEvent.id}` +
+        `[BET - ${saveData.id}]\nPlease use your phone to scan to confirm and transfer token to event '${findEvent.title}'\n` +
         '```';
       const messageToUser: ReplyMezonMessage = {
         userId: message.sender_id,
@@ -115,7 +120,7 @@ export class BetCommand extends CommandMessage {
       this.messageQueue.addMessage(messageToUser);
       const messageContent =
         '```' +
-        `Id bet: ${saveData.id}\nTransaction is pending! Komu sent to you a message. Please check!` +
+        `[BET - ${saveData.id}]\n🔄Transaction is pending! Komu sent to you a message. Please check!` +
         '```';
       return this.replyMessageGenerate(
         {

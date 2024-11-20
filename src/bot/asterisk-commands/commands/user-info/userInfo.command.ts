@@ -103,46 +103,48 @@ export class UserInfoCommand extends CommandMessage {
     const phoneNumber =
       (userData as any)?.data?.result?.phoneNumber ?? '(no information)';
 
-    const embed: EmbedProps = {
-      color: getRandomColor(),
-      title: `${findUser.username}'s infomation`,
-      author: {
-        name: findUser.username,
-        icon_url: findUser.avatar,
-        url: findUser.avatar,
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `${findUser.username}'s infomation`,
+        author: {
+          name: findUser.username,
+          icon_url: findUser.avatar,
+          url: findUser.avatar,
+        },
+        thumbnail: {
+          url: findUser.avatar,
+        },
+        fields: [
+          {
+            name: `• Username`,
+            value: `  ${findUser.username}`,
+          },
+          {
+            name: `• Id`,
+            value: `  ${findUser.userId}`,
+          },
+          {
+            name: `• Account creation`,
+            value: `  ${accountCreatedAt.format('HH:mm DD-MM-YYYY')} (${accountCreatedAt.fromNow()})`,
+          },
+          {
+            name: `• Phone`,
+            value: `  ${phoneNumber}`,
+          },
+          {
+            name: `• Project`,
+            value: `  ${projectData ? projectInfo : '(no information)'}`,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: 'Powered by Mezon',
+          icon_url:
+            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+        },
       },
-      thumbnail: {
-        url: findUser.avatar,
-      },
-      fields: [
-        {
-          name: `• Username`,
-          value: `  ${findUser.username}`,
-        },
-        {
-          name: `• Id`,
-          value: `  ${findUser.userId}`,
-        },
-        {
-          name: `• Account creation`,
-          value: `  ${accountCreatedAt.format('HH:mm DD-MM-YYYY')} (${accountCreatedAt.fromNow()})`,
-        },
-        {
-          name: `• Phone`,
-          value: `  ${phoneNumber}`,
-        },
-        {
-          name: `• Project`,
-          value: `  ${projectData ? projectInfo : '(no information)'}`,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Powered by Mezon',
-        icon_url:
-          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-      },
-    };
+    ];
 
     return this.replyMessageGenerate(
       {

@@ -33,7 +33,7 @@ export function replyMessageGenerate(
   };
 
   // option for bot's message
-  ['lk', 'hg', 'mk', 'ej', 'vk', 'contentThread', 'embed'].forEach((key) => {
+  ['lk', 'hg', 'mk', 'ej', 'vk', 'contentThread', 'embed', 'components'].forEach((key) => {
     if (key in replayConent) {
       messageContent[key] = replayConent[key];
     }
@@ -71,7 +71,7 @@ export function refGenerate(msg: ChannelMessage): Array<ApiMessageRef> {
       message_sender_clan_nick: msg.clan_nick,
       message_sender_display_name: msg.display_name,
       content: JSON.stringify(msg.content),
-      has_attachment: false,
+      has_attachment: !!msg?.attachments?.length || false,
     },
   ];
 }

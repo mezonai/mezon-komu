@@ -71,7 +71,7 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
-    const embed: EmbedProps = {
+    const embed: EmbedProps[] = [{
       color: getRandomColor(),
       title: `${findUser.username}'s avatar`,
       author: {
@@ -88,7 +88,7 @@ export class AvatarCommand extends CommandMessage {
         icon_url:
           'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
       },
-    };
+    }];
 
     return this.replyMessageGenerate(
       {

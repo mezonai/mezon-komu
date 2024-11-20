@@ -113,16 +113,29 @@ export async function sleep(ms: number) {
 
 export function getRandomColor(): string {
   const colors: string[] = [
-    '#FF6B6B', // Đỏ tươi
-    '#FFBE0B', // Vàng cam sáng
-    '#FFD93D', // Vàng sáng
-    '#6BCB77', // Xanh lá sáng
-    '#4D96FF', // Xanh da trời sáng
-    '#FF5F7E', // Đỏ hồng sáng
-    '#FFA500', // Cam sáng
-    '#5BE7C4', // Xanh ngọc sáng
-    '#FFD700', // Vàng hoàng gia,
-    '#1E9F2E', // Xanh lá
+    '#1ABC9C', // Aqua
+    '#11806A', // DarkAqua
+    '#57F287', // Green
+    '#1F8B4C', // DarkGreen
+    '#3498DB', // Blue
+    '#206694', // DarkBlue
+    '#9B59B6', // Purple
+    '#71368A', // DarkPurple
+    '#E91E63', // LuminousVividPink
+    '#AD1457', // DarkVividPink
+    '#F1C40F', // Gold
+    '#C27C0E', // DarkGold
+    '#E67E22', // Orange
+    '#A84300', // DarkOrange
+    '#ED4245', // Red
+    '#992D22', // DarkRed
+    '#95A5A6', // Grey
+    '#979C9F', // DarkGrey
+    '#7F8C8D', // DarkerGrey
+    '#BCC0C0', // LightGrey
+    '#34495E', // Navy
+    '#2C3E50', // DarkNavy
+    '#FFFF00', // Yellow
   ];
   const randomIndex = Math.floor(Math.random() * colors.length);
   return colors[randomIndex];

@@ -49,7 +49,7 @@ export class EventTokenSend extends BaseHandleEvent {
         // send to user
         const messageTextDM =
           '```' +
-          `Id bet: ${findEvent[0].id}\nYou just paid ${data.amount} token successfully. Let's wait for the results!` +
+          `[BET - ${findEvent[0].id}]\n✅You just paid ${data.amount} token successfully. Let's wait for the results!` +
           '```';
         const messageToUser: ReplyMezonMessage = {
           userId: findEvent[0].userId,
@@ -60,7 +60,7 @@ export class EventTokenSend extends BaseHandleEvent {
         // send to channel
         const messageText =
           '```' +
-          `Id bet: ${findEvent[0].id}\n${findUser.username} just paid successfully!` +
+          `[BET - ${findEvent[0].id}]\n✅${findUser.username} just paid successfully!` +
           '```';
         const replyMessage = {
           clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,

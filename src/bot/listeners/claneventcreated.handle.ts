@@ -42,46 +42,49 @@ export class EventClanEventCreated extends BaseHandleEvent {
         EventMezonData.description = data.description;
 
         await this.eventMezonRepository.insert(EventMezonData);
-        const embed: EmbedProps = {
-          color: '#ef0707',
-          title: `Event ${data.title} has been created. Let's get some fun together!`,
-          // url: 'https://discord.js.org',
-          author: {
-            name: 'KOMU',
-            icon_url:
-              'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-            url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+        const embed: EmbedProps[] = [
+          {
+            color: '#ef0707',
+            title: `Event ${data.title} has been created. Let's get some fun together!`,
+            // url: 'https://discord.js.org',
+            author: {
+              name: 'KOMU',
+              icon_url:
+                'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+              url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+            },
+            description:
+              'Đoán xem số người đã tham gia tại thời điểm event opentalk kết thúc!!!',
+            thumbnail: {
+              url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+            },
+            fields: [
+              {
+                name: '• Cách chơi',
+                value: `Người tham gia sẽ sử dụng câu lệnh \n*bet ${data.event_id} user_number\nđể tham gia BET cho event opentalk này\nVí dụ: *bet ${data.event_id} 70\nKOMU sẽ gửi cho bạn 1 message và nhiệm vụ của bạn là xác nhận và chuyển số lượng token muốn BET cho KOMU. Khi thời gian của event opentalk mà bạn BET kết thúc, KOMU sẽ gửi kết quả số lượng người kết thúc của event opentalk đó tại channel BET.`,
+              },
+              {
+                name: '• Luật lệ',
+                value:
+                  '- KOMU sẽ nhận BET bắt đầu từ LÚC NÀY và ngưng nhận sau khi event opentalk bắt đầu.\n- Có thể BET nhiều lần cho 1 event opentalk.\n- Có thể BET nhiều event opentalk trong thời gian cho phép.',
+              },
+              {
+                name: '• Tiền thưởng',
+                value: `Nếu bạn đoán đúng, KOMU sẽ gửi cho bạn số lượng token tương đương với 2 LẦN số token bạn đã BET với KOMU. Còn nếu bạn thua, bạn sẽ mất lượng token đó.`,
+              },
+              {
+                name: 'Cơ hội cho mọi người là như nhau. Cùng BET thôi!',
+                value: '',
+              },
+            ],
+            timestamp: new Date().toISOString(),
+            footer: {
+              text: 'Powered by Mezon',
+              icon_url:
+                'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+            },
           },
-          description: 'Đoán xem số người đã tham gia tại thời điểm event opentalk kết thúc!!!',
-          thumbnail: {
-            url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-          },
-          fields: [
-            {
-              name: '• Cách chơi',
-              value: `Người tham gia sẽ sử dụng câu lệnh \n*bet ${data.event_id} user_number\nđể tham gia BET cho event opentalk này\nVí dụ: *bet ${data.event_id} 70\nKOMU sẽ gửi cho bạn 1 message và nhiệm vụ của bạn là xác nhận và chuyển số lượng token muốn BET cho KOMU. Khi thời gian của event opentalk mà bạn BET kết thúc, KOMU sẽ gửi kết quả số lượng người kết thúc của event opentalk đó tại channel BET.`,
-            },
-            {
-              name: '• Luật lệ',
-              value:
-                '- KOMU sẽ nhận BET bắt đầu từ LÚC NÀY và ngưng nhận sau khi event opentalk bắt đầu.\n- Có thể BET nhiều lần cho 1 event opentalk.\n- Có thể BET nhiều event opentalk trong thời gian cho phép.',
-            },
-            {
-              name: '• Tiền thưởng',
-              value: `Nếu bạn đoán đúng, KOMU sẽ gửi cho bạn số lượng token tương đương với 2 LẦN số token bạn đã BET với KOMU. Còn nếu bạn thua, bạn sẽ mất lượng token đó.`,
-            },
-            {
-              name: 'Cơ hội cho mọi người là như nhau. Cùng BET thôi!',
-              value: '',
-            },
-          ],
-          timestamp: new Date().toISOString(),
-          footer: {
-            text: 'Powered by Mezon',
-            icon_url:
-              'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-          },
-        };
+        ];
         const replyMessage = {
           clan_id: data.clan_id,
           channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
@@ -130,11 +133,14 @@ export class EventClanEventCreated extends BaseHandleEvent {
 
     //send token for winner
     for (let i = 0; i < dataBetWin.length; i++) {
-      const sendToken = await this.client.sendToken(
-        dataBetWin[i].userId,
-        +dataBetWin[i].amount * 2,
-      );
-      if (sendToken?.amount) {
+      try {
+        const dataSendToken = {
+          sender_id: process.env.BOT_KOMU_ID,
+          sender_name: 'KOMU',
+          receiver_id: dataBetWin[i].userId,
+          amount: +dataBetWin[i].amount * 2,
+        };
+        await this.client.sendToken(dataSendToken);
         // update status
         await this.betEventMezonRepository.update(
           { id: dataBetWin[i].id },
@@ -142,7 +148,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
         );
         const messageUser =
           '```' +
-          `Id bet: ${dataBetWin[i].id}\nYou Won! KOMU just sent ${+dataBetWin[i].amount * 2} token for you. Please check your wallet!` +
+          `[BET - ${dataBetWin[i].id}]\n🎉You Won! KOMU just sent ${+dataBetWin[i].amount * 2} token for you. Please check your wallet!` +
           '```';
         const messageToUser: ReplyMezonMessage = {
           userId: dataBetWin[i].userId,
@@ -150,7 +156,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
           messOptions: { mk: [{ type: 't', s: 0, e: messageUser.length }] },
         };
         this.messageQueue.addMessage(messageToUser);
-      } else {
+      } catch (error) {
         console.log('Send fail idBet ', dataBetWin[i].id, dataBetWin[i].amount);
       }
     }

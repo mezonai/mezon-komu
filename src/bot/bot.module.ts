@@ -53,6 +53,7 @@ import {
   News,
   BetEventMezon,
   EventMezon,
+  MezonTrackerStreaming,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -138,6 +139,8 @@ import { EventClanEventCreated } from './listeners/claneventcreated.handle';
 import { BetCommand } from './asterisk-commands/commands/bet/bet.command';
 import { EventTokenSend } from './listeners/tokensend.handle';
 import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.command';
+import { MessageButtonClickedEvent } from './listeners/messagebuttonclick.handle';
+import { StreamingEvent } from './listeners/streamingevent.handle';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -199,6 +202,7 @@ import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.comman
       News,
       EventMezon,
       BetEventMezon,
+      MezonTrackerStreaming
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -281,7 +285,9 @@ import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.comman
     EventClanEventCreated,
     EventTokenSend,
     BetCommand,
-    QRCodeCommand
+    QRCodeCommand,
+    MessageButtonClickedEvent,
+    StreamingEvent
   ],
   controllers: [KomubotrestController],
 })
