@@ -3,11 +3,12 @@ import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 import * as QRCode from 'qrcode';
-import { EUserType } from 'src/bot/constants/configs';
+import { EmbedProps, EUserType } from 'src/bot/constants/configs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/bot/models';
 import { EUserError } from 'src/bot/constants/error';
+import { getRandomColor } from 'src/bot/utils/helper';
 
 @Command('qr')
 export class QRCodeCommand extends CommandMessage {
@@ -67,24 +68,33 @@ export class QRCodeCommand extends CommandMessage {
         },
         message,
       );
-    const messageContent = '```' +`QR send token to ${findUser.username} generated successful!`+ '```';
     const sendTokenData = {
       sender_id: message.sender_id,
-      sender_name: message.username,
       receiver_id: findUser.userId,
-      receiver_name: findUser.username
+      receiver_name: findUser.username,
     };
-    const qrCodeDataUrl = await QRCode.toDataURL(JSON.stringify(sendTokenData));
+    const qrCodeDataUrl = await QRCode.toDataURL(
+      JSON.stringify(sendTokenData),
+      {
+        errorCorrectionLevel: 'L',
+      },
+    );
+    const embed: EmbedProps[] = [{
+      color: getRandomColor(),
+      title: `QR send token to ${findUser.username}`,
+      image: {
+        url: qrCodeDataUrl,
+      },
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Powered by Mezon',
+        icon_url:
+          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+      },
+    }];
     return this.replyMessageGenerate(
       {
-        messageContent,
-        mk: [{type: 't', s: 0, e: messageContent.length}],
-        attachments: [
-          {
-            url: qrCodeDataUrl + '',
-            filetype: 'image/jpeg',
-          },
-        ],
+        embed,
       },
       message,
     );
