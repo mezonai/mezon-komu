@@ -354,7 +354,7 @@ export class EventListenerChannelMessage {
               textContent: userQuiz['answer'] ? mess : '',
               messOptions: messOptions,
               attachments: [],
-              refs: refGenerate({ ...msg, attachments: [{}] }),
+              refs: refGenerate(msg),
             };
             this.messageQueue.addMessage(messageToUser);
           }

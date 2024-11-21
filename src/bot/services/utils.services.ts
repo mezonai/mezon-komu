@@ -149,14 +149,15 @@ export class UtilsService {
     return (this.checkTimeMeeting() as any).dateTimeNow - newDateTimestamp >= 0;
   }
 
-  formatDate(time) {
+  formatDate(time, isShowSecond?) {
     const today = new Date(time);
     const dd = String(today.getDate()).padStart(2, '0');
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const yyyy = today.getFullYear();
     const hours = today.getHours().toString().padStart(2, '0');
     const minutes = today.getMinutes().toString().padStart(2, '0');
-    return `${dd}/${mm}/${yyyy} ${hours}:${minutes}`;
+    const seconds = today.getSeconds().toString().padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hours}:${minutes}${isShowSecond ? `:${seconds}` : ''}`;
   }
 
   async checkHolidayMeeting(date) {

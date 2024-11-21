@@ -52,8 +52,6 @@ export class StreamingEvent extends BaseHandleEvent {
           return getUserNameByEmail(item.emailAddress);
         });
 
-      wfhUserEmail.push('man.maihong');
-
       const finUser = await this.userRepository.find({
         where: { username: In(wfhUserEmail) },
       });
