@@ -324,7 +324,6 @@ export class ReportTrackerService {
   }
 
   async handleReportJoinNcc8(args) {
-    const fridayTimestamp = Date.now();
     let formatDate;
     if (args[1]) {
       const day = args[1].slice(0, 2);
@@ -332,7 +331,9 @@ export class ReportTrackerService {
       const year = args[1].slice(6);
       formatDate = `${month}/${day}/${year}`;
     }
-    // const fridayTimestamp =formatDate ? new Date(formatDate).getTime() : this.getFriday();
+    const fridayTimestamp = formatDate
+      ? new Date(formatDate).getTime()
+      : this.getFriday();
 
     const now = new Date();
     const timestampNcc8 = new Date(
@@ -350,9 +351,11 @@ export class ReportTrackerService {
       .map((item) => {
         return getUserNameByEmail(item.emailAddress);
       });
-      const finUser = await this.userRepository.find({
-        where: { username: In(wfhUserEmail) },
-      });
+
+    const finUser = await this.userRepository.find({
+      where: { username: In(wfhUserEmail) },
+    });
+
     const userIdWfhList = finUser.map((user) => user.userId);
 
     // get data tracker
@@ -381,14 +384,18 @@ export class ReportTrackerService {
       }
       return acc;
     }, []);
-
-    let lateText = '';
-    let timeText = '';
+    const textToday = formatDate
+      ? `ngày ${formatDate}`
+      : now.getDay() === 4
+        ? 'hôm nay'
+        : 'thứ 6 tuần trước';
+    const lateTextArray = [];
+    const timeTextArray = [];
     const fifteenMinutes = 15 * 60 * 1000;
-    const userIdJoinNcc8 = []
+    const userIdJoinNcc8 = [];
     await Promise.all(
       userTracking.map(async (user) => {
-        userIdJoinNcc8.push(user.userId)
+        userIdJoinNcc8.push(user.userId);
         const findUser = await this.userRepository.findOne({
           where: { userId: user.userId },
         });
@@ -408,15 +415,17 @@ export class ReportTrackerService {
             remainingTimeInSeconds / 60,
           );
 
-          timeText += `${findUser.username} - join được tổng: ${
-            totalTimeInSeconds < 60
-              ? `${totalTimeInSeconds} giây`
-              : `${totalTimeInMinutes} phút`
-          } -> thiếu ${
-            remainingTimeInSeconds < 60
-              ? `${remainingTimeInSeconds} giây`
-              : `${remainingTimeInMinutes} phút`
-          }\n`;
+          timeTextArray.push(
+            `${findUser.username} - join tổng: ${
+              totalTimeInSeconds < 60
+                ? `${totalTimeInSeconds} giây`
+                : `${totalTimeInMinutes} phút`
+            } -> thiếu ${
+              remainingTimeInSeconds < 60
+                ? `${remainingTimeInSeconds} giây`
+                : `${remainingTimeInMinutes} phút`
+            }`,
+          );
         }
 
         // check join late
@@ -427,12 +436,36 @@ export class ReportTrackerService {
             new Date(Number(fisrtTimeJoined)),
             true,
           );
-          lateText += `${findUser.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}\n`;
+          lateTextArray.push(
+            `${findUser.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}`,
+          );
         }
       }),
     );
 
-    const userIdNotJoin = userIdWfhList.filter((id) => !userIdJoinNcc8.includes(id));
-    console.log('lateText', lateText, timeText, userIdNotJoin);
+    const userIdNotJoin = userIdWfhList.filter(
+      (id) => !userIdJoinNcc8.includes(id),
+    );
+    const userNotJoin = await Promise.all(
+      userIdNotJoin.map(async (id) => {
+        const findUser = await this.userRepository.findOne({
+          where: { userId: id },
+        });
+        if (!findUser) return;
+        return findUser.username;
+      }),
+    );
+    if (userNotJoin.length) {
+      userNotJoin.unshift(`Những người KHÔNG THAM GIA NCC8 ${textToday}`);
+    }
+    if (lateTextArray.length) {
+      lateTextArray.unshift(`Những người join NCC8 MUỘN ${textToday}`);
+    }
+    if (timeTextArray.length) {
+      timeTextArray.unshift(
+        `Những người join NCC8 KHÔNG ĐỦ 15 PHÚT ${textToday}`,
+      );
+    }
+    return { lateTextArray, timeTextArray, userNotJoin };
   }
 }

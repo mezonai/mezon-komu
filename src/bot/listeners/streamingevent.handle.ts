@@ -95,7 +95,7 @@ export class StreamingEvent extends BaseHandleEvent {
     }
   }
 
-  @Cron('1 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('1 12 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleAutoFillTimeLeave() {
     try {
       const dateNow = Date.now();

@@ -199,7 +199,85 @@ export class ReportCommand extends CommandMessage {
         }
         break;
       case 'nojoinncc8':
-        this.reportTrackerService.handleReportJoinNcc8(args);
+        const { lateTextArray, timeTextArray, userNotJoin } =
+          await this.reportTrackerService.handleReportJoinNcc8(args);
+        const chunkSize = 50;
+        const combinedArray = [
+          ...lateTextArray,
+          ...timeTextArray,
+          ...userNotJoin,
+        ];
+
+        const groupedArrays = [];
+        for (let i = 0; i < combinedArray.length; i += chunkSize) {
+          groupedArrays.push(combinedArray.slice(i, i + chunkSize));
+        }
+
+        let finalResult = [];
+        let temp = null;
+
+        for (const group of groupedArrays) {
+          let subGroup = [];
+          if (temp) {
+            subGroup.push(temp);
+            temp = null;
+          }
+
+          for (let i = 0; i < group.length; i++) {
+            if (group[i].includes('Những người')) {
+              if (i === group.length - 1) {
+                temp = group[i];
+              } else {
+                if (subGroup.length > 0) {
+                  finalResult.push(subGroup);
+                }
+                subGroup = [group[i]];
+              }
+            } else {
+              subGroup.push(group[i]);
+            }
+          }
+          if (subGroup.length > 0) {
+            finalResult.push(subGroup);
+          }
+        }
+        if (temp) {
+          finalResult.push([temp]);
+        }
+        if (finalResult.length) {
+          return finalResult.map((data) => {
+            const messageContent = '```' + data.join('\n') + '```';
+            return this.replyMessageGenerate(
+              {
+                messageContent,
+                mk: [
+                  {
+                    type: 't',
+                    s: 0,
+                    e: messageContent.length,
+                  },
+                ],
+              },
+              message,
+            );
+          });
+        } else {
+          const messageContent = '```Mọi người đều đã join NCC8 đầy đủ và đúng giờ!```'
+          return this.replyMessageGenerate(
+            {
+              messageContent,
+              mk: [
+                {
+                  type: 't',
+                  s: 0,
+                  e: messageContent.length,
+                },
+              ],
+            },
+            message,
+          );
+        }
+        
         break;
       default:
         break;
