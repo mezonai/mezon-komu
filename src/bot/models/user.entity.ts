@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, OneToMany, PrimaryColumn } from 'typeorm';
 
 import { TABLE } from '../constants/table';
 import { Bwl } from './bwl.entity';
@@ -8,6 +8,16 @@ import { TX8 } from './tx8.entity';
 import { WorkFromHome } from './wfh.entity';
 import { EUserType } from '../constants/configs';
 
+@Index([
+  'userId',
+  'username',
+  'email',
+  'user_type',
+  'last_message_id',
+  'last_bot_message_id',
+  'deactive',
+  'botPing',
+])
 @Entity(TABLE.USER)
 export class User {
   @PrimaryColumn()

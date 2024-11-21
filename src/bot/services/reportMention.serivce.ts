@@ -49,9 +49,9 @@ export class ReportMentionService {
             .lastDay.getTime(),
         },
       )
-      .groupBy('m.email')
+      .groupBy('m.email, m.deactive')
       .addGroupBy('wfh.userId')
-      .select('wfh.userId, COUNT(wfh.userId) as total, m.email')
+      .select('wfh.userId, COUNT(wfh.userId) as total, m.email, m.deactive')
       .orderBy('total', 'DESC')
       .execute();
 
@@ -68,24 +68,28 @@ export class ReportMentionService {
       ];
       return mess;
     } else {
-      const punishUsers = mentionFullday.reduce((result, user) => {
-        if (
-          offUsers.userOffAfternoon.find((offUser) => offUser === user.email)
-        ) {
-          user.userOffAffternoon = true;
-        }
+      const punishUsers = mentionFullday
+        .filter((user) => user.deactive === false)
+        .reduce((result, user) => {
+          if (
+            offUsers.userOffAfternoon.find((offUser) => offUser === user.email)
+          ) {
+            user.userOffAffternoon = true;
+          }
 
-        if (offUsers.userOffMorning.find((offUser) => offUser === user.email)) {
-          user.userOffMorning = true;
-        }
+          if (
+            offUsers.userOffMorning.find((offUser) => offUser === user.email)
+          ) {
+            user.userOffMorning = true;
+          }
 
-        if (
-          !offUsers.userOffFullday.find((offUser) => offUser === user.email)
-        ) {
-          result.push(user);
-        }
-        return result;
-      }, []);
+          if (
+            !offUsers.userOffFullday.find((offUser) => offUser === user.email)
+          ) {
+            result.push(user);
+          }
+          return result;
+        }, []);
 
       const listMessage = [];
 

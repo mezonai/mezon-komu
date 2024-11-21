@@ -43,7 +43,7 @@ export class MezonClientService {
         replyMessage.ref,
       );
     } catch (error) {
-      console.log('sendMessage', error);
+      throw error;
     }
   }
 
@@ -57,7 +57,7 @@ export class MezonClientService {
         messageToUser.refs ?? [],
       );
     } catch (error) {
-      console.log('sendMessageToUser', error);
+      throw error;
     }
   }
 
@@ -86,6 +86,7 @@ export class MezonClientService {
       );
     } catch (error) {
       console.log('reactMessageChannel', error);
+      return null;
     }
   }
 }

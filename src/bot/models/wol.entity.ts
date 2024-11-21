@@ -1,17 +1,18 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { TABLE } from "../constants/table";
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { TABLE } from '../constants/table';
 
+@Index(['author'])
 @Entity(TABLE.WOL)
 export class WOL {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @Column({ nullable: false })
-    author: string;
+  @Column({ nullable: false })
+  author: string;
 
-    @Column({ nullable: true })
-    wol: string;
+  @Column({ nullable: true })
+  wol: string;
 
-    @Column({ nullable: true, type: "decimal", default: Date.now() })
-    createAt: number;
+  @Column({ nullable: true, type: 'decimal', default: Date.now() })
+  createAt: number;
 }

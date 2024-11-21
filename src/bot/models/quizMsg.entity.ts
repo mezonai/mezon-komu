@@ -4,9 +4,11 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { TABLE } from '../constants/table';
 
+@Index(['quiz_id', 'message_id', 'channel_id', 'user_id'])
 @Entity(TABLE.QUIZ_MSG)
 export class QuizMsg {
   @PrimaryGeneratedColumn()

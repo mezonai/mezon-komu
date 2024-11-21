@@ -1,7 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
 import { TABLE } from "../constants/table";
 
+@Index(['channelId', 'id'])
 @Entity(TABLE.EVENT)
 export class EventEntity {
     @PrimaryGeneratedColumn()

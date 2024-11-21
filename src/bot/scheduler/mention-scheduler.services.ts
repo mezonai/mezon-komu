@@ -14,6 +14,7 @@ import { EMarkdownType, MezonClient } from 'mezon-sdk';
 import { EMessageMode, EUserType } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
+import { ChannelMezon } from '../models';
 
 @Injectable()
 export class MentionSchedulerService {
@@ -26,6 +27,8 @@ export class MentionSchedulerService {
     private userRepository: Repository<User>,
     @InjectRepository(WorkFromHome)
     private wfhRepository: Repository<WorkFromHome>,
+    @InjectRepository(ChannelMezon)
+    private channelRepository: Repository<ChannelMezon>,
     private schedulerRegistry: SchedulerRegistry,
     private clientConfig: ClientConfigService,
     private clientService: MezonClientService,
@@ -65,10 +68,13 @@ export class MentionSchedulerService {
     try {
       const authorName = (await this.getUserData(user.authorId))?.userName;
       if (!authorName) return;
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: user.channelId },
+      });
       const threadNoti = false;
       const textContent = `Hãy trả lời ${authorName} tại ${
         threadNoti ? 'thread' : 'channel'
-      } `;
+      } ${findChannel?.channel_label || ''}`;
       const messageToUser: ReplyMezonMessage = {
         userId: user.mentionUserId,
         textContent: textContent + `#` + ` nhé!`, // '#' at message is channel, auto fill at FE,
@@ -239,7 +245,7 @@ export class MentionSchedulerService {
             const userDb = await this.userRepository.findOne({
               where: { userId: user.mentionUserId, user_type: EUserType.MEZON },
             });
-            if (userDb) mentionedUsersMezon.push(user);
+            if (userDb && user?.channelId) mentionedUsersMezon.push(user);
           }
         }),
       );

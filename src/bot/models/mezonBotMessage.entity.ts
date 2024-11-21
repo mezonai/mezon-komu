@@ -1,11 +1,12 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { TABLE } from '../constants/table';
 
 export interface PollResult {
-  username: string,
-  emoji: string
+  username: string;
+  emoji: string;
 }
 
+@Index(['messageId', 'channelId', 'userId'])
 @Entity(TABLE.MEZON_BOT_MESSAGE)
 export class MezonBotMessage {
   @PrimaryGeneratedColumn()

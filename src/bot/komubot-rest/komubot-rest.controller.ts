@@ -32,7 +32,7 @@ import { Repository } from 'typeorm';
 import { FileType } from '../constants/configs';
 import { Uploadfile } from '../models';
 import { ClientConfigService } from '../config/client-config.service';
-import { google } from "googleapis";
+import { google } from 'googleapis';
 import { parse } from 'date-fns';
 import { ReportDailyService } from '../asterisk-commands/commands/report/reportDaily.service';
 import { ReportWFHService } from '../utils/report-wfh.serivce';
@@ -49,7 +49,7 @@ export class KomubotrestController {
     private readonly uploadFileRepository: Repository<Uploadfile>,
     private clientConfigService: ClientConfigService,
     private reportDailyService: ReportDailyService,
-    private reportWFHService: ReportWFHService
+    private reportWFHService: ReportWFHService,
   ) {}
 
   @Post('/getUserIdByUsername')
@@ -78,17 +78,30 @@ export class KomubotrestController {
     );
   }
 
-  @Get("/getInfoUserByEmail")
+  @Post('/sendMessageToChannel')
+  async sendMessageToChannel(
+    @Body() sendMessageToUserDTO: SendMessageToChannelDTO,
+    @Headers('X-Secret-Key') header,
+    @Res() res: Response,
+  ) {
+    return this.komubotrestService.sendMessageToChannel(
+      sendMessageToUserDTO,
+      header,
+      res,
+    );
+  }
+
+  @Get('/getInfoUserByEmail')
   async getInfoUser(@Query() getUserByEmailDto: GetUserIdByEmailDTO) {
     return await this.komubotrestService.getInfoUserByEmail(getUserByEmailDto);
   }
 
-  @Get("/getUserNotDaily")
-  async getUserNotDaily() {  
+  @Get('/getUserNotDaily')
+  async getUserNotDaily() {
     return await this.komubotrestService.getUserNotDaily();
   }
 
-  @Get("/getDailyReport")
+  @Get('/getDailyReport')
   async getDailyReport(@Query() query: { date: string }) {
     const date = parse(query.date, 'dd/MM/yyyy', new Date());
     const { notDaily } = await this.reportDailyService.getUserNotDaily(date);
@@ -97,7 +110,7 @@ export class KomubotrestController {
     return { daily: notDaily, mention };
   }
 
-  @Get("/reportDaily")
+  @Get('/reportDaily')
   async reportDaily(@Query() query: ReportDailyDTO) {
     return await this.komubotrestService.getReportUserDaily(query);
   }
@@ -168,17 +181,17 @@ export class KomubotrestController {
     res.send(file);
   }
 
-  @Get("/ncc8/download")
+  @Get('/ncc8/download')
   async getFile(@Res({ passthrough: true }) res: Response) {
     try {
-      const nccPath = join(__dirname, "../../../..", "uploads/");
+      const nccPath = join(__dirname, '../../../..', 'uploads/');
 
       const fileDownload = await this.komubotrestService.downloadFile();
       const file = createReadStream(join(nccPath + fileDownload[0].fileName));
 
       res.set({
-        "Content-Type": "audio/mp3",
-        "Content-Disposition": `attachment; filename=${fileDownload[0].fileName}`,
+        'Content-Type': 'audio/mp3',
+        'Content-Disposition': `attachment; filename=${fileDownload[0].fileName}`,
       });
       return new StreamableFile(file);
     } catch (error) {
@@ -186,63 +199,69 @@ export class KomubotrestController {
     }
   }
 
-  @Get("/ncc8/episode/:episode")
+  @Get('/ncc8/episode/:episode')
   async getNcc8Episode(
     @Param('episode') episode: string,
     // @Res({ passthrough: true }) res: Response
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     try {
-      const file = await this.komubotrestService.getNcc8Episode(episode, FileType.NCC8);
+      const file = await this.komubotrestService.getNcc8Episode(
+        episode,
+        FileType.NCC8,
+      );
       if (!file?.length) {
         res.status(404).send({ message: 'Not found' });
         return;
       }
 
-      const nccPath = join(__dirname, "../../../..", "uploads/");
-      res.status(200).json({ url: join(nccPath + file[0].fileName) })
+      const nccPath = join(__dirname, '../../../..', 'uploads/');
+      res.status(200).json({ url: join(nccPath + file[0].fileName) });
     } catch (error) {
       console.error('getNcc8Episode error', error);
       res.status(500).send({ message: 'Server error' });
     }
   }
 
-  @Get("/ncc8/film/:episode")
-  async getNcc8Film(
-    @Param('episode') episode: string,
-    @Res() res: Response
-  ) {
+  @Get('/ncc8/film/:episode')
+  async getNcc8Film(@Param('episode') episode: string, @Res() res: Response) {
     try {
-      const file = await this.komubotrestService.getNcc8Episode(episode, FileType.FILM);
+      const file = await this.komubotrestService.getNcc8Episode(
+        episode,
+        FileType.FILM,
+      );
       if (!file?.length) {
         res.status(404).send({ message: 'Not found' });
         return;
       }
 
-      const nccPath = "/home/nccsoft/projects/uploads/";
+      const nccPath = '/home/nccsoft/projects/uploads/';
 
-      res.status(200).json({ url: join(nccPath + file[0].fileName) })
+      res.status(200).json({ url: join(nccPath + file[0].fileName) });
     } catch (error) {
       console.error('getNcc8Episode error', error);
       res.status(500).send({ message: 'Server error' });
     }
   }
 
-  @Get("/ncc8/audio-book/:episode")
+  @Get('/ncc8/audio-book/:episode')
   async getNcc8AudioBook(
     @Param('episode') episode: string,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     try {
-      const file = await this.komubotrestService.getNcc8Episode(episode, FileType.AUDIOBOOK);
+      const file = await this.komubotrestService.getNcc8Episode(
+        episode,
+        FileType.AUDIOBOOK,
+      );
       if (!file?.length) {
         res.status(404).send({ message: 'Not found' });
         return;
       }
 
-      const nccPath = "/home/nccsoft/projects/uploads/";
+      const nccPath = '/home/nccsoft/projects/uploads/';
 
-      res.status(200).json({ url: join(nccPath + file[0].fileName) })
+      res.status(200).json({ url: join(nccPath + file[0].fileName) });
     } catch (error) {
       console.error('getNcc8Episode error', error);
       res.status(500).send({ message: 'Server error' });

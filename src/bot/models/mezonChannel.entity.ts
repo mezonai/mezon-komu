@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { TABLE } from '../constants/table';
+
+@Index(['category_id', 'channel_id', 'channel_type'])
 @Entity(TABLE.CHANNEL_MEZON)
 export class ChannelMezon {
   @PrimaryGeneratedColumn()

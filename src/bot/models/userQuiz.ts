@@ -1,7 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 import { TABLE } from '../constants/table';
 
+@Index(['quizId', 'userId', 'message_id', 'channel_id'])
 @Entity(TABLE.USERQUIZ)
 export class UserQuiz {
   @PrimaryGeneratedColumn()

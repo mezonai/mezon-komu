@@ -14,7 +14,6 @@ export function setupSwagger(app: INestApplication): INestApplication {
                 ? `${methodKey}${controllerKey.replace('Controller', '')}`
                 : methodKey,
     });
-    console.log('asdasdads')
     SwaggerModule.setup('swagger', app, document);
 
     return app;

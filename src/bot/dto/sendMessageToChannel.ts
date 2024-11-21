@@ -11,12 +11,10 @@ export class SendMessageToChannelDTO {
   fileUrl?: string;
 
   @ApiProperty({ required: true })
-  @IsOptional()
-  channelid?: string = "";
+  channelId: string = "";
 
   @ApiProperty({ required: true })
-  @IsOptional()
-  message?: string = "";
+  message: string = "";
 
   @ApiProperty({ required: true })
   @IsOptional()

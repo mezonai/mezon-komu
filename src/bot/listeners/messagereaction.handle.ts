@@ -83,7 +83,6 @@ export class EventListenerMessageReaction extends BaseHandleEvent {
         })
         .andWhere('mention.reactionTimestamp IS NULL')
         .getOne();
-      console.log('data', data);
 
       if (!data || !['checked', 'x'].includes(messageReaction.emoji)) return;
       this.mentionedRepository.update(

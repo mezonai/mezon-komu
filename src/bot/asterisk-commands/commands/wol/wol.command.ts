@@ -18,6 +18,24 @@ export class WolCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    const checkChannel =
+      message.channel_id === process.env.MEZON_WOL_CHANNEL_ID;
+    if (!checkChannel) {
+      const messageContent = "Can't use *wol here. Please go to wake-on-lan thread #";
+      return this.replyMessageGenerate(
+        {
+          messageContent,
+          hg: [
+            {
+              channelid: process.env.MEZON_WOL_CHANNEL_ID,
+              s: messageContent.length - 1,
+              e: messageContent.length,
+            },
+          ],
+        },
+        message,
+      );
+    }
     let messageContent: EWolCommand;
     const authorId = message.sender_id;
     const timeStamp = Date.now();

@@ -1,8 +1,9 @@
 import { number } from "@hapi/joi";
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 
 import { TABLE } from "../constants/table";
 
+@Index(['userId', 'username', 'channelId'])
 @Entity(TABLE.PENATLY)
 export class Penalty {
   @PrimaryGeneratedColumn()

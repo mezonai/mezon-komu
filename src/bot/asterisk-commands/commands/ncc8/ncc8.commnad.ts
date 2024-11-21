@@ -71,6 +71,7 @@ export class Ncc8Command extends CommandMessage {
               FFmpegImagePath.NCC8,
               res?.data?.url,
               channel?.streaming_url,
+              FileType.NCC8,
             )
             .catch((error) => console.log('error mp3', error));
         }
@@ -146,6 +147,20 @@ export class Ncc8Command extends CommandMessage {
         });
       }
     }
+
+    // TODO: stop stream
+    // if (args[0] === 'stop') {
+    //   this.ffmpegService.killCurrentStream(FileType.NCC8);
+    //   await sleep(1000);
+    //   const messageEply = '```Stop ncc8 successful!```';
+    //   return this.replyMessageGenerate(
+    //     {
+    //       messageContent: messageEply,
+    //       mk: [{ type: 't', s: 0, e: messageEply.length }],
+    //     },
+    //     message,
+    //   );
+    // }
 
     return this.replyMessageGenerate(
       {

@@ -27,11 +27,24 @@ export class EventAddClanUser extends BaseHandleEvent {
   @OnEvent(Events.AddClanUser)
   async handleAddClanUser(data) {
     try {
+      const textWelcome = [
+        'Hoan nghênh thành viên mới! Ở đây không có gì là không thể, chỉ có bug là bất tử thôi! 😂🔧',
+        'Chào mừng bạn gia nhập nhacuachung! Ở đây, dù bạn là coder, tester hay designer, tất cả đều chiến hết mình! 💻🎨🔥',
+        'Chào mừng đến với nhacuachung! Ở đây không phân biệt bạn là coder, tester hay designer, quan trọng là cùng nhau chiến! 💻🎨🔥',
+        "Ở nhacuachung chúng ta không chỉ 'code', mà còn 'bật' cả tương lai! Welcome onboard!  🚀🌐",
+        'Welcome to the clan! Dù bạn đến từ hành tinh nào trong giới tech, chúng ta sẽ cùng nhau xây dựng một thế giới mới! 🌌⚡',
+        'Ố ồ, ai đây? Chào mừng người bạn mới! Bot mình ở đây để làm bạn bất ngờ với sự vui tính và hữu ích của mình! 😜🎉',
+        'Hehe, thấy bạn rồi nhé! Mình đã sẵn sàng giúp đỡ bạn, nhưng nhớ rằng mình còn cực vui tính đấy! Let’s roll! 🎉💬',
+        'Welcome to nhacuachung. Đập tay nào! Bạn vừa kết nạp một đồng đội là bot mình, chuyên gia về mọi thứ và còn hài hước nữa! 😜✋',
+      ];
+      const randomIndexVoiceChannel = Math.floor(
+        Math.random() * textWelcome.length,
+      );
       const DMchannel = await this.client.createDMchannel(data?.user?.user_id);
       if (!DMchannel) return;
       await this.client.sendDMChannelMessage(
         DMchannel.channel_id,
-        'Welcome to KOMU clan. Have a great experience!',
+        textWelcome[randomIndexVoiceChannel],
       );
       const dataInsert = {
         user_id: data?.user?.user_id,

@@ -1,7 +1,8 @@
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, Index, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
 
 import { TABLE } from "../constants/table";
 
+@Index(['userid', 'email', 'channelid'])
 @Entity(TABLE.DAILY)
 export class Daily {
   @PrimaryGeneratedColumn()

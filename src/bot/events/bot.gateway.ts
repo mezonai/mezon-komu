@@ -4,6 +4,9 @@ import {
   MezonClient,
   Events,
   ChannelMessage,
+  TokenSentEvent,
+  StreamingJoinedEvent,
+  StreamingLeavedEvent,
 } from 'mezon-sdk';
 
 import {
@@ -17,6 +20,10 @@ import {
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ExtendersService } from '../services/extenders.services';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { User } from '../models';
+import { IsNull, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EUserType } from '../constants/configs';
 
 @Injectable()
 export class BotGateway {
@@ -27,13 +34,18 @@ export class BotGateway {
     private clientService: MezonClientService,
     private extendersService: ExtendersService,
     private eventEmitter: EventEmitter2,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {
     this.client = clientService.getClient();
   }
 
   initEvent() {
     for (const event in Events) {
-      const eventValue = Events[event].replace(/_event/g, '').replace(/_/g, '');
+      const eventValue =
+        Events[event] === 'clan_event_created'
+          ? Events[event].replace(/_/g, '')
+          : Events[event].replace(/_event/g, '').replace(/_/g, '');
       this.logger.log(`Init event ${eventValue}`);
       const key = `handle${eventValue}`;
       if (key in this) {
@@ -42,6 +54,25 @@ export class BotGateway {
     }
   }
   // processMessage(msg: ChannelMessage) {}
+  handletokensent = (data: TokenSentEvent) => {
+    this.eventEmitter.emit(Events.TokenSend, data);
+  };
+
+  handlemessagebuttonclicked = (data) => {
+    this.eventEmitter.emit(Events.MessageButtonClicked, data);
+  };
+
+  handlestreamingjoined = (data: StreamingJoinedEvent) => {
+    this.eventEmitter.emit(Events.StreamingJoinedEvent, data);
+  };
+
+  handlestreamingleaved = (data: StreamingLeavedEvent) => {
+    this.eventEmitter.emit(Events.StreamingLeavedEvent, data);
+  };
+
+  handleclaneventcreated = (data) => {
+    this.eventEmitter.emit(Events.ClanEventCreated, data);
+  };
 
   handlemessagereaction = async (msg: ApiMessageReaction) => {
     this.eventEmitter.emit(Events.MessageReaction, msg);
@@ -55,13 +86,13 @@ export class BotGateway {
     this.eventEmitter.emit(Events.UserClanRemoved, user);
   }
 
-  private async handlerole(msg) {
-    console.log('role event', msg);
-  }
+  handlerole = (data) => {
+    this.eventEmitter.emit(Events.RoleEvent, data);
+  };
 
-  private async handleroleassign(msg) {
-    console.log('role event assign', msg);
-  }
+  handleroleassign = (data) => {
+    this.eventEmitter.emit(Events.RoleAssign, data);
+  };
 
   handleuserchanneladded = async (user: UserChannelAddedEvent) => {
     this.eventEmitter.emit(Events.UserChannelAdded, user);
@@ -103,6 +134,11 @@ export class BotGateway {
     } catch (e) {
       console.log(e);
     }
+    const webhook = await this.userRepository.find({
+      where: { roles: IsNull(), user_type: EUserType.MEZON },
+    });
+    const webhookId = webhook.map((item) => item.userId);
+    if (webhookId.includes(msg.sender_id)) return;
     this.eventEmitter.emit(Events.ChannelMessage, msg);
   };
 }

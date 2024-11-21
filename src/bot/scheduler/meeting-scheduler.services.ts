@@ -45,11 +45,14 @@ export class MeetingSchedulerService {
           )
         )?.voice_channel_users ?? [];
     } catch (error) {
-      console.log('listChannelVoiceUsers', error);
+      console.log('listChannelVoiceUsers meeting', error);
     }
 
     const listVoiceChannel = await this.channelRepository.find({
-      where: { channel_type: ChannelType.CHANNEL_TYPE_VOICE },
+      where: {
+        channel_type: ChannelType.CHANNEL_TYPE_VOICE,
+        clan_id: this.clientConfig.clandNccId,
+      },
     });
     const listVoiceChannelIdUsed = [];
     listChannelVoiceUsers.forEach((item) => {
@@ -86,13 +89,17 @@ export class MeetingSchedulerService {
         const findChannel = await this.channelRepository.findOne({
           where: { channel_id: dataMeeing.channelId },
         });
+        const isThread =
+          findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
         const replyMessage = {
           clan_id: this.clientConfig.clandNccId,
           channel_id: dataMeeing.channelId,
           is_public: findChannel ? !findChannel?.channel_private : false,
           is_parent_public: findChannel ? findChannel?.is_parent_public : true,
           parent_id: '0',
-          mode: EMessageMode.CHANNEL_MESSAGE,
+          mode: isThread
+            ? EMessageMode.THREAD_MESSAGE
+            : EMessageMode.CHANNEL_MESSAGE,
           msg: {
             t: 'Voice channel full',
           },
@@ -184,19 +191,23 @@ export class MeetingSchedulerService {
     const findChannel = await this.channelRepository.findOne({
       where: { channel_id: data.channelId },
     });
+    const isThread =
+      findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
     const replyMessage = {
       clan_id: this.clientConfig.clandNccId,
       channel_id: data.channelId,
       is_public: findChannel ? !findChannel?.channel_private : false,
       is_parent_public: findChannel ? findChannel?.is_parent_public : true,
       parent_id: '0',
-      mode: EMessageMode.CHANNEL_MESSAGE,
+      mode: isThread
+        ? EMessageMode.THREAD_MESSAGE
+        : EMessageMode.CHANNEL_MESSAGE,
       msg: {
         t: messageContent + `# (${data?.task ?? ''})`,
         hg: [
           {
             channelid:
-              listVoiceChannelAvalable[randomIndexVoiceChannel].channel_id,
+              listVoiceChannelAvalable[randomIndexVoiceChannel]?.channel_id,
             s: messageContent.length,
             e: messageContent.length + 1,
           },

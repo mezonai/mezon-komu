@@ -45,7 +45,7 @@ export class WFHSchedulerService {
     return wfhUserEmail;
   }
 
-  @Cron('*/5 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('*/5 9-10,13-16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handlePingWFH() {
     try {
       if (await this.utilsService.checkHoliday()) return;
@@ -149,11 +149,11 @@ export class WFHSchedulerService {
     }
   }
 
-  async sendQuizzesWithLimit(userSend) {
+  async sendQuizzesWithLimit(userSend, botPing: boolean = true) {
     const delay = 200;
     for (let i = 0; i < userSend.length; i++) {
       const user = userSend[i];
-      await this.quizeService.sendQuizToSingleUser(user, true);
+      await this.quizeService.sendQuizToSingleUser(user, botPing);
       if (i < userSend.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
@@ -212,16 +212,15 @@ export class WFHSchedulerService {
             .utcOffset(420)
             .format('YYYY-MM-DD HH:mm:ss')} !\n`;
 
-          // Uncomment and modify this if needed
-          // await this.wfhRepository.save({
-          //   userId: user.userId,
-          //   wfhMsg: content,
-          //   complain: false,
-          //   pmconfirm: false,
-          //   status: 'ACTIVE',
-          //   type: 'wfh',
-          //   createdAt: Date.now(),
-          // });
+          await this.wfhRepository.save({
+            userId: user.userId,
+            wfhMsg: content,
+            complain: false,
+            pmconfirm: false,
+            status: 'ACTIVE',
+            type: 'wfh',
+            createdAt: Date.now(),
+          });
 
           const replyMessage = {
             clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
@@ -349,7 +348,7 @@ export class WFHSchedulerService {
         )
         .select('*')
         .execute();
-      await this.sendQuizzesWithLimit(userSend);
+      await this.sendQuizzesWithLimit(userSend, false);
     } catch (error) {
       console.log(error);
     }

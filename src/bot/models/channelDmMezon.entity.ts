@@ -1,7 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { TABLE } from '../constants/table';
 
+@Index(['user_id', 'username'])
 @Entity(TABLE.CHANNEL_DM_MEZON)
 export class ChannelDMMezon {
   @PrimaryGeneratedColumn()

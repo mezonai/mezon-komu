@@ -4,7 +4,7 @@ import { ChannelMessageAck, MezonClient } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ChannelMezon, User } from '../models';
 import { Repository } from 'typeorm';
-import { EMessageMode, EUserType } from '../constants/configs';
+import { EMessageMode, ErrorSocketType, EUserType } from '../constants/configs';
 import { MessageQueue } from './messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { ChannelDMMezon } from '../models/channelDmMezon.entity';
@@ -29,6 +29,8 @@ export class KomuService {
     userId,
     botPing = false,
     isSendQuiz = false,
+    components,
+    embed
   ) => {
     try {
       const userdb = await this.userRepository
@@ -45,18 +47,8 @@ export class KomuService {
       if (!userdb) {
         return null;
       }
-      // const user = await this.client.getDMchannel(userdb.userId);
-      // if (!user) {
-      //   const message = `#admin-username ơi, đồng chí ${username} không đúng format rồi!!!`;
-      //   await this.sendErrorToAdmin(
-      //     message,
-      //     process.env.KOMUBOTREST_MACHLEO_CHANNEL_ID,
-      //     0,
-      //   );
-      //   return null;
-      // }
-      // if (username == 'son.nguyenhoai') {
       let sent: ChannelMessageAck;
+      let newMessage;
       try {
         const findDMChannel = await this.channelDmMezonRepository.findOne({
           where: { user_id: userdb.userId },
@@ -72,28 +64,40 @@ export class KomuService {
             username: userdb?.username,
           };
           await this.channelDmMezonRepository.insert(dataInsert);
-          const newMessage = {
-            textContent: '```' + msg + '```',
+          newMessage = {
+            textContent: '',
             messOptions: {
               mk: [{ type: 't', s: 0, e: msg.length + 6 }],
+              components,
+              embed
             },
             channelDmId: newDMChannel.channel_id,
           };
           sent = await this.clientService.sendMessageToUser(newMessage);
         } else {
-          const newMessage = {
-            textContent: '```' + msg + '```',
+          newMessage = {
+            textContent: '',
             messOptions: {
               mk: [{ type: 't', s: 0, e: msg.length + 6 }],
+              components,
+              embed
             },
             channelDmId: findDMChannel.channel_id,
           };
           sent = await this.clientService.sendMessageToUser(newMessage);
         }
       } catch (error) {
-        this.sendErrorToDev(
-          `send wfh error: ${error}, username: ${userdb.username}`,
-        );
+        switch (error) {
+          case ErrorSocketType.TIME_OUT:
+            console.log('Message wfh get error', newMessage);
+            break;
+          // case ErrorSocketType.NOT_ESTABLISHED:
+          //   this.messageQueue.addMessage(newMessage);
+          //   break;
+          default:
+            console.log('error send wfh', error, newMessage);
+            break;
+        }
       }
 
       // msg = '```' + msg + '```';
@@ -140,30 +144,6 @@ export class KomuService {
 
       await Promise.all([
         this.sendErrorToDev(messageItAdmin),
-        // this.sendErrorToAdmin(
-        //   messageItAdmin,
-        //   process.env.KOMUBOTREST_ITADMIN_CHANNEL_ID,
-        //   messageItAdmin.indexOf('#admin-username'),
-        //   [
-        //     {
-        //       user_id: userDb.userId,
-        //       s: messageItAdmin.indexOf(userDb.email) - 1,
-        //       e: messageItAdmin.indexOf(userDb.email) + userDb.email.length,
-        //     },
-        //   ],
-        // ),
-        // this.sendErrorToAdmin(
-        //   message,
-        //   process.env.KOMUBOTREST_MACHLEO_CHANNEL_ID,
-        //   message.indexOf('#admin-username'),
-        //   [
-        //     {
-        //       user_id: userDb.userId,
-        //       s: message.indexOf(userDb.email),
-        //       e: message.indexOf(userDb.email) + userDb.email.length + 1,
-        //     },
-        //   ],
-        // ),
       ]);
 
       return null;
@@ -188,13 +168,17 @@ export class KomuService {
     const findChannel = await this.channelRepository.findOne({
       where: { channel_id: channelId },
     });
+    const isThread =
+      findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
       channel_id: channelId,
       is_public: findChannel ? !findChannel?.channel_private : false,
       is_parent_public: true,
       parent_id: '0',
-      mode: EMessageMode.CHANNEL_MESSAGE,
+      mode: isThread
+        ? EMessageMode.THREAD_MESSAGE
+        : EMessageMode.CHANNEL_MESSAGE,
       msg: {
         t: message,
       },

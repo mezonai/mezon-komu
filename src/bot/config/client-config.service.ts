@@ -310,6 +310,8 @@ export class ClientConfigService {
     this.mezonNhaCuaChungChannelId = `${configService.get<string>('MEZON_NHACUACHUNG_CHANNEL_ID')}`;
 
     this.welcomeChannelId = `${configService.get<string>('MEZON_WELCOME_CHANNEL_ID')}`;
+
+    this.newsChannelId = `${configService.get<string>('MEZON_NEWS_CHANNEL_ID')}`;
   }
 
   https: https.Agent;
@@ -540,4 +542,6 @@ export class ClientConfigService {
   mezonNhaCuaChungChannelId: string;
 
   welcomeChannelId: string;
+
+  newsChannelId: string;
 }

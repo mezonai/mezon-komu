@@ -1,16 +1,17 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-
 import { TABLE } from '../constants/table';
 import { User } from './user.entity';
 
+@Index(['user', 'userId', 'complain', 'pmconfirm', 'type'])
 @Entity(TABLE.WFH)
 export class WorkFromHome {
   @PrimaryGeneratedColumn()

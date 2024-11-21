@@ -6,9 +6,10 @@ import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import { EUserType } from 'src/bot/constants/configs';
+import { EmbedProps, EUserType } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
 import moment from 'moment';
+import { getRandomColor } from 'src/bot/utils/helper';
 
 // TODO: canot get user data from MEZON
 @Command('userinfo')
@@ -102,26 +103,52 @@ export class UserInfoCommand extends CommandMessage {
     const phoneNumber =
       (userData as any)?.data?.result?.phoneNumber ?? '(no information)';
 
-    const messageContent =
-      '```' +
-      `${findUser.username}\n` +
-      `• Username: ${findUser.username}\n` +
-      `• Id: ${findUser.userId}\n` +
-      `• Account creation: ${accountCreatedAt.format('HH:mm DD-MM-YYYY')} (${accountCreatedAt.fromNow()})\n` +
-      `• Phone: ${phoneNumber}\n` +
-      `• Project: ${projectData ? projectInfo : '(no information)'}` +
-      '```';
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `${findUser.username}'s infomation`,
+        author: {
+          name: findUser.username,
+          icon_url: findUser.avatar,
+          url: findUser.avatar,
+        },
+        thumbnail: {
+          url: findUser.avatar,
+        },
+        fields: [
+          {
+            name: `• Username`,
+            value: `  ${findUser.username}`,
+          },
+          {
+            name: `• Id`,
+            value: `  ${findUser.userId}`,
+          },
+          {
+            name: `• Account creation`,
+            value: `  ${accountCreatedAt.format('HH:mm DD-MM-YYYY')} (${accountCreatedAt.fromNow()})`,
+          },
+          {
+            name: `• Phone`,
+            value: `  ${phoneNumber}`,
+          },
+          {
+            name: `• Project`,
+            value: `  ${projectData ? projectInfo : '(no information)'}`,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: 'Powered by Mezon',
+          icon_url:
+            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+        },
+      },
+    ];
 
     return this.replyMessageGenerate(
       {
-        messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
-        attachments: [
-          {
-            url: findUser.avatar + '',
-            filetype: 'image/jpeg',
-          },
-        ],
+        embed,
       },
       message,
     );

@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelMezon } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { messHelp } from './meeting.constants';
+import { convertName } from 'src/bot/utils/helper';
 
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
@@ -61,7 +62,7 @@ export class MeetingCommand extends CommandMessage {
 
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-        if (item.participant !== message.display_name) {
+        if (convertName(item.participant) !== message.username) {
           return false;
         }
         const identifier = `${item.user_id}-${item.channel_id}`;

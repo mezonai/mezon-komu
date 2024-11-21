@@ -84,6 +84,7 @@ export class AudiobookCommand extends CommandMessage {
               FFmpegImagePath.AUDIOBOOK,
               res?.data?.url,
               channel?.streaming_url,
+              FileType.AUDIOBOOK,
             )
             .catch((error) => console.log('error mp3', error));
         }
@@ -115,7 +116,6 @@ export class AudiobookCommand extends CommandMessage {
     }
 
     if (args[0] === 'playlist') {
-      console.log('playlist');
       const dataMp3 = await this.uploadFileData.find({
         where: {
           file_type: FileType.AUDIOBOOK,
@@ -163,6 +163,21 @@ export class AudiobookCommand extends CommandMessage {
         });
       }
     }
+
+    // TODO: stop stream
+    // if (args[0] === 'stop') {
+    //   this.ffmpegService.killCurrentStream(FileType.AUDIOBOOK);
+    //   await sleep(1000);
+    //   const messageEply = '```Stop audio book successful!```';
+    //   return this.replyMessageGenerate(
+    //     {
+    //       messageContent: messageEply,
+    //       mk: [{ type: 't', s: 0, e: messageEply.length }],
+    //     },
+    //     message,
+    //   );
+    // }
+
     return this.replyMessageGenerate(
       {
         messageContent: messageContent,

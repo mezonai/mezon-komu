@@ -31,9 +31,7 @@ export class NotificationCommand extends CommandMessage {
   adjustPositionsArray(arr, decrementValue) {
     arr.forEach((item) => {
       if (typeof item.s === 'number' && typeof item.e === 'number') {
-        console.log('item', item.s);
         item.s -= decrementValue;
-        console.log('item 2', item.s);
         item.e -= decrementValue;
       }
     });
@@ -87,7 +85,6 @@ export class NotificationCommand extends CommandMessage {
             },
           },
         );
-        console.log('resNoti', resNoti);
       } catch (error) {
         console.log('errorNoti', error);
       }

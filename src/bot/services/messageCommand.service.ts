@@ -8,6 +8,7 @@ import { MezonBotMessage, User } from '../models';
 import { KomuService } from './komu.services';
 import { PollService } from './poll.service';
 import { ReactMessageChannel } from '../asterisk-commands/dto/replyMessage.dto';
+import { ErrorSocketType } from '../constants/configs';
 @Injectable()
 export class MessageCommand {
   constructor(
@@ -17,9 +18,6 @@ export class MessageCommand {
     private channelDmMezonRepository: Repository<ChannelDMMezon>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(MezonBotMessage)
-    private mezonBotMessageRepository: Repository<MezonBotMessage>,
-    private komuService: KomuService,
     private pollService: PollService,
   ) {
     this.handleCommandMessage();
@@ -64,51 +62,25 @@ export class MessageCommand {
               }
             } else {
               const messageSent = await this.clientService.sendMessage(message);
-              if (
-                message.msg.t.startsWith('```[Poll]') &&
-                messageSent.message_id
-              ) {
-                const dataMezonBotMessage = {
-                  messageId: messageSent.message_id,
-                  userId: message.sender_id,
-                  channelId: message.channel_id,
-                  content: message.msg.t + '',
-                  createAt: Date.now(),
-                  pollResult: [],
-                };
-                await this.mezonBotMessageRepository.insert(
-                  dataMezonBotMessage,
-                );
-                const options = this.pollService.getOptionPoll(message.msg.t);
-                options.push('checked');
-                options.forEach(async (option, index) => {
-                  const listEmoji = this.pollService.getEmojiDefault();
-                  const dataReact: ReactMessageChannel = {
-                    clan_id: message.clan_id,
-                    channel_id: message.channel_id,
-                    is_public: message.is_public,
-                    is_parent_public: message.is_parent_public,
-                    message_id: messageSent.message_id,
-                    emoji_id:
-                      option === 'checked'
-                        ? listEmoji[option]
-                        : listEmoji[index + 1 + ''],
-                    emoji: option === 'checked' ? option : index + '',
-                    count: 1,
-                    mode: message.mode,
-                    message_sender_id: process.env.BOT_KOMU_ID,
-                  };
-                  await this.clientService.reactMessageChannel(dataReact);
-                });
+              if (messageSent) {
+                this.pollService.handelReactPollMessage(message, messageSent);
               }
             }
           } catch (error) {
-            this.komuService.sendErrorToDev(
-              `send message error: ${JSON.stringify(message)}`,
-            );
+            switch (error) {
+              case ErrorSocketType.TIME_OUT:
+                console.log('Message get error', message);
+                break;
+              case ErrorSocketType.NOT_ESTABLISHED:
+                this.messageQueue.addMessage(message);
+                break;
+              default:
+                console.log('error send', error);
+                break;
+            }
           }
         }
       }
-    }, 200);
+    }, 50);
   }
 }

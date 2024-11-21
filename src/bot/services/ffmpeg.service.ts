@@ -4,18 +4,40 @@ import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from 'ffprobe-static';
 import * as path from 'path';
 import * as fs from 'fs';
-import { FFmpegImagePath } from 'src/bot/constants/configs';
+import { FFmpegImagePath, FileType } from 'src/bot/constants/configs';
 @Injectable()
 export class FFmpegService {
+  private streamNcc8;
+  private streamAudioBook;
+  private streamFilm;
   constructor() {
-    ffmpeg.setFfmpegPath(ffmpegPath);
+    // ffmpeg.setFfmpegPath(ffmpegPath);
+    ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
     ffmpeg.setFfprobePath(ffprobePath.path);
+  }
+
+  killCurrentStream(type: FileType) {
+    if (!this.streamNcc8) return;
+    switch (type) {
+      case FileType.NCC8:
+        this.streamNcc8.kill('SIGKILL');
+        break;
+      case FileType.AUDIOBOOK:
+        // this.streamAudioBook.kill('SIGKILL');
+        break;
+      case FileType.FILM:
+        // this.streamFilm.kill('SIGKILL');
+        break;
+      default:
+        break;
+    }
   }
 
   transcodeMp3ToRtmp(
     imagePath: string,
     inputPath: string,
     rtmpUrl: string,
+    type: FileType,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       if (imagePath === '') {
@@ -23,7 +45,7 @@ export class FFmpegService {
       }
       const imagePathJoined = path.join(process.cwd(), imagePath);
 
-      ffmpeg()
+      const ffmpegStream = ffmpeg()
         .input(imagePathJoined)
         .inputOptions('-re')
         .loop()
@@ -44,6 +66,17 @@ export class FFmpegService {
           reject(err);
         })
         .run();
+
+      switch (type) {
+        case FileType.NCC8:
+          this.streamNcc8 = ffmpegStream;
+          break;
+        case FileType.AUDIOBOOK:
+          this.streamAudioBook = ffmpegStream;
+          break;
+        default:
+          break;
+      }
     });
   }
 
@@ -147,7 +180,7 @@ export class FFmpegService {
             break;
         }
 
-        ffmpegCommand
+        this.streamFilm = ffmpegCommand
           .outputOptions(outputOptions)
           .output(rtmpUrl)
           .on('start', (commandLine) => {

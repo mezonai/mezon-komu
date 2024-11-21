@@ -2,21 +2,25 @@ import { ChannelMessage } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { CommandStorage } from 'src/bot/base/storage';
+import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 
 @Command('help')
 export class HelpCommand extends CommandMessage {
-  constructor() {
+  constructor(private dynamicCommandService: DynamicCommandService) {
     super();
   }
 
   execute(args: string[], message: ChannelMessage) {
     const allCommands = CommandStorage.getAllCommands();
+    const allCommandsCustom =
+      this.dynamicCommandService.getDynamicCommandList();
     const hidenCommandList = [
       'holiday',
       'register',
       'toggleactive',
       'checkchannel',
       'toggleprivatechannel',
+      'togglechannel',
     ];
     const allCommandKeys = Array.from(allCommands.keys()).filter(
       (item) => !hidenCommandList.includes(item),
@@ -30,6 +34,11 @@ export class HelpCommand extends CommandMessage {
       ')' +
       '\n' +
       allCommandKeys.join(', ') +
+      '\n• Custom Command (' +
+      allCommandsCustom.length +
+      ')' +
+      '\n' +
+      allCommandsCustom.join(', ') +
       '```';
     return this.replyMessageGenerate(
       {

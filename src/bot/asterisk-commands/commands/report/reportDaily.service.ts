@@ -98,8 +98,6 @@ export class ReportDailyService {
       getUserNameByEmail(item.emailAddress),
     );
 
-    console.log('wfhUserEmail', wfhUserEmail);
-
     const [wfhMorning, wfhAfternoon, wfhFullday] = [
       'Morning',
       'Afternoon',
@@ -131,7 +129,7 @@ export class ReportDailyService {
         today: Date.now() - 86400 * 1000,
       })
       .andWhere('"userId" != :userId', { userId: process.env.BOT_KOMU_ID })
-      .andWhere('user_type = :userType', {
+      .andWhere('"user_type" = :userType', {
         userType: EUserType.MEZON.toString(),
       })
       .andWhere(`"deactive" IS NOT TRUE`)
@@ -244,7 +242,7 @@ export class ReportDailyService {
             today: Date.now() - dayToMilliseconds,
           })
           .andWhere('"userId" != :userId', { userId: process.env.BOT_KOMU_ID })
-          .andWhere('user_type = :userType', {
+          .andWhere('"user_type" = :userType', {
             userType: EUserType.MEZON.toString(),
           })
           .andWhere(`"deactive" IS NOT TRUE`)
@@ -258,7 +256,6 @@ export class ReportDailyService {
         userNotDaily[i] = notDaily[i];
       }
     }
-    console.log('userNotDaily 2222', [...userNotDaily]);
     return {
       notDaily,
       userNotDaily,
