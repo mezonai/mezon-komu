@@ -161,6 +161,21 @@ export class MovieCommand extends CommandMessage {
         });
       }
     }
+
+    // TODO: stop stream
+    // if (args[0] === 'stop') {
+    //   this.ffmpegService.killCurrentStream(FileType.FILM);
+    //   await sleep(1000);
+    //   const messageEply = '```Stop film successful!```';
+    //   return this.replyMessageGenerate(
+    //     {
+    //       messageContent: messageEply,
+    //       mk: [{ type: 't', s: 0, e: messageEply.length }],
+    //     },
+    //     message,
+    //   );
+    // }
+
     return this.replyMessageGenerate(
       {
         messageContent: messageContent,

@@ -88,37 +88,31 @@ export class SendMessageSchedulerService {
       if (!getListUserLogTimesheet) return;
 
       const results = getListUserLogTimesheet?.data?.result;
-
+      const usernameList = []
       await Promise.all(
         results.map(async (item) => {
-          const list = await this.utilsService.getUserNameByEmail(
+          const email = await this.utilsService.getUserNameByEmail(
             item.emailAddress,
           );
 
           const checkUser = await this.userRepository
             .createQueryBuilder()
-            .where(`"email" = :email`, { email: list })
+            .where(`"email" = :email`, { email: email })
             .andWhere(`"deactive" IS NOT TRUE`)
             .andWhere('"user_type" = :userType', { userType: EUserType.MEZON })
-            .select('*')
-            .execute();
+            .select()
+            .getOne();
           if (!checkUser || checkUser.user_type !== EUserType.MEZON) return;
-          await Promise.all(
-            checkUser.map(async (user) => {
-              try {
-                const messageToUser: ReplyMezonMessage = {
-                  userId: user.userId,
-                  textContent:
-                    'Nhớ submit timesheet cuối tuần tránh bị phạt bạn nhé!!! Nếu bạn có tham gia opentalk bạn hãy log timesheet vào project company activities nhé.',
-                };
-                this.messageQueue.addMessage(messageToUser);
-              } catch (error) {
-                console.log('checkUser', error);
-              }
-            }),
-          );
+          usernameList.push(checkUser.username);
+          const messageToUser: ReplyMezonMessage = {
+            userId: checkUser.userId,
+            textContent:
+              'Nhớ submit timesheet cuối tuần tránh bị phạt bạn nhé!!! Nếu bạn có tham gia opentalk bạn hãy log timesheet vào project company activities nhé.',
+          };
+          this.messageQueue.addMessage(messageToUser);
         }),
       );
+      console.log('sendSubmitTimesheet', usernameList)
     } catch (error) {
       console.log(error);
     }
@@ -209,8 +203,8 @@ export class SendMessageSchedulerService {
           },
         },
       );
-      const { userOffFullday } = await this.utilsService.getUserOffWork(null);
-
+      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
+      const usernameList = [];
       await Promise.all(
         listsUser.data.map(async (user) => {
           const query = this.userRepository
@@ -233,6 +227,7 @@ export class SendMessageSchedulerService {
             checkUser.userId &&
             checkUser.user_type === EUserType.MEZON
           ) {
+            usernameList.push(checkUser.username);
             const messageToUser: ReplyMezonMessage = {
               userId: checkUser.userId,
               textContent:
@@ -246,6 +241,7 @@ export class SendMessageSchedulerService {
           }
         }),
       );
+      console.log('sendMessTurnOffPc', usernameList);
     } catch (error) {
       console.error('Error in sendMessTurnOffPc:', error);
     }
@@ -266,8 +262,8 @@ export class SendMessageSchedulerService {
       const userListNotCheckOut = listsUser.data.filter(
         (user) => user.checkout === null,
       );
-      const { userOffFullday } = await this.utilsService.getUserOffWork(null);
-
+      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
+      const usernameList = [];
       await Promise.all(
         userListNotCheckOut.map(async (user) => {
           const query = this.userRepository
@@ -290,18 +286,16 @@ export class SendMessageSchedulerService {
 
           const checkUser = await query.select('user').getOne();
           if (checkUser?.userId && checkUser.user_type === EUserType.MEZON) {
+            usernameList.push(checkUser.username);
             const messageToUser: ReplyMezonMessage = {
               userId: checkUser.userId,
               textContent: 'Đừng quên checkout trước khi ra về nhé!!!',
             };
             this.messageQueue.addMessage(messageToUser);
-            // await this.client.sendMessageUser(
-            //   checkUser.userId,
-            //   'Đừng quên checkout trước khi ra về nhé!!!',
-            // );
           }
         }),
       );
+      console.log('remindCheckout', usernameList);
     } catch (error) {
       console.error('Error in remindCheckout:', error);
     }
@@ -318,7 +312,7 @@ export class SendMessageSchedulerService {
       if (type === 'morning') {
         userNotDaily = [...notDailyMorning, ...notDailyFullday];
       }
-
+      const usernameList = [];
       await Promise.all(
         userNotDaily.map(async (username) => {
           try {
@@ -334,6 +328,7 @@ export class SendMessageSchedulerService {
               .getOne();
 
             if (userdb && userdb.user_type === EUserType.MEZON) {
+              usernameList.push(userdb.username);
               const messageToUser: ReplyMezonMessage = {
                 userId: userdb.userId,
                 textContent:
@@ -342,18 +337,13 @@ export class SendMessageSchedulerService {
                     : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.",
               };
               this.messageQueue.addMessage(messageToUser);
-              // await this.client.sendMessageUser(
-              //   userdb.userId,
-              //   type === 'last'
-              //     ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
-              //     : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.",
-              // );
             }
           } catch (error) {
             console.error(error);
           }
         }),
       );
+      console.log(`remindDaily ${type}`, usernameList);
     } catch (error) {
       console.log(error);
     }

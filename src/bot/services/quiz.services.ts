@@ -6,6 +6,10 @@ import { UserQuiz } from 'src/bot/models/userQuiz';
 import { Repository } from 'typeorm';
 import { KomuService } from './komu.services';
 import { EUserType } from '../constants/configs';
+import { ChannelDMMezon } from '../models/channelDmMezon.entity';
+import { getRandomColor } from '../utils/helper';
+import { EMessageComponentType, EButtonMessageStyle } from 'mezon-sdk';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class QuizService {
@@ -17,6 +21,9 @@ export class QuizService {
     @InjectRepository(Quiz)
     private quizRepository: Repository<Quiz>,
     private komubotrestService: KomuService,
+    @InjectRepository(ChannelDMMezon)
+    private channelDmMezonRepository: Repository<ChannelDMMezon>,
+    private clientService: MezonClientService,
   ) {}
 
   async randomQuiz(userInput, roleSelect) {
@@ -28,13 +35,13 @@ export class QuizService {
     let roles;
     let roleRandom;
     if (!roleSelect) {
-      if (userInput.roles && userInput.roles.length > 0) {
-        roles = [...userInput.roles, 'policy', 'english'];
-        roleRandom =
-          roles[Math.floor(Math.random() * roles.length)].toLowerCase();
-      } else {
-        roleRandom = 'policy';
-      }
+      // if (userInput.roles && userInput.roles.length > 0) {
+      roles = ['policy', 'english', 'excel', 'dev'];
+      roleRandom =
+        roles[Math.floor(Math.random() * roles.length)].toLowerCase();
+      // } else {
+      //   roleRandom = 'policy';
+      // }
     } else {
       roleRandom = roleSelect;
     }
@@ -83,19 +90,32 @@ export class QuizService {
   async sendQuizToSingleUser(userInput, botPing = false, roleSelect = null) {
     if (!userInput) return;
     const userId = userInput.userId;
+    const channelDm = await this.channelDmMezonRepository.findOne({
+      where: { user_id: userId },
+    });
+    let channelDmId = channelDm?.channel_id;
+    if (!channelDmId) {
+      const newDmChannel = await this.clientService.createDMchannel(userId);
+      if (!newDmChannel) {
+        console.log(userId);
+      }
+      channelDmId = newDmChannel?.channel_id;
+    }
     const username = userInput.username;
 
     const q = await this.randomQuiz(userInput, roleSelect);
 
     if (!q) return;
 
-    let mess = this.generateQuestion(q);
-    mess = `${mess}\n(Bạn vui lòng trả lời bằng cách reply câu hỏi và trả lời đáp án bạn lựa chọn)`;
+    let { mess, components, embed } = this.generateQuestion(q, channelDmId);
+    mess = `${mess}\n(Chọn đáp án đúng tương ứng phía bên dưới!)`;
     const sendMess = await this.komubotrestService.sendMessageKomuToUser(
       mess,
       userId,
       botPing,
       true,
+      components,
+      embed,
     );
 
     if (sendMess) {
@@ -108,14 +128,47 @@ export class QuizService {
     }
   }
 
-  generateQuestion(question) {
+  generateQuestion(question, channelDmId) {
     const title = question.topic
       ? `[${question.topic.toUpperCase()}] ${question.title}`
       : question.title;
+    const buttons = [];
     const mess = `${title}\n ${question.options
-      .map((otp, index) => `${index + 1} - ${otp}`)
+      .map((otp, index) => {
+        buttons.push({
+          type: EMessageComponentType.BUTTON,
+          id: `question_${index + 1}_${channelDmId}`,
+          component: {
+            label: `${index + 1}`,
+            style: EButtonMessageStyle.PRIMARY,
+          },
+        });
+        return `${index + 1} - ${otp}`;
+      })
       .join('\n ')}`;
-    return mess;
+
+    const components = [
+      {
+        components: buttons,
+      },
+    ];
+    const embed = [
+      {
+        color: getRandomColor(),
+        title: `${title}`,
+        description:
+          '```' +
+          `${question.options
+            .map((otp, index) => {
+              return `${index + 1} - ${otp}`;
+            })
+            .join('\n')}` +
+          '' +
+          '```' +
+          '\n(Chọn đáp án đúng tương ứng phía bên dưới!)',
+      },
+    ];
+    return { mess, components, embed };
   }
   async addScores(userId) {
     try {

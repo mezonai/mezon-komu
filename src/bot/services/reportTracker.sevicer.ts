@@ -1,6 +1,6 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { WorkFromHome } from 'src/bot/models/wfh.entity';
-import { Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import moment from 'moment';
 import https from 'https';
@@ -8,6 +8,8 @@ import { UtilsService } from './utils.services';
 import { TimeSheetService } from './timesheet.services';
 import { AxiosClientService } from './axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
+import { MezonTrackerStreaming, User } from '../models';
+import { getUserNameByEmail } from '../utils/helper';
 
 @Injectable()
 export class ReportTrackerService {
@@ -15,6 +17,11 @@ export class ReportTrackerService {
     private utilsService: UtilsService,
     private readonly axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
+    @InjectRepository(MezonTrackerStreaming)
+    private mezonTrackerStreamingRepository: Repository<MezonTrackerStreaming>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private timeSheetService: TimeSheetService,
   ) {}
 
   messTrackerHelp =
@@ -304,5 +311,128 @@ export class ReportTrackerService {
     } catch (error) {
       console.log(error);
     }
+  }
+
+  getFriday() {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = (dayOfWeek - 5 + 7) % 7;
+    const friday = new Date(now);
+    friday.setDate(now.getDate() - diff);
+    const utcPlus7 = new Date(friday.getTime() + 7 * 60 * 60 * 1000);
+    return utcPlus7.getTime();
+  }
+
+  async handleReportJoinNcc8(args) {
+    const fridayTimestamp = Date.now();
+    let formatDate;
+    if (args[1]) {
+      const day = args[1].slice(0, 2);
+      const month = args[1].slice(3, 5);
+      const year = args[1].slice(6);
+      formatDate = `${month}/${day}/${year}`;
+    }
+    // const fridayTimestamp =formatDate ? new Date(formatDate).getTime() : this.getFriday();
+
+    const now = new Date();
+    const timestampNcc8 = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      9,
+      0,
+    ).getTime();
+
+    //get user wfh id
+    const wfhResult = await this.timeSheetService.findWFHUser();
+    const wfhUserEmail = wfhResult
+      .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
+      .map((item) => {
+        return getUserNameByEmail(item.emailAddress);
+      });
+      const finUser = await this.userRepository.find({
+        where: { username: In(wfhUserEmail) },
+      });
+    const userIdWfhList = finUser.map((user) => user.userId);
+
+    // get data tracker
+    const findUser = await this.mezonTrackerStreamingRepository.find({
+      where: {
+        joinAt: Between(fridayTimestamp - 86400000, fridayTimestamp + 86400000),
+      },
+    });
+    if (!findUser.length) {
+      console.log('NODATA');
+      return;
+    }
+    const sortedFindUser = findUser.sort((a, b) => a.joinAt - b.joinAt);
+    const userTracking = sortedFindUser.reduce((acc, curr) => {
+      const existingUser = acc.find((item) => item.userId === curr.userId);
+
+      if (existingUser) {
+        existingUser.joinAt.push(curr.joinAt);
+        existingUser.leaveAt.push(curr.leaveAt);
+      } else {
+        acc.push({
+          userId: curr.userId,
+          joinAt: [curr.joinAt],
+          leaveAt: [curr.leaveAt],
+        });
+      }
+      return acc;
+    }, []);
+
+    let lateText = '';
+    let timeText = '';
+    const fifteenMinutes = 15 * 60 * 1000;
+    const userIdJoinNcc8 = []
+    await Promise.all(
+      userTracking.map(async (user) => {
+        userIdJoinNcc8.push(user.userId)
+        const findUser = await this.userRepository.findOne({
+          where: { userId: user.userId },
+        });
+
+        // check join not enough time
+        let totalJoinTime = 0;
+        user.joinAt.map((time, index) => {
+          totalJoinTime += user.leaveAt[index] - time;
+        });
+
+        if (totalJoinTime < fifteenMinutes) {
+          const totalTimeInSeconds = Math.round(totalJoinTime / 1000);
+          const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60);
+          const remainingTime = fifteenMinutes - totalJoinTime;
+          const remainingTimeInSeconds = Math.round(remainingTime / 1000);
+          const remainingTimeInMinutes = Math.round(
+            remainingTimeInSeconds / 60,
+          );
+
+          timeText += `${findUser.username} - join được tổng: ${
+            totalTimeInSeconds < 60
+              ? `${totalTimeInSeconds} giây`
+              : `${totalTimeInMinutes} phút`
+          } -> thiếu ${
+            remainingTimeInSeconds < 60
+              ? `${remainingTimeInSeconds} giây`
+              : `${remainingTimeInMinutes} phút`
+          }\n`;
+        }
+
+        // check join late
+        const fisrtTimeJoined = user.joinAt[0];
+        if (fisrtTimeJoined > timestampNcc8) {
+          const timelate = (fisrtTimeJoined - timestampNcc8) / 1000;
+          const dateTime = this.utilsService.formatDate(
+            new Date(Number(fisrtTimeJoined)),
+            true,
+          );
+          lateText += `${findUser.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}\n`;
+        }
+      }),
+    );
+
+    const userIdNotJoin = userIdWfhList.filter((id) => !userIdJoinNcc8.includes(id));
+    console.log('lateText', lateText, timeText, userIdNotJoin);
   }
 }

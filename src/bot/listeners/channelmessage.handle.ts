@@ -22,7 +22,7 @@ import {
   UserQuiz,
 } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BOT_ID, EMessageMode } from '../constants/configs';
+import { BOT_ID, EMessageMode, EUserType } from '../constants/configs';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ApiUrl } from '../constants/api_url';
 import {
@@ -63,6 +63,12 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
+      const client = await this.userRepository
+        .createQueryBuilder('user')
+        .where(':role = ANY(user.roles)', { role: '1832750986804858880' })
+        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .getMany();
+      const clientId = client.map((item) => item.userId);
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: message.channel_id },
       });
@@ -128,6 +134,7 @@ export class EventListenerChannelMessage {
         message.mentions.forEach(async (user) => {
           if (
             user?.user_id === this.clientConfigService.botKomuId ||
+            clientId.includes(user?.user_id) ||
             user?.role_id
           )
             return;
@@ -306,7 +313,9 @@ export class EventListenerChannelMessage {
                 if (!checkAnswerFormat(answer, question['options'].length)) {
                   mess = `Bạn vui lòng trả lời đúng số thứ tự các đáp án câu hỏi`;
                 } else {
-                  if (Number(answer) === Number(question['correct'])) {
+                  const correctAnser =
+                    Number(answer) === Number(question['correct']);
+                  if (correctAnser) {
                     const newUser = await this.quizService.addScores(
                       userQuiz['userId'],
                     );
@@ -325,22 +334,24 @@ export class EventListenerChannelMessage {
                       Number(answer),
                     );
                   }
-
-                  mess = `${mess}\nClick on the following link if you want to complain `;
                   const link = `https://quiz.nccsoft.vn/question/update/${userQuiz['quizId']}`;
-                  messOptions['lk'] = [
+                  messOptions['embed'] = [
                     {
-                      s: mess.length,
-                      e: mess.length + link.length,
+                      color: `${correctAnser ? '#1E9F2E' : '#ff0101'}`,
+                      title: `${mess}`,
+                    },
+                    {
+                      color: `${'#ff0101'}`,
+                      title: `Complain`,
+                      url: link,
                     },
                   ];
-                  mess = mess + link;
                 }
               }
             }
             const messageToUser: ReplyMezonMessage = {
               userId: msg.sender_id,
-              textContent: mess,
+              textContent: userQuiz['answer'] ? mess : '',
               messOptions: messOptions,
               attachments: [],
               refs: refGenerate(msg),
@@ -348,9 +359,8 @@ export class EventListenerChannelMessage {
             this.messageQueue.addMessage(messageToUser);
           }
         }
-        const userQuiz = await query.getRawOne();
         await this.userRepository.update(
-          { userId: userQuiz['userId'] as string },
+          { userId: msg.sender_id },
           {
             botPing: false,
           },

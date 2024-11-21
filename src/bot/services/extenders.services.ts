@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../models/user.entity';
-import { ChannelMessage } from 'mezon-sdk';
+import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { EUserType } from '../constants/configs';
-
+import { MezonClientService } from 'src/mezon/services/client.service';
 @Injectable()
 export class ExtendersService {
+  private client: MezonClient;
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+    private clientService: MezonClientService,
+  ) {
+    this.client = this.clientService.getClient();
+  }
 
   async addDBUser(message: ChannelMessage) {
     if (message.sender_id === '1767478432163172999') return; // ignored anonymous user
@@ -32,7 +37,7 @@ export class ExtendersService {
       findUser.flags = 0;
       findUser.last_message_id = message.message_id;
       findUser.last_message_time = Date.now();
-      findUser.deactive = false;
+      findUser.deactive = findUser.deactive;
       findUser.botPing = findUser.botPing;
       findUser.scores_workout = 0;
       findUser.not_workout = 0;

@@ -1,4 +1,5 @@
 export const TABLE = {
+  NEWS: 'komu_news',
   DAILY: 'komu_daily',
   WORKOUT: 'komu_workout',
   OPEN_TALK: 'komu_opentalk',
@@ -46,7 +47,12 @@ export const TABLE = {
   IMPORTANT_SMS: 'komu_importantSms',
   WOL: 'komu_wol',
   DYNAMIC: 'komu_dynamic',
+  DYNAMIC_MEZON: 'komu_dynamicMezon',
   CHANNEL_MEZON: 'komu_channelmezon',
   QUIZ_MSG: 'komu_quizmsg',
   MEZON_BOT_MESSAGE: 'komu_mezonBotMessage',
+  ROLE_MEZON: 'komu_roleMezon',
+  EVENT_MEZON: 'komu_eventMezon',
+  BET_EVENT_MEZON: 'komu_betEventMezon',
+  MEZON_TRACKER_STREAMING: 'komu_mezonTrackerStreaming'
 };

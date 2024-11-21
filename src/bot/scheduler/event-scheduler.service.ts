@@ -47,7 +47,7 @@ export class EventSchedulerService {
           )
         )?.voice_channel_users ?? [];
     } catch (error) {
-      console.log('listChannelVoiceUsers', error);
+      console.log('listChannelVoiceUsers event', error);
     }
 
     const listVoiceChannel = await this.channelRepository.find({

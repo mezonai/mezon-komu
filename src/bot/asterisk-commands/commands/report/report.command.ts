@@ -198,6 +198,9 @@ export class ReportCommand extends CommandMessage {
           );
         }
         break;
+      case 'nojoinncc8':
+        this.reportTrackerService.handleReportJoinNcc8(args);
+        break;
       default:
         break;
     }

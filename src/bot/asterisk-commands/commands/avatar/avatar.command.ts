@@ -1,20 +1,25 @@
-import { ChannelMessage } from 'mezon-sdk';
+import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { UserStatusService } from '../user-status/userStatus.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import { EUserType } from 'src/bot/constants/configs';
+import { EmbedProps, EUserType } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
+import { MezonClientService } from 'src/mezon/services/client.service';
+import { getRandomColor } from 'src/bot/utils/helper';
 
 @Command('avatar')
 export class AvatarCommand extends CommandMessage {
+  private client: MezonClient;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private clientService: MezonClientService,
   ) {
     super();
+    this.client = this.clientService.getClient();
   }
 
   async execute(args: string[], message: ChannelMessage) {
@@ -66,15 +71,28 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
-    messageContent = findUser.avatar + '';
+    const embed: EmbedProps[] = [{
+      color: getRandomColor(),
+      title: `${findUser.username}'s avatar`,
+      author: {
+        name: findUser.username,
+        icon_url: findUser.avatar,
+        url: findUser.avatar,
+      },
+      image: {
+        url: findUser.avatar,
+      },
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Powered by Mezon',
+        icon_url:
+          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+      },
+    }];
+
     return this.replyMessageGenerate(
       {
-        attachments: [
-          {
-            url: findUser.avatar + '',
-            filetype: 'image/jpeg',
-          },
-        ],
+        embed,
       },
       message,
     );
