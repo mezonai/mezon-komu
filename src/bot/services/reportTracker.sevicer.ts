@@ -347,8 +347,8 @@ export class ReportTrackerService {
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
-      9,
-      0,
+      11,
+      30,
     ).getTime();
 
     //get user wfh id
@@ -399,11 +399,13 @@ export class ReportTrackerService {
     const userIdJoinNcc8 = [];
     await Promise.all(
       userTracking.map(async (user) => {
-        userIdJoinNcc8.push(user.userId);
+        if (!user.userId) return;
         const findUser = await this.userRepository.findOne({
           where: { userId: user.userId },
         });
         if (!findUser) return;
+        console.log('findUser', findUser.username)
+        userIdJoinNcc8.push(user.userId);
         // check join not enough time
         let totalJoinTime = 0;
         user.joinAt.map((time, index) => {
