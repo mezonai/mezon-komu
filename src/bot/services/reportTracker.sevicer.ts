@@ -10,6 +10,7 @@ import { AxiosClientService } from './axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import { MezonTrackerStreaming, User } from '../models';
 import { getUserNameByEmail } from '../utils/helper';
+import { EUserType } from '../constants/configs';
 
 @Injectable()
 export class ReportTrackerService {
@@ -360,7 +361,7 @@ export class ReportTrackerService {
       });
       console.log('wfhUserEmail', wfhUserEmail, wfhUserEmail.length)
     const findUserWfh = await this.userRepository.find({
-      where: { username: In(wfhUserEmail) },
+      where: { username: In(wfhUserEmail), user_type: EUserType.MEZON },
     });
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
@@ -401,7 +402,7 @@ export class ReportTrackerService {
       userTracking.map(async (user) => {
         if (!user.userId) return;
         const findUser = await this.userRepository.findOne({
-          where: { userId: user.userId },
+          where: { userId: user.userId, user_type: EUserType.MEZON },
         });
         if (!findUser) return;
         console.log('findUser', findUser.username)
@@ -456,7 +457,7 @@ export class ReportTrackerService {
     const userNotJoin = await Promise.all(
       userIdNotJoin.map(async (id) => {
         const findUser = await this.userRepository.findOne({
-          where: { userId: id },
+          where: { userId: id, user_type: EUserType.MEZON },
         });
         if (!findUser) return;
         return findUser.username;

@@ -9,6 +9,7 @@ import { In, IsNull, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { TimeSheetService } from '../services/timesheet.services';
 import { getUserNameByEmail } from '../utils/helper';
+import { EUserType } from '../constants/configs';
 
 @Injectable()
 export class StreamingEvent extends BaseHandleEvent {
@@ -55,7 +56,7 @@ export class StreamingEvent extends BaseHandleEvent {
         });
 
       const findUserWfh = await this.userRepository.find({
-        where: { username: In(wfhUserEmail) },
+        where: { username: In(wfhUserEmail), user_type: EUserType.MEZON },
       });
 
       const userIdList = findUserWfh.map((user) => user.userId);
