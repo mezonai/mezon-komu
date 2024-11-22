@@ -25,8 +25,10 @@ export class StreamingEvent extends BaseHandleEvent {
 
   isOutsideTimeRangeNcc8(dateNow) {
     const currentDate = new Date(dateNow);
-    const hours = currentDate.getHours();
-    const minutes = currentDate.getMinutes();
+    const hoursUTC = currentDate.getUTCHours();
+    const minutesUTC = currentDate.getUTCMinutes();
+    const hours = (hoursUTC + 7) % 24;
+    const minutes = minutesUTC;
     if (
       hours < 11 ||
       (hours === 11 && minutes < 29) ||
@@ -43,7 +45,7 @@ export class StreamingEvent extends BaseHandleEvent {
     try {
       const dateNow = Date.now();
 
-      if (!this.isOutsideTimeRangeNcc8(dateNow)) return; //check time ncc8
+      if (this.isOutsideTimeRangeNcc8(dateNow)) return; //check time ncc8
 
       const wfhResult = await this.timeSheetService.findWFHUser();
       const wfhUserEmail = wfhResult
@@ -80,7 +82,7 @@ export class StreamingEvent extends BaseHandleEvent {
   async handleLeaveNCC8(data: StreamingLeavedEvent) {
     try {
       const dateNow = Date.now();
-      if (!this.isOutsideTimeRangeNcc8(dateNow)) return;
+      if (this.isOutsideTimeRangeNcc8(dateNow)) return;
 
       const findNcc8 = await this.mezonTrackerStreamingRepository.findOne({
         where: { id: data.id, userId: data.streaming_user_id },
