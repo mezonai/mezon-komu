@@ -5,6 +5,10 @@ import { UserStatusService } from './userStatus.service';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { EUserStatusCommand } from './userStatus.constants';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
+import { InjectRepository } from '@nestjs/typeorm';
+import { EUserType } from 'src/bot/constants/configs';
+import { User } from 'src/bot/models';
+import { Repository } from 'typeorm';
 
 @Command('userstatus')
 export class UserStatusCommand extends CommandMessage {
@@ -12,6 +16,8 @@ export class UserStatusCommand extends CommandMessage {
     private userStatusService: UserStatusService,
     private readonly clientConfig: ClientConfigService,
     private readonly axiosClientService: AxiosClientService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {
     super();
   }
@@ -27,7 +33,21 @@ export class UserStatusCommand extends CommandMessage {
         message,
       );
     }
-    const userEmail = args[0];
+    let userEmail = args[0];
+    if (
+      Array.isArray(message.mentions) &&
+      message.mentions.length &&
+      args[0]?.startsWith('@')
+    ) {
+      const findUser = await this.userRepository.findOne({
+        where: {
+          userId: message.mentions[0].user_id,
+          user_type: EUserType.MEZON,
+        },
+      });
+      userEmail = findUser?.username ?? 'null';
+    }
+    
     const user = await this.userStatusService.getUserByEmail(userEmail);
 
     if (user.length === 0) {
