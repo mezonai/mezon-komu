@@ -358,22 +358,22 @@ export class ReportTrackerService {
       .map((item) => {
         return getUserNameByEmail(item.emailAddress);
       });
-
-    const finUser = await this.userRepository.find({
+      console.log('wfhUserEmail', wfhUserEmail, wfhUserEmail.length)
+    const findUserWfh = await this.userRepository.find({
       where: { username: In(wfhUserEmail) },
     });
 
-    const userIdWfhList = finUser.map((user) => user.userId);
-
+    const userIdWfhList = findUserWfh.map((user) => user.userId);
+    console.log('userIdWfhList', userIdWfhList, userIdWfhList.length)
     // get data tracker
-    const findUser = await this.mezonTrackerStreamingRepository.find({
+    const findUserTracker = await this.mezonTrackerStreamingRepository.find({
       where: {
         joinAt: Between(fridayTimestamp - 86400000, fridayTimestamp + 86400000),
         channelId: process.env.MEZON_NCC8_CHANNEL_ID,
       },
     });
-    const sortedFindUser = findUser.sort((a, b) => a.joinAt - b.joinAt);
-    const userTracking = sortedFindUser.reduce((acc, curr) => {
+    const sortedFindUserTracker = findUserTracker.sort((a, b) => a.joinAt - b.joinAt);
+    const userTracking = sortedFindUserTracker.reduce((acc, curr) => {
       const existingUser = acc.find((item) => item.userId === curr.userId);
 
       if (existingUser) {
@@ -452,6 +452,7 @@ export class ReportTrackerService {
     const userIdNotJoin = userIdWfhList.filter(
       (id) => !userIdJoinNcc8.includes(id),
     );
+    console.log('userIdNotJoin', userIdNotJoin)
     const userNotJoin = await Promise.all(
       userIdNotJoin.map(async (id) => {
         const findUser = await this.userRepository.findOne({

@@ -54,11 +54,11 @@ export class StreamingEvent extends BaseHandleEvent {
           return getUserNameByEmail(item.emailAddress);
         });
 
-      const finUser = await this.userRepository.find({
+      const findUserWfh = await this.userRepository.find({
         where: { username: In(wfhUserEmail) },
       });
 
-      const userIdList = finUser.map((user) => user.userId);
+      const userIdList = findUserWfh.map((user) => user.userId);
 
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
