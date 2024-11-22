@@ -313,6 +313,13 @@ export class ReportTrackerService {
     }
   }
 
+  prependMessage(array: string[], message: string) {
+    array.unshift(message);
+    if (array.length === 1) {
+      array.push('(Không ai vi phạm)');
+    }
+  }
+
   getFriday() {
     const now = new Date();
     const dayOfWeek = now.getDay();
@@ -362,12 +369,9 @@ export class ReportTrackerService {
     const findUser = await this.mezonTrackerStreamingRepository.find({
       where: {
         joinAt: Between(fridayTimestamp - 86400000, fridayTimestamp + 86400000),
+        channelId: process.env.MEZON_NCC8_CHANNEL_ID,
       },
     });
-    if (!findUser.length) {
-      console.log('NODATA');
-      return;
-    }
     const sortedFindUser = findUser.sort((a, b) => a.joinAt - b.joinAt);
     const userTracking = sortedFindUser.reduce((acc, curr) => {
       const existingUser = acc.find((item) => item.userId === curr.userId);
@@ -386,7 +390,7 @@ export class ReportTrackerService {
     }, []);
     const textToday = formatDate
       ? `ngày ${formatDate}`
-      : now.getDay() === 4
+      : now.getDay() === 5
         ? 'hôm nay'
         : 'thứ 6 tuần trước';
     const lateTextArray = [];
@@ -455,17 +459,14 @@ export class ReportTrackerService {
         return findUser.username;
       }),
     );
-    if (userNotJoin.length) {
-      userNotJoin.unshift(`Những người KHÔNG THAM GIA NCC8 ${textToday}`);
-    }
-    if (lateTextArray.length) {
-      lateTextArray.unshift(`Những người join NCC8 MUỘN ${textToday}`);
-    }
-    if (timeTextArray.length) {
-      timeTextArray.unshift(
-        `Những người join NCC8 KHÔNG ĐỦ 15 PHÚT ${textToday}`,
-      );
-    }
+
+    this.prependMessage(userNotJoin, `Những người KHÔNG THAM GIA NCC8 ${textToday}`);
+    this.prependMessage(lateTextArray, `Những người join NCC8 MUỘN ${textToday}`);
+    this.prependMessage(
+      timeTextArray,
+      `Những người join NCC8 KHÔNG ĐỦ 15 PHÚT ${textToday}`,
+    );
+
     return { lateTextArray, timeTextArray, userNotJoin };
   }
 }
