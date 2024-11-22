@@ -399,7 +399,7 @@ export class ReportTrackerService {
         const findUser = await this.userRepository.findOne({
           where: { userId: user.userId },
         });
-
+        if (!findUser) return;
         // check join not enough time
         let totalJoinTime = 0;
         user.joinAt.map((time, index) => {
@@ -416,7 +416,7 @@ export class ReportTrackerService {
           );
 
           timeTextArray.push(
-            `${findUser.username} - join tổng: ${
+            `${findUser?.username} - join tổng: ${
               totalTimeInSeconds < 60
                 ? `${totalTimeInSeconds} giây`
                 : `${totalTimeInMinutes} phút`
@@ -437,7 +437,7 @@ export class ReportTrackerService {
             true,
           );
           lateTextArray.push(
-            `${findUser.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}`,
+            `${findUser?.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}`,
           );
         }
       }),
