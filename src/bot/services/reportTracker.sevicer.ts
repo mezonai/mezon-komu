@@ -343,11 +343,11 @@ export class ReportTrackerService {
       ? new Date(formatDate).getTime()
       : this.getFriday();
 
-    const now = new Date(fridayTimestamp);
+    const firdayDate = new Date(fridayTimestamp);
     const timestampNcc8 = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
+      firdayDate.getFullYear(),
+      firdayDate.getMonth(),
+      firdayDate.getDate(),
       11,
       30,
     ).getTime();
@@ -371,7 +371,9 @@ export class ReportTrackerService {
         channelId: process.env.MEZON_NCC8_CHANNEL_ID,
       },
     });
-    const sortedFindUserTracker = findUserTracker.sort((a, b) => a.joinAt - b.joinAt);
+    const sortedFindUserTracker = findUserTracker.sort(
+      (a, b) => a.joinAt - b.joinAt,
+    );
     const userTracking = sortedFindUserTracker.reduce((acc, curr) => {
       const existingUser = acc.find((item) => item.userId === curr.userId);
 
@@ -387,7 +389,8 @@ export class ReportTrackerService {
       }
       return acc;
     }, []);
-    console.log('userTracking', userTracking)
+    console.log('userTracking', userTracking);
+    const now = new Date();
     const textToday = formatDate
       ? `ngày ${formatDate}`
       : now.getDay() === 5
@@ -404,7 +407,7 @@ export class ReportTrackerService {
           where: { userId: user.userId, user_type: EUserType.MEZON },
         });
         if (!findUser) return;
-        console.log('findUser', findUser.username)
+        console.log('findUser', findUser.username);
         userIdJoinNcc8.push(user.userId);
         // check join not enough time
         let totalJoinTime = 0;
@@ -452,7 +455,7 @@ export class ReportTrackerService {
     const userIdNotJoin = userIdWfhList.filter(
       (id) => !userIdJoinNcc8.includes(id),
     );
-    console.log('userIdNotJoin', userIdNotJoin)
+    console.log('userIdNotJoin', userIdNotJoin);
     const userNotJoin = await Promise.all(
       userIdNotJoin.map(async (id) => {
         const findUser = await this.userRepository.findOne({
@@ -463,8 +466,14 @@ export class ReportTrackerService {
       }),
     );
 
-    this.prependMessage(userNotJoin, `Những người KHÔNG THAM GIA NCC8 ${textToday}`);
-    this.prependMessage(lateTextArray, `Những người join NCC8 MUỘN ${textToday}`);
+    this.prependMessage(
+      userNotJoin,
+      `Những người KHÔNG THAM GIA NCC8 ${textToday}`,
+    );
+    this.prependMessage(
+      lateTextArray,
+      `Những người join NCC8 MUỘN ${textToday}`,
+    );
     this.prependMessage(
       timeTextArray,
       `Những người join NCC8 KHÔNG ĐỦ 15 PHÚT ${textToday}`,

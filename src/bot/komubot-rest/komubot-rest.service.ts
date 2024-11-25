@@ -173,13 +173,13 @@ export class KomubotrestService {
     res
   ) => {
     console.log('sendMessageToChannelDTO', sendMessageToChannelDTO, sendMessageToChannelDTO.message, header)
-    if ((!header || header !== this.clientConfig.komubotRestSecretKey) && sendMessageToChannelDTO.channelId !== this.clientConfig.komubotRestThongBaoChannelId) {
+    if (!header || header !== this.clientConfig.komubotRestSecretKey) {
       console.log('Missing secret key')
       res.status(403).send({ message: 'Missing secret key!' });
       return;
     }
 
-    if (!sendMessageToChannelDTO.channelId) {
+    if (!sendMessageToChannelDTO.channelid) {
       console.log('ChannelId can')
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
@@ -199,7 +199,7 @@ export class KomubotrestService {
       return;
     }
     let message = sendMessageToChannelDTO.message;
-    const channelId = sendMessageToChannelDTO.channelId;
+    const channelId = sendMessageToChannelDTO.channelid;
 
     // get mentions in text
     const mentions = await Promise.all(

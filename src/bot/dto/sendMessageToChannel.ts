@@ -11,7 +11,7 @@ export class SendMessageToChannelDTO {
   fileUrl?: string;
 
   @ApiProperty({ required: true })
-  channelId: string = "";
+  channelid: string = "";
 
   @ApiProperty({ required: true })
   message: string = "";

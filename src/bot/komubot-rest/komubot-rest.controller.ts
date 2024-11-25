@@ -97,7 +97,7 @@ export class KomubotrestController {
     @Headers('X-Secret-Key') header,
     @Res() res: Response,
   ) {
-    sendMessageToUserDTO.channelId =
+    sendMessageToUserDTO.channelid =
       this.clientConfigService.komubotRestThongBaoChannelId;
     console.log('/sendMessageToThongBao', sendMessageToUserDTO);
     return this.komubotrestService.sendMessageToChannel(
