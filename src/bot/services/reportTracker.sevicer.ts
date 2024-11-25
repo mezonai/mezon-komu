@@ -343,7 +343,7 @@ export class ReportTrackerService {
       ? new Date(formatDate).getTime()
       : this.getFriday();
 
-    const now = new Date();
+    const now = new Date(fridayTimestamp);
     const timestampNcc8 = new Date(
       now.getFullYear(),
       now.getMonth(),
@@ -359,13 +359,11 @@ export class ReportTrackerService {
       .map((item) => {
         return getUserNameByEmail(item.emailAddress);
       });
-      console.log('wfhUserEmail', wfhUserEmail, wfhUserEmail.length)
     const findUserWfh = await this.userRepository.find({
       where: { username: In(wfhUserEmail), user_type: EUserType.MEZON },
     });
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
-    console.log('userIdWfhList', userIdWfhList, userIdWfhList.length)
     // get data tracker
     const findUserTracker = await this.mezonTrackerStreamingRepository.find({
       where: {
@@ -389,6 +387,7 @@ export class ReportTrackerService {
       }
       return acc;
     }, []);
+    console.log('userTracking', userTracking)
     const textToday = formatDate
       ? `ngày ${formatDate}`
       : now.getDay() === 5
