@@ -197,6 +197,38 @@ export class KomubotrestController {
     res.send(file);
   }
 
+  @Get('sheets/oauth2callback')
+  async handleGoogleOAuthCallback(
+    @Query('code') code: string,
+    @Res() res: Response,
+  ) {
+    const oauth2Client = new google.auth.OAuth2(
+      this.clientConfigService.driverClientId,
+      this.clientConfigService.driverClientSecret,
+      this.clientConfigService.sheetRedirectURI,
+    );
+    const { tokens } = await oauth2Client.getToken(code);
+
+    res.json(tokens).status(200);
+  }
+
+  @Get('sheets/authorize')
+  async configSheet(@Res() res: Response) {
+    const oauth2Client = new google.auth.OAuth2(
+      this.clientConfigService.driverClientId,
+      this.clientConfigService.driverClientSecret,
+      this.clientConfigService.sheetRedirectURI,
+    );
+
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+
+    res.redirect(authUrl);
+  }
+
   @Get('/ncc8/download')
   async getFile(@Res({ passthrough: true }) res: Response) {
     try {
