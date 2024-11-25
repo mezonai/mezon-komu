@@ -102,7 +102,8 @@ export class UserInfoCommand extends CommandMessage {
 
     const phoneNumber =
       (userData as any)?.data?.result?.phoneNumber ?? '(no information)';
-
+      const fullName =
+      (userData as any)?.data?.result?.employeeName ?? '(no information)';
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
@@ -119,6 +120,10 @@ export class UserInfoCommand extends CommandMessage {
           {
             name: `• Username`,
             value: `  ${findUser.username}`,
+          },
+          {
+            name: `• Full Name`,
+            value: `  ${fullName}`,
           },
           {
             name: `• Id`,

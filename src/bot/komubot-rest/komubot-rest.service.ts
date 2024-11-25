@@ -172,24 +172,27 @@ export class KomubotrestService {
     header,
     res
   ) => {
-    console.log('sendMessageToChannelDTO', sendMessageToChannelDTO)
-    if (!header || header !== this.clientConfig.komubotRestSecretKey) {
+    console.log('sendMessageToChannelDTO', sendMessageToChannelDTO, sendMessageToChannelDTO.message, header)
+    if (!header || header !== this.clientConfig.komubotRestSecretKey || sendMessageToChannelDTO.channelId !== this.clientConfig.komubotRestThongBaoChannelId) {
+      console.log('Missing secret key')
       res.status(403).send({ message: 'Missing secret key!' });
       return;
     }
 
     if (!sendMessageToChannelDTO.channelId) {
+      console.log('ChannelId can')
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
     }
 
-    if (sendMessageToChannelDTO.file) {
-      res.status(400).send({ message: 'No supported file!' });
-    }
+    // if (sendMessageToChannelDTO.file) {
+    //   console.log('No supported file')
+    //   res.status(400).send({ message: 'No supported file!' });
+    // }
 
-    if (sendMessageToChannelDTO.fileUrl) {
-      res.status(400).send({ message: 'No supported file!' });
-    }
+    // if (sendMessageToChannelDTO.fileUrl) {
+    //   res.status(400).send({ message: 'No supported file!' });
+    // }
 
     if (!sendMessageToChannelDTO.message) {
       res.status(400).send({ message: 'Message can not be empty!' });

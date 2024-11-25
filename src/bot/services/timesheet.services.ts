@@ -24,21 +24,8 @@ export class TimeSheetService {
     private dailyRepository: Repository<Daily>,
   ) {}
 
-  formatTimestampToDate(timestamp: number): string {
-    const date = new Date(timestamp);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-
   async findWFHUser(timestamp?: number) {
-    let format= ''
-    if (timestamp) {
-      format = this.formatTimestampToDate(timestamp)
-    }
-    console.log('format', format)
-    const url = `${ApiUrl.WFHApi.api_url}?date=${format ? format : new Date().toDateString()}`;
+    const url = `${ApiUrl.WFHApi.api_url}?date=${new Date(timestamp || Date.now()).toDateString()}`;
     const response = await this.axiosClientService.get(url);
     if (response.status == 200) {
       const wfhResult = response.data;
