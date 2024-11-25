@@ -91,6 +91,20 @@ export class KomubotrestController {
     );
   }
 
+  @Post('/sendMessageToThongBao')
+  async sendMessageToThongbaoChannel(
+    @Body() sendMessageToUserDTO: SendMessageToChannelDTO,
+    @Headers('X-Secret-Key') header,
+    @Res() res: Response,
+  ) {
+    return this.komubotrestService.sendMessageToChannel(
+      sendMessageToUserDTO,
+      header,
+      res,
+      true
+    );
+  }
+
   @Get('/getInfoUserByEmail')
   async getInfoUser(@Query() getUserByEmailDto: GetUserIdByEmailDTO) {
     return await this.komubotrestService.getInfoUserByEmail(getUserByEmailDto);
