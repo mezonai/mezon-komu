@@ -353,7 +353,7 @@ export class ReportTrackerService {
     ).getTime();
 
     //get user wfh id
-    const wfhResult = await this.timeSheetService.findWFHUser();
+    const wfhResult = await this.timeSheetService.findWFHUser(fridayTimestamp);
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
       .map((item) => {

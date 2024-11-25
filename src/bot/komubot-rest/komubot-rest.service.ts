@@ -170,15 +170,15 @@ export class KomubotrestService {
   sendMessageToChannel = async (
     sendMessageToChannelDTO: SendMessageToChannelDTO,
     header,
-    res,
-    isThongbao?: boolean
+    res
   ) => {
+    console.log('sendMessageToChannelDTO', sendMessageToChannelDTO)
     if (!header || header !== this.clientConfig.komubotRestSecretKey) {
       res.status(403).send({ message: 'Missing secret key!' });
       return;
     }
 
-    if (!sendMessageToChannelDTO.channelId && !isThongbao) {
+    if (!sendMessageToChannelDTO.channelId) {
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
     }
@@ -196,7 +196,7 @@ export class KomubotrestService {
       return;
     }
     let message = sendMessageToChannelDTO.message;
-    const channelId = isThongbao ? this.clientConfig.komubotRestThongBaoChannelId : sendMessageToChannelDTO.channelId;
+    const channelId = sendMessageToChannelDTO.channelId;
 
     // get mentions in text
     const mentions = await Promise.all(
@@ -227,6 +227,7 @@ export class KomubotrestService {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: channelId },
       });
+      console.log('findChannel', findChannel)
       if (!findChannel) {
         res.status(400).send({ message: 'Cannot find this channel!s' });
         return;
@@ -251,7 +252,7 @@ export class KomubotrestService {
       this.messageQueue.addMessage(replyMessage);
       res.status(200).send({ message: 'Successfully!' });
     } catch (error) {
-      console.log('error', error);
+      console.log('error send message channel', error);
       res.status(400).send({ message: error });
     }
   };
