@@ -171,13 +171,14 @@ export class KomubotrestService {
     sendMessageToChannelDTO: SendMessageToChannelDTO,
     header,
     res,
+    isThongbao?: boolean
   ) => {
     if (!header || header !== this.clientConfig.komubotRestSecretKey) {
       res.status(403).send({ message: 'Missing secret key!' });
       return;
     }
 
-    if (!sendMessageToChannelDTO.channelId) {
+    if (!sendMessageToChannelDTO.channelId && !isThongbao) {
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
     }
@@ -195,7 +196,7 @@ export class KomubotrestService {
       return;
     }
     let message = sendMessageToChannelDTO.message;
-    const channelId = sendMessageToChannelDTO.channelId;
+    const channelId = isThongbao ? this.clientConfig.komubotRestThongBaoChannelId : sendMessageToChannelDTO.channelId;
 
     // get mentions in text
     const mentions = await Promise.all(
@@ -212,6 +213,15 @@ export class KomubotrestService {
         };
       }),
     );
+
+    const regexHttp = /http[s]?:\/\/[^\s]+/g;
+    const matches = Array.from(message.matchAll(regexHttp));
+
+    const lk = matches.map((match) => ({
+      // text: match[0],
+      s: match.index || 0,
+      e: (match.index || 0) + match[0].length,
+    })) || [];
 
     try {
       const findChannel = await this.channelRepository.findOne({
@@ -234,6 +244,7 @@ export class KomubotrestService {
           : EMessageMode.CHANNEL_MESSAGE,
         msg: {
           t: message,
+          lk,
         },
         mentions: mentions.filter((user) => user) || [],
       };
