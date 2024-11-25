@@ -173,7 +173,7 @@ export class KomubotrestService {
     res
   ) => {
     console.log('sendMessageToChannelDTO', sendMessageToChannelDTO, sendMessageToChannelDTO.message, header)
-    if (!header || header !== this.clientConfig.komubotRestSecretKey || sendMessageToChannelDTO.channelId !== this.clientConfig.komubotRestThongBaoChannelId) {
+    if ((!header || header !== this.clientConfig.komubotRestSecretKey) && sendMessageToChannelDTO.channelId !== this.clientConfig.komubotRestThongBaoChannelId) {
       console.log('Missing secret key')
       res.status(403).send({ message: 'Missing secret key!' });
       return;
