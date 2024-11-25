@@ -49,7 +49,7 @@ export class ReportTrackerService {
   messHelpDate = '```' + 'Không có bản ghi nào trong ngày này' + '```';
   messHelpTime = '```' + 'Không có bản ghi nào' + '```';
 
-  async reportTracker(args) {
+  async reportTracker(args, returnMsg = true) {
     try {
       const result = await this.axiosClientService.get(
         `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
@@ -94,6 +94,10 @@ export class ReportTrackerService {
       }
 
       const userWfhs = processUserWfhs(data, wfhUsers, usersOffWork);
+
+      if (!returnMsg) {
+        return userWfhs;
+      }
 
       if (!userWfhs.length) {
         return [this.messHelpTime];
@@ -215,7 +219,7 @@ export class ReportTrackerService {
     return parts;
   }
 
-  async reportTrackerNot(args) {
+  async reportTrackerNot(args, returnMsg = true) {
     try {
       const result = await this.axiosClientService.get(
         `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
@@ -288,6 +292,11 @@ export class ReportTrackerService {
           (a, b) => (a < b.email.length ? b.email.length : a),
           0,
         ) + 2;
+
+      if (!returnMsg) {
+        return listTrackerNot;
+      }
+
       listTrackerNot.unshift({
         email: '[email]',
         str_active_time: '[active]',

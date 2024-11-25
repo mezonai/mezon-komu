@@ -253,6 +253,16 @@ export class ClientConfigService {
       'FOLDER_DRIVER_PARENTS_ID',
     )}`;
 
+    this.sheetRefreshToken = `${configService.get<string>(
+      'SHEET_REFRESH_TOKEN',
+    )}`;
+
+    this.sheetRedirectURI = `${configService.get<string>(
+      'SHEET_REDIRECT_URI',
+    )}`;
+
+    this.sheetFineId = `${configService.get<string>('SHEET_FINE_ID')}`;
+
     this.pmsChannelId = `${configService.get<string>('PMS_CHANNEL_ID')}`;
 
     this.owners = ['KOMU#0139'];
@@ -327,6 +337,12 @@ export class ClientConfigService {
   driverRefreshToken: string;
 
   driverFolderParentId: string;
+
+  sheetRefreshToken: string;
+
+  sheetRedirectURI: string;
+
+  sheetFineId: string;
 
   topCategoryId: string;
 

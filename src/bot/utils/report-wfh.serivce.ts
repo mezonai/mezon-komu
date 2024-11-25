@@ -12,7 +12,7 @@ export class ReportWFHService {
     private utilsService: UtilsService,
   ) {}
 
-  async reportWfh(message, args) {
+  async reportWfh(args, returnMsg = true) {
     let formatDate;
     if (args[1]) {
       const day = args[1].slice(0, 2);
@@ -52,6 +52,10 @@ export class ReportWFHService {
       .select('wfh.userId, COUNT(wfh.userId) as total, m.username')
       .orderBy('total', 'DESC')
       .execute();
+
+    if (!returnMsg) {
+      return wfhFullday;
+    }
 
     let mess;
     if (!wfhFullday) {

@@ -128,6 +128,7 @@ import { EventCommand } from './asterisk-commands/commands/event/event.command';
 import { EventService } from './asterisk-commands/commands/event/event.service';
 import { EventSchedulerService } from './scheduler/event-scheduler.service';
 import { Ncc8SchedulerService } from './scheduler/ncc8.scheduler.service';
+import { FineReportSchedulerService } from './scheduler/fine-report.scheduler.service';
 import { EventRole } from './listeners/role.handle';
 import { EventRoleAsign } from './listeners/roleasign.handle';
 import { WeatherCommand } from './asterisk-commands/commands/weather/weather.command';
@@ -202,7 +203,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
       News,
       EventMezon,
       BetEventMezon,
-      MezonTrackerStreaming
+      MezonTrackerStreaming,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -279,6 +280,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
     EventService,
     EventSchedulerService,
     Ncc8SchedulerService,
+    FineReportSchedulerService,
     WeatherCommand,
     DynamicCommandService,
     NewsScheduler,
@@ -287,7 +289,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
     BetCommand,
     QRCodeCommand,
     MessageButtonClickedEvent,
-    StreamingEvent
+    StreamingEvent,
   ],
   controllers: [KomubotrestController],
 })
