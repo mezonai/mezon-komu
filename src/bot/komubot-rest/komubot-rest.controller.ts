@@ -203,8 +203,8 @@ export class KomubotrestController {
     @Res() res: Response,
   ) {
     const oauth2Client = new google.auth.OAuth2(
-      this.clientConfigService.driverClientId,
-      this.clientConfigService.driverClientSecret,
+      this.clientConfigService.sheetClientId,
+      this.clientConfigService.sheetClientSecret,
       this.clientConfigService.sheetRedirectURI,
     );
     const { tokens } = await oauth2Client.getToken(code);
@@ -215,8 +215,8 @@ export class KomubotrestController {
   @Get('sheets/authorize')
   async configSheet(@Res() res: Response) {
     const oauth2Client = new google.auth.OAuth2(
-      this.clientConfigService.driverClientId,
-      this.clientConfigService.driverClientSecret,
+      this.clientConfigService.sheetClientId,
+      this.clientConfigService.sheetClientSecret,
       this.clientConfigService.sheetRedirectURI,
     );
 

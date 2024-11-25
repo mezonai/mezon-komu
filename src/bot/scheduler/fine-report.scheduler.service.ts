@@ -121,8 +121,8 @@ export class FineReportSchedulerService {
       const notDaily = daily?.notDaily;
 
       const oauth2Client = new google.auth.OAuth2(
-        this.clientConfigService.driverClientId,
-        this.clientConfigService.driverClientSecret,
+        this.clientConfigService.sheetClientId,
+        this.clientConfigService.sheetClientSecret,
       );
       oauth2Client.setCredentials({
         refresh_token: this.clientConfigService.sheetRefreshToken,

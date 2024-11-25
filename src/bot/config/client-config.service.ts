@@ -257,6 +257,12 @@ export class ClientConfigService {
       'SHEET_REFRESH_TOKEN',
     )}`;
 
+    this.sheetClientId = `${configService.get<string>('SHEET_CLIENT_ID')}`;
+
+    this.sheetClientSecret = `${configService.get<string>(
+      'SHEET_CLIENT_SECRET',
+    )}`;
+
     this.sheetRedirectURI = `${configService.get<string>(
       'SHEET_REDIRECT_URI',
     )}`;
@@ -338,9 +344,13 @@ export class ClientConfigService {
 
   driverFolderParentId: string;
 
-  sheetRefreshToken: string;
+  sheetClientId: string;
+
+  sheetClientSecret: string;
 
   sheetRedirectURI: string;
+
+  sheetRefreshToken: string;
 
   sheetFineId: string;
 
