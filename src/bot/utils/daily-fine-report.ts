@@ -55,11 +55,12 @@ export function handleTrackerFine(tracker, excelProcessor: ExcelProcessor) {
     'trang.tranthu',
   ];
 
-  let secondsMorning = 3 * 3600;
-  let secondsAfternoon = 4 * 3600;
+  let secondsMorning = 4 * 3600 * 0.85;
+  let secondsAfternoon = 4 * 3600 * 0.85;
+  let secondsAllDay = 8 * 3600 * 0.85;
 
   for (let item of tracker) {
-    let requireTime = secondsMorning + secondsAfternoon;
+    let requireTime = secondsAllDay;
 
     const {
       email,
@@ -91,7 +92,7 @@ export function handleTrackerFine(tracker, excelProcessor: ExcelProcessor) {
           ?.replace('h', '');
 
         if (!isNaN(parseFloat(timeOff))) {
-          timeOffSeconds = Math.round(parseFloat(timeOff) * 3600);
+          timeOffSeconds = Math.round(parseFloat(timeOff) * 3600 * 0.85);
         }
 
         requireTime = requireTime - timeOffSeconds;
@@ -107,16 +108,18 @@ export function handleTrackerFine(tracker, excelProcessor: ExcelProcessor) {
 
     let fine = 0;
 
-    if (missingTime >= 6 * 3600) {
+    if (missingTime >= 5 * 3600) {
       fine = 200;
-    } else if (missingTime >= 4 * 3600) {
+    } else if (missingTime >= 3 * 3600) {
       fine = 100;
-    } else if (missingTime >= 2 * 3600) {
-      fine = 50;
     } else if (missingTime >= 1 * 3600) {
+      fine = 50;
+    } else if (missingTime > 0) {
       fine = 20;
     }
 
-    excelProcessor.updateCellValue(email, 'tracker', fine);
+    if (fine > 0) {
+      excelProcessor.updateCellValue(email, 'tracker', fine);
+    }
   }
 }

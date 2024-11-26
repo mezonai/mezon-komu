@@ -262,7 +262,8 @@ export class ReportCommand extends CommandMessage {
             );
           });
         } else {
-          const messageContent = '```Mọi người đều đã join NCC8 đầy đủ và đúng giờ!```'
+          const messageContent =
+            '```Mọi người đều đã join NCC8 đầy đủ và đúng giờ!```';
           return this.replyMessageGenerate(
             {
               messageContent,
@@ -279,15 +280,11 @@ export class ReportCommand extends CommandMessage {
         }
 
         break;
-      case 'fine':
+      case 'saodo':
         const validUserId = [
           '1800396411926220800', //'hien.ngothu'
-          '1779815181480628224', //'thiet.nguyenba'
-          '1800478701561843712', // 'vy.truongngoccam'
-          '1805137029512564736', // 'anh.ngothuc'
-          '1783441451758129152', // 'giang.tranminhchau'
           '1820647107783036928', //'ngan.tonthuy'
-          '1783444920736944128',
+          '1783444920736944128', //duy.nguyenxuan
         ];
         if (!validUserId.includes(message.sender_id))
           return this.replyMessageGenerate(
