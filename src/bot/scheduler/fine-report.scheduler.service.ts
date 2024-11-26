@@ -38,8 +38,8 @@ export class FineReportSchedulerService {
   @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
-  async dailyReportScheduler(reportDate?: moment.Moment, sheetId?: string) {
-    const data = await this.calculateAndUpdateSheet(reportDate, sheetId);
+  async dailyReportScheduler() {
+    const data = await this.calculateAndUpdateSheet();
 
     const messageContent = `
     @STAFF @INTERN 
@@ -115,9 +115,10 @@ export class FineReportSchedulerService {
       const [daily, mention, wfh, tracker] = await Promise.all([
         this.reportDailyService.getUserNotDaily(parsedDate),
         this.reportWFHService.reportMachleo(parsedDate),
-        this.reportWFHService.reportWfh([formatedDate], false),
-        this.reportTrackerService.reportTrackerNot([formatedDate], false),
+        this.reportWFHService.reportWfh([, formatedDate], false),
+        this.reportTrackerService.reportTrackerNot([, formatedDate], false),
       ]);
+
       const notDaily = daily?.notDaily;
 
       const oauth2Client = new google.auth.OAuth2(
