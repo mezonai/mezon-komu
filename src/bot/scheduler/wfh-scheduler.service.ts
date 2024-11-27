@@ -52,6 +52,7 @@ export class WFHSchedulerService {
       if (this.utilsService.checkTime(new Date())) return;
 
       const wfhUserEmail = await this.getUserByDateTypeNames();
+      console.log('wfhUserEmail', wfhUserEmail)
       const { notSendUser: userOff } =
         await this.timeSheetService.getUserOffWork(null);
 

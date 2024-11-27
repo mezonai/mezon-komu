@@ -75,7 +75,7 @@ export class MezonClientService {
         '',
         dataReact.clan_id,
         dataReact.channel_id,
-        EMessageMode.CHANNEL_MESSAGE,
+        dataReact.mode,
         dataReact.is_public,
         dataReact.message_id,
         dataReact.emoji_id,

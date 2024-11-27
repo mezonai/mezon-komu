@@ -95,9 +95,10 @@ export class QuizService {
     });
     let channelDmId = channelDm?.channel_id;
     if (!channelDmId) {
+      console.log('userId', userId)
       const newDmChannel = await this.clientService.createDMchannel(userId);
       if (!newDmChannel) {
-        console.log(userId);
+        console.log('userId missed', userId);
       }
       channelDmId = newDmChannel?.channel_id;
     }
