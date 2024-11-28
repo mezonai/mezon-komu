@@ -9,7 +9,7 @@ import {
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { Asterisk } from '../asterisk-commands/asterisk';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { checkTimeMention } from '../utils/helper';
 import {
   Channel,
@@ -37,6 +37,18 @@ import { MessageQueue } from '../services/messageQueue.service';
 @Injectable()
 export class EventListenerChannelMessage {
   private client: MezonClient;
+  private readonly messages: string[] = [
+    'Hôm nay bận muốn xỉu, deadline dí như ma đuổi. Nghỉ xíu rồi quay lại nha!',
+    'Công việc ngập mặt, tôi giờ chỉ muốn làm cục bột ngủ đông. Chờ tôi tí nha!',
+    'Hôm nay nhiều việc quá, não tôi đang chạy chậm như Windows XP. Đợi tôi nghỉ tí cho hồi pin rồi quay lại với bạn sau!',
+    'Ai cứu với! Công việc bủa vây như sóng thần. BRB chút!',
+    'Mệt quá trời, deadline dí mà cảm giác như mình đang chơi trốn tìm. Nghỉ chút rồi lại chiến!',
+    'Hôm nay làm nhiều mà lương thì... để tính sau. Nghỉ nạp năng lượng xíu nha!',
+    'Công việc: 100. Năng lượng: 0. Cần một chút thời gian để hồi sinh!',
+    'Não tôi giờ quay như chong chóng vì việc. Để thở tí rồi quay lại nha!',
+    'Deadline vẫy gọi, nhưng giấc ngủ cũng vẫy tay chào. Đợi tôi xử lý xong rồi tính tiếp!',
+    'Làm việc nhiều quá mà cứ tưởng đang tập gym cho ngón tay. Tạm nghỉ chút cho tỉnh táo rồi tôi quay lại sau nha!',
+  ];
   constructor(
     private clientService: MezonClientService,
     private asteriskCommand: Asterisk,
@@ -60,9 +72,23 @@ export class EventListenerChannelMessage {
     this.client = clientService.getClient();
   }
 
+  getRandomMessage(): string {
+    const randomIndex = Math.floor(Math.random() * this.messages.length);
+    return this.messages[randomIndex];
+  }
+
+  async isWebhookUser(message: ChannelMessage) {
+    const webhook = await this.userRepository.find({
+      where: { roles: IsNull(), user_type: EUserType.MEZON },
+    });
+    const webhookId = webhook.map((item) => item.userId);
+    return webhookId.includes(message.sender_id);
+  }
+
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
+      if (this.isWebhookUser) return;
       const client = await this.userRepository
         .createQueryBuilder('user')
         .where(':role = ANY(user.roles)', { role: '1832750986804858880' })
@@ -180,7 +206,6 @@ export class EventListenerChannelMessage {
             : [replyMessage];
           for (const mess of replyMessageArray) {
             this.messageQueue.addMessage({ ...mess, sender_id: msg.sender_id }); // add to queue, send every 0.2s
-            // await this.clientService.sendMessage(mess);
           }
         }
       }
@@ -194,19 +219,18 @@ export class EventListenerChannelMessage {
     if (msg.channel_id === this.clientConfigService.machleoChannelId) return;
     try {
       const mentions = Array.isArray(msg.mentions) ? msg.mentions : [];
-      const message = msg.content.t;
+      const message = msg.content.t.replace('@KOMU', 'bạn');
       const refs = Array.isArray(msg.references) ? msg.references : [];
       if (
         (msg.mode === ChannelStreamMode.STREAM_MODE_DM ||
           mentions?.some((obj) => obj.user_id === BOT_ID) ||
           refs?.some((obj) => obj.message_sender_id === BOT_ID)) &&
         typeof message == 'string' &&
-        msg.sender_id !== BOT_ID &&
-        message.length > 10
+        msg.sender_id !== BOT_ID
       ) {
         const url = ApiUrl.AIApi;
         let AIReplyMessage;
-        AIReplyMessage = `Very busy, too much work today. I'm so tired. BRB.`;
+        AIReplyMessage = this.getRandomMessage();
 
         try {
           const response = await this.axiosClientService.post(url, {
@@ -218,27 +242,6 @@ export class EventListenerChannelMessage {
             throw Error('swtich AI API');
           }
         } catch (e) {
-          // const baseUrl = 'https://api.aimlapi.com/v1';
-          // const apiKey = process.env.FREE_API_KEY;
-          // const systemPrompt =
-          //   'bạn là một công cụ ảo được hỗ trợ của công ty công nghệ có hơn 200 nhân viên tên là KOMU. hãy trả lời bằng tiếng việt nhé. Hiện tại trợ lý ảo của công ty đang ra ngoài có chút việc nên bạn sẽ giúp bạn ấy trả lời các câu hỏi khi bạn ấy vắng mặt';
-          // const headers = {
-          //   Authorization: `Bearer ${apiKey}`,
-          //   'Content-Type': 'application/json',
-          // };
-          // const response = await this.axiosClientService.post(
-          //   `${baseUrl}/chat/completions`,
-          //   {
-          //     model: 'mistralai/Mistral-7B-Instruct-v0.2',
-          //     messages: [
-          //       { role: 'system', content: systemPrompt },
-          //       { role: 'user', content: message },
-          //     ],
-          //   },
-          //   { headers },
-          // );
-          // const completion = response.data;
-          // AIReplyMessage = completion.choices[0].message.content;
         }
 
         const replyMessage = replyMessageGenerate(
@@ -246,29 +249,9 @@ export class EventListenerChannelMessage {
           msg,
         );
         this.messageQueue.addMessage(replyMessage);
-        // await this.clientService.sendMessage(replyMessage);
       }
     } catch (e) {
       console.log(e);
-    }
-  }
-
-  @OnEvent(Events.ChannelMessage)
-  async insertPmConfirmWFT(message: ChannelMessage) {
-    if (!message.content || typeof message.content.t !== 'string') return;
-    if (
-      message.content.t.includes('[CONFIRM WFH]') &&
-      message.mode === EMessageMode.DM_MESSAGE &&
-      message.sender_id === this.clientConfigService.botKomuId
-    ) {
-      const wfhId = +message.content.t.match(/ID:(\d+)/)[1];
-      const dataMentionPmConfirm = {
-        messageId: message.message_id,
-        wfhId,
-        confirm: false,
-        value: '',
-      };
-      await this.mentionPmConfirm.insert(dataMentionPmConfirm);
     }
   }
 
