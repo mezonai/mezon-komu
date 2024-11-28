@@ -134,11 +134,6 @@ export class BotGateway {
     } catch (e) {
       console.log(e);
     }
-    const webhook = await this.userRepository.find({
-      where: { roles: IsNull(), user_type: EUserType.MEZON },
-    });
-    const webhookId = webhook.map((item) => item.userId);
-    if (webhookId.includes(msg.sender_id)) return;
     this.eventEmitter.emit(Events.ChannelMessage, msg);
   };
 }
