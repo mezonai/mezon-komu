@@ -5,10 +5,18 @@ import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MessageQueue } from '../services/messageQueue.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, MoreThan, Not, Repository } from 'typeorm';
-import { BetEventMezon, EventMezon, User } from '../models';
-import { BetStatus, EMessageMode } from '../constants/configs';
+import { Repository } from 'typeorm';
+import { BetEventMezon, UnlockTimeSheet, User } from '../models';
+import {
+  EmbedProps,
+  EMessageMode,
+  EUnlockTimeSheetPayment,
+  EUserType,
+} from '../constants/configs';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
+import { AxiosClientService } from '../services/axiosClient.services';
+import { ClientConfigService } from '../config/client-config.service';
+import { generateEmail } from '../utils/helper';
 
 @Injectable()
 export class EventTokenSend extends BaseHandleEvent {
@@ -19,6 +27,10 @@ export class EventTokenSend extends BaseHandleEvent {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private messageQueue: MessageQueue,
+    @InjectRepository(UnlockTimeSheet)
+    private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
+    private axiosClientService: AxiosClientService,
+    private clientConfigService: ClientConfigService,
   ) {
     super(clientService);
   }
@@ -27,6 +39,11 @@ export class EventTokenSend extends BaseHandleEvent {
   async handleBetEvent(data) {
     try {
       if (data.receiver_id !== process.env.BOT_KOMU_ID) return;
+      const arg = data.note.split(' ');
+      const sendType = arg?.[0]?.slice(1);
+      const betId = arg?.[2]?.slice(0, -1);
+      // check type bet
+      if (sendType !== 'BET' || !betId) return;
       // TODO: real query for findEvent
       // const findEvent = await this.betEventMezonRepository.findOne({
       //   where: { userId: data.sender_id, amount: 0, id: data.bet_id },
@@ -77,6 +94,123 @@ export class EventTokenSend extends BaseHandleEvent {
       }
     } catch (error) {
       console.log('handleTokenSend', error);
+    }
+  }
+
+  @OnEvent(Events.TokenSend)
+  async handleUnlockTimesheet(data) {
+    if (!data?.note || data.receiver_id !== process.env.BOT_KOMU_ID) return;
+    try {
+      const arg = data.note.split(' ');
+      const sendType = arg?.[0]?.slice(1);
+      const unlocktsId = arg?.[2]?.slice(0, -1);
+      // check type unlockts
+      if (sendType !== 'UNLOCKTS' || !unlocktsId) return;
+      const findUnlockTs = await this.unlockTimeSheetRepository.findOne({
+        where: { id: unlocktsId },
+      });
+
+      // check unlockts exist and check sender_id
+      if (!findUnlockTs || data.sender_id !== findUnlockTs.userId) return;
+
+      // update amount user sent
+      await this.unlockTimeSheetRepository.update(
+        { id: findUnlockTs.id },
+        { payment: data.amount },
+      );
+
+      // check send not enought
+      if (findUnlockTs.amount > data.amount) {
+        const embed: EmbedProps[] = [
+          {
+            color: '#ED4245',
+            title: `❌You pay token but not enought to unlock timesheet!\n\tPlease contact with ADMIN for support!`,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: findUnlockTs.userId,
+          textContent: '',
+          messOptions: { embed },
+        };
+        this.messageQueue.addMessage(messageToUser);
+        return;
+      }
+
+      if (findUnlockTs.amount <= findUnlockTs.payment) {
+        const embed: EmbedProps[] = [
+          {
+            color: '#F1C40F',
+            title: `This request has been processed!`,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: findUnlockTs.userId,
+          textContent: '',
+          messOptions: { embed },
+        };
+        this.messageQueue.addMessage(messageToUser);
+        return;
+      }
+
+      const findUser = await this.userRepository.findOne({
+        where: { userId: findUnlockTs.userId, user_type: EUserType.MEZON },
+      });
+      const bodyUnlockTs = {
+        userId: generateEmail(findUser.username),
+        type:
+          findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT ? 1 : 0,
+      };
+      console.log('bodyUnlockTs', bodyUnlockTs);
+      try {
+        const resUnlockTs = await this.axiosClientService.post(
+          `${this.clientConfigService.unlockTsApi.api_url}`,
+          bodyUnlockTs,
+          {
+            httpsAgent: this.clientConfigService.https,
+            headers: {
+              securityCode: this.clientConfigService.imsKeySecret,
+            },
+          },
+        );
+        console.log('resUnlockTs', resUnlockTs);
+        const embedUnlockSuccess: EmbedProps[] = [
+          {
+            color: '#57F287',
+            title: `✅Unlock timesheet successful!`,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: findUnlockTs.userId,
+          textContent: '',
+          messOptions: { embed: embedUnlockSuccess },
+        };
+        this.messageQueue.addMessage(messageToUser);
+      } catch (error) {
+        console.log('Unlock timesheet error', bodyUnlockTs);
+        const embedUnlockSuccess: EmbedProps[] = [
+          {
+            color: '#ED4245',
+            title: `❌Unlock timesheet failed. Please contact ADMIN for support!\n\tKOMU sent token back to you!`,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: findUnlockTs.userId,
+          textContent: '',
+          messOptions: { embed: embedUnlockSuccess },
+        };
+        this.messageQueue.addMessage(messageToUser);
+
+        // send back money to user when api get error
+        const dataSendToken = {
+          sender_id: process.env.BOT_KOMU_ID,
+          sender_name: 'KOMU',
+          receiver_id: findUnlockTs.userId,
+          amount: +data.amount,
+        };
+        await this.client.sendToken(dataSendToken);
+      }
+    } catch (error) {
+      console.log('handleUnlockTimesheet');
     }
   }
 }

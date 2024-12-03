@@ -1,0 +1,125 @@
+import {
+  ChannelMessage,
+  EButtonMessageStyle,
+  EMessageComponentType,
+} from 'mezon-sdk';
+import { Command } from 'src/bot/base/commandRegister.decorator';
+import { CommandMessage } from '../../abstracts/command.abstract';
+import { EmbedProps } from 'src/bot/constants/configs';
+import { getRandomColor } from 'src/bot/utils/helper';
+import { MezonClientService } from 'src/mezon/services/client.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { RoleMezon, UnlockTimeSheet, User } from 'src/bot/models';
+import { ClientConfigService } from 'src/bot/config/client-config.service';
+
+@Command('unlockts')
+export class UnlockTimeSheetCommand extends CommandMessage {
+  constructor(
+    private clientService: MezonClientService,
+    @InjectRepository(UnlockTimeSheet)
+    private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private clientConfigService: ClientConfigService,
+    @InjectRepository(RoleMezon)
+    private roleMezonRepository: Repository<RoleMezon>,
+  ) {
+    super();
+  }
+
+  async execute(args: string[], message: ChannelMessage) {
+    const findUser = await this.userRepository.findOne({
+      where: { userId: message.sender_id },
+    });
+    const rolePM = await this.roleMezonRepository.findOne({
+      where: {
+        clan_id: this.clientConfigService.clandNccId,
+        title: 'PM',
+      },
+    });
+    if (!findUser) return;
+    const isPm = findUser?.roles?.includes(rolePM?.id ?? 'staff');
+    const options = [
+      {
+        label: 'Bạn là Staff:',
+        value: 'unlockTs_STAFF',
+        description:
+          '- Nhân viên unlock để log timesheet tuần trước.\n- 20,000 vnđ/lần (trừ vào lương tháng).\n- Chỉ unlock được cho tuần trước, nếu muốn unlock cho tuần trước nữa, vui lòng liên hệ HR hoặc IT.',
+        style: EButtonMessageStyle.PRIMARY,
+      },
+    ];
+    if (isPm) {
+      options.unshift({
+        label: 'Bạn là PM:',
+        value: 'unlockTs_PM',
+        description:
+          '- PM unlock để approve/reject timesheet cho team member.\n- 50,000 vnđ/lần (trừ vào lương tháng).',
+        style: EButtonMessageStyle.PRIMARY,
+      });
+    }
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `You want to UNLOCK TIMESHEET?`,
+        fields: [
+          {
+            name: '',
+            value: '',
+            options,
+          },
+          {
+            name: 'Bạn có chắc chắn muốn unlock timesheet?\nTiền phạt sẽ không được hoàn trả!',
+            value: '',
+          },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: 'Powered by Mezon',
+          icon_url:
+            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+        },
+      },
+    ];
+    const components = [
+      {
+        components: [
+          {
+            id: 'unlockTs_CANCEL',
+            type: EMessageComponentType.BUTTON,
+            component: {
+              label: `Cancel`,
+              style: EButtonMessageStyle.SECONDARY,
+            },
+          },
+          {
+            id: 'unlockTs_CONFIRM',
+            type: EMessageComponentType.BUTTON,
+            component: {
+              label: `Confirm`,
+              style: EButtonMessageStyle.SUCCESS,
+            },
+          },
+        ],
+      },
+    ];
+    const dataSend = this.replyMessageGenerate(
+      {
+        embed,
+        components,
+      },
+      message,
+    );
+    const response = await this.clientService.sendMessage(dataSend);
+    const dataInsert = new UnlockTimeSheet();
+    dataInsert.messageId = response.message_id;
+    dataInsert.userId = message.sender_id;
+    dataInsert.clanId = message.clan_id;
+    dataInsert.channelId = message.channel_id;
+    dataInsert.modeMessage = message.mode;
+    dataInsert.isChannelPublic = message.is_public;
+    dataInsert.createdAt = Date.now();
+    await this.unlockTimeSheetRepository.save(dataInsert);
+    return null;
+  }
+}

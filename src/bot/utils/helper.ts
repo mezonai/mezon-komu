@@ -1,4 +1,5 @@
 import { EMAIL_DOMAIN } from '../constants/configs';
+import * as QRCode from 'qrcode';
 
 export function extractMessage(message: string) {
   const args = message.replace('\n', ' ').slice('*'.length).trim().split(/ +/);
@@ -147,4 +148,15 @@ export function convertName(fullName: string): string {
   const lastName = parts.slice(1).join('');
   const username = `${firstLetter}.${lastName}`;
   return username;
+}
+
+export async function generateQRCode(text: string): Promise<string> {
+  try {
+    const qrCodeDataUrl = await QRCode.toDataURL(text, {
+      errorCorrectionLevel: 'L',
+    });
+    return qrCodeDataUrl;
+  } catch (error) {
+    throw new Error('Can not generate QR code!');
+  }
 }
