@@ -61,6 +61,11 @@ export class ClientConfigService {
         'TIMESHEET_API',
       )}Public/GetTimesheetAndCheckInOutAllUser`,
     };
+
+    this.unlockTsApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Timesheet/UnlockTimesheet`,
+    };
+
     this.checkout = {
       api_url: `${configService.get<string>(
         'KOMUBOTREST_CHECK_IN_URL',
@@ -476,6 +481,11 @@ export class ClientConfigService {
   checkinTimesheet: {
     api_url: string;
   };
+
+  unlockTsApi: {
+    api_url: string;
+  }
+  
   wiki: {
     api_url: string;
     options: string[];

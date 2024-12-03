@@ -53,7 +53,15 @@ export class BotGateway {
       }
     }
   }
-  // processMessage(msg: ChannelMessage) {}
+
+  handlewebrtcsignalingfwd = (data) => {
+    console.log('handlewebrtcsignalingfwd', data)
+  }
+
+  handledropdownboxselected = (data) => {
+    console.log('data', data)
+  }
+  
   handletokensent = (data: TokenSentEvent) => {
     this.eventEmitter.emit(Events.TokenSend, data);
   };

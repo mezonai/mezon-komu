@@ -54,6 +54,7 @@ import {
   BetEventMezon,
   EventMezon,
   MezonTrackerStreaming,
+  UnlockTimeSheet,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -142,6 +143,7 @@ import { EventTokenSend } from './listeners/tokensend.handle';
 import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.command';
 import { MessageButtonClickedEvent } from './listeners/messagebuttonclick.handle';
 import { StreamingEvent } from './listeners/streamingevent.handle';
+import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimesheet/unlockts.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -204,6 +206,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
       EventMezon,
       BetEventMezon,
       MezonTrackerStreaming,
+      UnlockTimeSheet
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -290,6 +293,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
     QRCodeCommand,
     MessageButtonClickedEvent,
     StreamingEvent,
+    UnlockTimeSheetCommand
   ],
   controllers: [KomubotrestController],
 })

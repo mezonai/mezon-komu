@@ -25,7 +25,6 @@ export class TimeSheetService {
   ) {}
 
   async findWFHUser(timestamp?: number) {
-    console.log('new Date(timestamp || Date.now()).toDateString()', new Date(timestamp || Date.now()).toDateString())
     const url = `${ApiUrl.WFHApi.api_url}?date=${new Date(timestamp || Date.now()).toDateString()}`;
     const response = await this.axiosClientService.get(url);
     if (response.status == 200) {

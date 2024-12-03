@@ -8,13 +8,22 @@ import {
 } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { EMessageMode } from '../constants/configs';
+import {
+  EmbedProps,
+  EMessageMode,
+  EUnlockTimeSheet,
+  EUnlockTimeSheetPayment,
+} from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Quiz, User, UserQuiz } from '../models';
+import { Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
-import { checkAnswerFormat, getRandomColor } from '../utils/helper';
+import {
+  checkAnswerFormat,
+  generateQRCode,
+  getRandomColor,
+} from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { refGenerate } from '../utils/generateReplyMessage';
 
@@ -29,6 +38,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     @InjectRepository(Quiz)
     private quizRepository: Repository<Quiz>,
     private quizService: QuizService,
+    @InjectRepository(UnlockTimeSheet)
+    private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
   ) {
     super(clientService);
   }
@@ -37,7 +48,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async handleAnswerQuestionWFH(data) {
     try {
       const args = data.button_id.split('_');
-      console.log('args', args)
       if (args[0] !== 'question') return;
       const answer = args[1];
       const channelDmId = args[2];
@@ -133,6 +143,123 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       this.messageQueue.addMessage(messageToUser);
     } catch (error) {
       console.log('handleMessageButtonClicked', error);
+    }
+  }
+
+  @OnEvent(Events.MessageButtonClicked)
+  async handleUnlockTimesheet(data) {
+    try {
+      const args = data.button_id.split('_');
+      const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
+        where: { messageId: data.message_id },
+      });
+      if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
+        return;
+      if (findUnlockTsData.userId !== data.user_id) return;
+      const typeButtonRes = args[1];
+      const value = data.extra_data.split('_')[1];
+
+      const replyMessage: ReplyMezonMessage = {
+        clan_id: findUnlockTsData.clanId,
+        channel_id: findUnlockTsData.channelId,
+        is_public: findUnlockTsData.isChannelPublic,
+        mode: findUnlockTsData.modeMessage,
+        msg: {
+          t: '',
+        },
+      };
+
+      // only process with no status
+      if (!findUnlockTsData.status) {
+        switch (typeButtonRes) {
+          case EUnlockTimeSheet.CONFIRM:
+            const sendTokenData = {
+              sender_id: data.user_id,
+              receiver_id: process.env.BOT_KOMU_ID,
+              receiver_name: 'KOMU',
+              amount:
+                value === EUnlockTimeSheet.PM
+                  ? EUnlockTimeSheetPayment.PM_PAYMENT
+                  : EUnlockTimeSheetPayment.STAFF_PAYMENT,
+              note: `[UNLOCKTS - ${findUnlockTsData.id}]`,
+            };
+            // update status active
+            await this.unlockTimeSheetRepository.update(
+              { id: findUnlockTsData.id },
+              {
+                amount: sendTokenData.amount,
+                status: EUnlockTimeSheet.CONFIRM,
+              },
+            );
+            const qrCodeImage = await generateQRCode(
+              JSON.stringify(sendTokenData),
+            );
+            const embed: EmbedProps[] = [
+              {
+                color: getRandomColor(),
+                title: `Scan this QR for UNLOCK TIMESHEET!`,
+                image: {
+                  url: qrCodeImage + '',
+                },
+                timestamp: new Date().toISOString(),
+                footer: {
+                  text: 'Powered by Mezon',
+                  icon_url:
+                    'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+                },
+              },
+            ];
+            const messageToUser: ReplyMezonMessage = {
+              userId: data.user_id,
+              textContent: '',
+              messOptions: { embed },
+            };
+            this.messageQueue.addMessage(messageToUser);
+            replyMessage['msg'] = {
+              t: 'KOMU was sent to you a message, please check!',
+            };
+            break;
+          default:
+            replyMessage['msg'] = {
+              t: 'Cancel unlock timesheet successful!',
+            };
+            // update status active
+            await this.unlockTimeSheetRepository.update(
+              { id: findUnlockTsData.id },
+              {
+                status: EUnlockTimeSheet.CANCEL,
+              },
+            );
+            break;
+        }
+      } else {
+        replyMessage['msg'] = {
+          t: `This request has been ${findUnlockTsData.status}ed!`,
+        };
+      }
+
+      // generate ref bot message
+      const KOMU = await this.userRepository.findOne({
+        where: { userId: process.env.BOT_KOMU_ID },
+      });
+      const msg: ChannelMessage = {
+        message_id: data.message_id,
+        id: '',
+        channel_id: findUnlockTsData.channelId,
+        channel_label: '',
+        code: findUnlockTsData.modeMessage,
+        create_time: '',
+        sender_id: process.env.BOT_KOMU_ID,
+        username: KOMU.username || 'KOMU',
+        avatar: KOMU.avatar,
+        content: { t: '' },
+        attachments: [{}],
+      };
+      replyMessage['ref'] = refGenerate(msg);
+      //send message
+      this.messageQueue.addMessage(replyMessage);
+    } catch (e) {
+      console.log('handleUnlockTimesheet', e);
     }
   }
 }

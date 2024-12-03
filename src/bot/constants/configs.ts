@@ -52,8 +52,25 @@ export interface EmbedProps {
   };
   description?: string;
   thumbnail?: { url: string };
-  fields?: Array<{ name: string; value: string; inline?: boolean }>;
+  fields?: Array<{
+    name: string;
+    value: string;
+    inline?: boolean;
+    options?: any[];
+  }>;
   image?: { url: string };
   timestamp?: string;
   footer?: { text: string; icon_url?: string };
+}
+
+export enum EUnlockTimeSheet {
+  PM = 'PM',
+  STAFF = 'STAFF',
+  CONFIRM = 'CONFIRM',
+  CANCEL = 'CANCEL',
+}
+
+export enum EUnlockTimeSheetPayment {
+  PM_PAYMENT = 50000,
+  STAFF_PAYMENT = 20000,
 }
