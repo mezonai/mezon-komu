@@ -45,7 +45,7 @@ export class UnlockTimeSheetCommand extends CommandMessage {
         label: 'Bạn là Staff:',
         value: 'unlockTs_STAFF',
         description:
-          '- Nhân viên unlock để log timesheet tuần trước.\n- 20,000 vnđ/lần (trừ vào lương tháng).\n- Chỉ unlock được cho tuần trước, nếu muốn unlock cho tuần trước nữa, vui lòng liên hệ HR hoặc IT.',
+          '- Nhân viên unlock để log timesheet tuần trước.\n- 20,000 vnđ/lần (trừ vào token).\n- Chỉ unlock được cho tuần trước, nếu muốn unlock cho tuần trước nữa, vui lòng liên hệ HR hoặc IT.',
         style: EButtonMessageStyle.PRIMARY,
       },
     ];
@@ -54,7 +54,7 @@ export class UnlockTimeSheetCommand extends CommandMessage {
         label: 'Bạn là PM:',
         value: 'unlockTs_PM',
         description:
-          '- PM unlock để approve/reject timesheet cho team member.\n- 50,000 vnđ/lần (trừ vào lương tháng).',
+          '- PM unlock để approve/reject timesheet cho team member.\n- 50,000 vnđ/lần (trừ vào token).',
         style: EButtonMessageStyle.PRIMARY,
       });
     }
