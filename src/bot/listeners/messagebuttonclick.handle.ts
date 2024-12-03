@@ -234,7 +234,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       } else {
         replyMessage['msg'] = {
-          t: `This request has been ${findUnlockTsData.status}ed!`,
+          t: `This request has been ${findUnlockTsData.status.toLowerCase()}ed!`,
         };
       }
 
