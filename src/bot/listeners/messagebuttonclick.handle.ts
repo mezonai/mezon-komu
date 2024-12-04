@@ -156,10 +156,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       });
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
-      if (findUnlockTsData.userId !== data.user_id) return;
-      const typeButtonRes = args[1];
-      const dataParse = JSON.parse(data.extra_data)
-      const value = dataParse?.dataOptions?.[0]?.id.split('_')[1];
+      if (findUnlockTsData.userId !== data.user_id) return; // check auth
+      const typeButtonRes = args[1]; // (confirm or cancel)
+      const dataParse = JSON.parse(data.extra_data);
+      const value = dataParse?.dataOptions?.[0]?.id.split('_')[1]; // (pm or staff)
+
+      //init reply message
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -170,10 +172,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         },
       };
 
-      // only process with no status
+      // only process with no status (not confirm or cancel request yet)
       if (!findUnlockTsData.status) {
+        // check user press button confirm or cancel
         switch (typeButtonRes) {
           case EUnlockTimeSheet.CONFIRM:
+            // data for QR code
             const sendTokenData = {
               sender_id: data.user_id,
               receiver_id: process.env.BOT_KOMU_ID,
@@ -181,7 +185,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               amount:
                 value === EUnlockTimeSheet.PM
                   ? EUnlockTimeSheetPayment.PM_PAYMENT
-                  : EUnlockTimeSheetPayment.STAFF_PAYMENT,
+                  : EUnlockTimeSheetPayment.STAFF_PAYMENT, // check pm or staff to get payment value
               note: `[UNLOCKTS - ${findUnlockTsData.id}]`,
             };
             // update status active
@@ -192,9 +196,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 status: EUnlockTimeSheet.CONFIRM,
               },
             );
+
+            // gen QR code
             const qrCodeImage = await generateQRCode(
               JSON.stringify(sendTokenData),
             );
+            // send QR code to user
             const embed: EmbedProps[] = [
               {
                 color: getRandomColor(),

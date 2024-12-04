@@ -99,7 +99,7 @@ export class EventTokenSend extends BaseHandleEvent {
 
   @OnEvent(Events.TokenSend)
   async handleUnlockTimesheet(data) {
-    if (!data?.note || data.receiver_id !== process.env.BOT_KOMU_ID) return;
+    if (!data?.note || data.receiver_id !== process.env.BOT_KOMU_ID) return; // check send to bot
     try {
       const arg = data.note.split(' ');
       const sendType = arg?.[0]?.slice(1);
@@ -136,13 +136,21 @@ export class EventTokenSend extends BaseHandleEvent {
         return;
       }
 
+      // user pay success -> not processed
       if (findUnlockTs.amount <= findUnlockTs.payment) {
         const embed: EmbedProps[] = [
           {
             color: '#F1C40F',
-            title: `This request has been processed!`,
+            title: `This request has been processed!\nKOMU sent token back to you. Please create new request to unlock timesheet!`,
           },
         ];
+        const dataSendToken = {
+          sender_id: process.env.BOT_KOMU_ID,
+          sender_name: 'KOMU',
+          receiver_id: findUnlockTs.userId,
+          amount: +data.amount,
+        };
+        await this.client.sendToken(dataSendToken);
         const messageToUser: ReplyMezonMessage = {
           userId: findUnlockTs.userId,
           textContent: '',
