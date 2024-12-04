@@ -62,8 +62,12 @@ export class ClientConfigService {
       )}Public/GetTimesheetAndCheckInOutAllUser`,
     };
 
-    this.unlockTsApi = {
-      api_url: `${configService.get<string>('TIMESHEET_API')}Timesheet/UnlockTimesheet`,
+    this.unlockTsStaffApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Info/UnlockToLogTimesheet`,
+    };
+
+    this.unlockTsPMApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Info/Info/UnlockToApproveTimesheet`,
     };
 
     this.checkout = {
@@ -482,7 +486,11 @@ export class ClientConfigService {
     api_url: string;
   };
 
-  unlockTsApi: {
+  unlockTsStaffApi: {
+    api_url: string;
+  }
+
+  unlockTsPMApi: {
     api_url: string;
   }
   

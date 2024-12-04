@@ -13,6 +13,7 @@ import {
   EMessageMode,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
+  MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import { Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
@@ -157,8 +158,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         return;
       if (findUnlockTsData.userId !== data.user_id) return;
       const typeButtonRes = args[1];
-      const value = data.extra_data.split('_')[1];
-
+      const dataParse = JSON.parse(data.extra_data)
+      const value = dataParse?.dataOptions?.[0]?.id.split('_')[1];
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -202,11 +203,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                   url: qrCodeImage + '',
                 },
                 timestamp: new Date().toISOString(),
-                footer: {
-                  text: 'Powered by Mezon',
-                  icon_url:
-                    'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-                },
+                footer: MEZON_EMBED_FOOTER,
               },
             ];
             const messageToUser: ReplyMezonMessage = {

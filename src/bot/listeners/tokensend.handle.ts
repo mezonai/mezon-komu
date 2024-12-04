@@ -155,16 +155,17 @@ export class EventTokenSend extends BaseHandleEvent {
       const findUser = await this.userRepository.findOne({
         where: { userId: findUnlockTs.userId, user_type: EUserType.MEZON },
       });
-      const bodyUnlockTs = {
-        userId: generateEmail(findUser.username),
-        type:
-          findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT ? 1 : 0,
-      };
-      console.log('bodyUnlockTs', bodyUnlockTs);
+
       try {
         const resUnlockTs = await this.axiosClientService.post(
-          `${this.clientConfigService.unlockTsApi.api_url}`,
-          bodyUnlockTs,
+          `${
+            findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT
+              ? this.clientConfigService.unlockTsPMApi.api_url +
+                `?emailAddress=${generateEmail(findUser.username)}&client=MEZON`
+              : this.clientConfigService.unlockTsStaffApi.api_url +
+                `?emailAddress=${generateEmail(findUser.username)}&client=MEZON`
+          }`,
+          {},
           {
             httpsAgent: this.clientConfigService.https,
             headers: {
@@ -172,21 +173,24 @@ export class EventTokenSend extends BaseHandleEvent {
             },
           },
         );
-        console.log('resUnlockTs', resUnlockTs);
-        const embedUnlockSuccess: EmbedProps[] = [
-          {
-            color: '#57F287',
-            title: `✅Unlock timesheet successful!`,
-          },
-        ];
-        const messageToUser: ReplyMezonMessage = {
-          userId: findUnlockTs.userId,
-          textContent: '',
-          messOptions: { embed: embedUnlockSuccess },
-        };
-        this.messageQueue.addMessage(messageToUser);
+
+        if (resUnlockTs?.data?.success) {
+          const embedUnlockSuccess: EmbedProps[] = [
+            {
+              color: '#57F287',
+              title: `✅Unlock timesheet successful!`,
+            },
+          ];
+          const messageToUser: ReplyMezonMessage = {
+            userId: findUnlockTs.userId,
+            textContent: '',
+            messOptions: { embed: embedUnlockSuccess },
+          };
+          this.messageQueue.addMessage(messageToUser);
+        } else {
+          throw 'Unlock fail!';
+        }
       } catch (error) {
-        console.log('Unlock timesheet error', bodyUnlockTs);
         const embedUnlockSuccess: EmbedProps[] = [
           {
             color: '#ED4245',

@@ -6,7 +6,7 @@ import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import { EmbedProps, EUserType } from 'src/bot/constants/configs';
+import { EmbedProps, EUserType, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
 import moment from 'moment';
 import { getRandomColor } from 'src/bot/utils/helper';
@@ -102,7 +102,7 @@ export class UserInfoCommand extends CommandMessage {
 
     const phoneNumber =
       (userData as any)?.data?.result?.phoneNumber ?? '(no information)';
-      const fullName =
+    const fullName =
       (userData as any)?.data?.result?.employeeName ?? '(no information)';
     const embed: EmbedProps[] = [
       {
@@ -143,11 +143,7 @@ export class UserInfoCommand extends CommandMessage {
           },
         ],
         timestamp: new Date().toISOString(),
-        footer: {
-          text: 'Powered by Mezon',
-          icon_url:
-            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-        },
+        footer: MEZON_EMBED_FOOTER
       },
     ];
 
