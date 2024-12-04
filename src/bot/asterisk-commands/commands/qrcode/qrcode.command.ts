@@ -3,7 +3,11 @@ import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 import * as QRCode from 'qrcode';
-import { EmbedProps, EUserType } from 'src/bot/constants/configs';
+import {
+  EmbedProps,
+  EUserType,
+  MEZON_EMBED_FOOTER,
+} from 'src/bot/constants/configs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from 'src/bot/models';
@@ -79,19 +83,17 @@ export class QRCodeCommand extends CommandMessage {
         errorCorrectionLevel: 'L',
       },
     );
-    const embed: EmbedProps[] = [{
-      color: getRandomColor(),
-      title: `QR send token to ${findUser.username}`,
-      image: {
-        url: qrCodeDataUrl,
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `QR send token to ${findUser.username}`,
+        image: {
+          url: qrCodeDataUrl,
+        },
+        timestamp: new Date().toISOString(),
+        footer: MEZON_EMBED_FOOTER,
       },
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Powered by Mezon',
-        icon_url:
-          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-      },
-    }];
+    ];
     return this.replyMessageGenerate(
       {
         embed,

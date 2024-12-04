@@ -6,7 +6,13 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { EMarkdownType, Events } from 'mezon-sdk';
 import { IsNull, MoreThan, Not, Repository } from 'typeorm';
 import { BetEventMezon, EventMezon, User } from '../models';
-import { BetStatus, EmbedProps, EMessageMode } from '../constants/configs';
+import {
+  BetStatus,
+  EmbedProps,
+  EMessageMode,
+  MEZON_EMBED_FOOTER,
+  MEZON_IMAGE_URL,
+} from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 
@@ -49,14 +55,13 @@ export class EventClanEventCreated extends BaseHandleEvent {
             // url: 'https://discord.js.org',
             author: {
               name: 'KOMU',
-              icon_url:
-                'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-              url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+              icon_url: MEZON_IMAGE_URL,
+              url: MEZON_IMAGE_URL,
             },
             description:
               'Đoán xem số người đã tham gia tại thời điểm event opentalk kết thúc!!!',
             thumbnail: {
-              url: 'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+              url: MEZON_IMAGE_URL,
             },
             fields: [
               {
@@ -78,11 +83,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
               },
             ],
             timestamp: new Date().toISOString(),
-            footer: {
-              text: 'Powered by Mezon',
-              icon_url:
-                'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-            },
+            footer: MEZON_EMBED_FOOTER,
           },
         ];
         const replyMessage = {

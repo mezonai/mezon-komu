@@ -5,7 +5,7 @@ import {
 } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
-import { EmbedProps } from 'src/bot/constants/configs';
+import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -74,11 +74,7 @@ export class UnlockTimeSheetCommand extends CommandMessage {
           },
         ],
         timestamp: new Date().toISOString(),
-        footer: {
-          text: 'Powered by Mezon',
-          icon_url:
-            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-        },
+        footer: MEZON_EMBED_FOOTER,
       },
     ];
     const components = [
