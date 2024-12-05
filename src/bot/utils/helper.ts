@@ -130,16 +130,13 @@ export function getRandomColor(): string {
     '#A84300', // DarkOrange
     '#ED4245', // Red
     '#992D22', // DarkRed
-    '#95A5A6', // Grey
-    '#979C9F', // DarkGrey
-    '#7F8C8D', // DarkerGrey
     '#BCC0C0', // LightGrey
     '#34495E', // Navy
     '#2C3E50', // DarkNavy
     '#FFFF00', // Yellow
   ];
   const randomIndex = Math.floor(Math.random() * colors.length);
-  return colors[randomIndex];
+  return colors[randomIndex] || '#F1C40F';
 }
 
 export function convertName(fullName: string): string {
