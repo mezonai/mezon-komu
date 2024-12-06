@@ -144,6 +144,8 @@ import { QRCodeCommand } from './asterisk-commands/commands/qrcode/qrcode.comman
 import { MessageButtonClickedEvent } from './listeners/messagebuttonclick.handle';
 import { StreamingEvent } from './listeners/streamingevent.handle';
 import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimesheet/unlockts.command';
+import { MusicCommand } from './asterisk-commands/commands/music/music.command';
+import { MusicService } from './services/music.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -206,7 +208,7 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
       EventMezon,
       BetEventMezon,
       MezonTrackerStreaming,
-      UnlockTimeSheet
+      UnlockTimeSheet,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -241,6 +243,7 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
     ToggleActiveService,
     Ncc8Command,
     AudiobookCommand,
+    MusicCommand,
     ReportDailyService,
     HolidayCommand,
     EventListenerChannelMessage,
@@ -272,6 +275,7 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
     EventUserClanRemoved,
     ReportMentionService,
     ReportTrackerService,
+    MusicService,
     CallCommand,
     WhereCommand,
     PollCommand,
@@ -293,7 +297,7 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
     QRCodeCommand,
     MessageButtonClickedEvent,
     StreamingEvent,
-    UnlockTimeSheetCommand
+    UnlockTimeSheetCommand,
   ],
   controllers: [KomubotrestController],
 })

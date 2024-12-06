@@ -10,17 +10,23 @@ export class FFmpegService {
   private streamNcc8;
   private streamAudioBook;
   private streamFilm;
+  private streamMusic;
   constructor() {
-    // ffmpeg.setFfmpegPath(ffmpegPath);
-    ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+    ffmpeg.setFfmpegPath(ffmpegPath);
+    // ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
     ffmpeg.setFfprobePath(ffprobePath.path);
   }
 
   killCurrentStream(type: FileType) {
-    if (!this.streamNcc8) return;
+    // if (!this.streamNcc8) return;
     switch (type) {
       case FileType.NCC8:
         this.streamNcc8.kill('SIGKILL');
+        break;
+      case FileType.MUSIC:
+        if (this.streamMusic) {
+          this.streamMusic.kill('SIGKILL');
+        }
         break;
       case FileType.AUDIOBOOK:
         // this.streamAudioBook.kill('SIGKILL');
@@ -73,6 +79,9 @@ export class FFmpegService {
           break;
         case FileType.AUDIOBOOK:
           this.streamAudioBook = ffmpegStream;
+          break;
+        case FileType.MUSIC:
+          this.streamMusic = ffmpegStream;
           break;
         default:
           break;

@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  ChannelMessage,
-  EButtonMessageStyle,
-  EMessageComponentType,
-  Events,
-} from 'mezon-sdk';
+import { ChannelMessage, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -13,6 +8,8 @@ import {
   EMessageMode,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
+  FFmpegImagePath,
+  FileType,
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
@@ -24,9 +21,12 @@ import {
   checkAnswerFormat,
   generateQRCode,
   getRandomColor,
+  sleep,
 } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { refGenerate } from '../utils/generateReplyMessage';
+import { MusicService } from '../services/music.services';
+import { FFmpegService } from '../services/ffmpeg.service';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -41,6 +41,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private quizService: QuizService,
     @InjectRepository(UnlockTimeSheet)
     private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
+    private musicService: MusicService,
+    private ffmpegService: FFmpegService,
   ) {
     super(clientService);
   }
@@ -144,6 +146,69 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       this.messageQueue.addMessage(messageToUser);
     } catch (error) {
       console.log('handleMessageButtonClicked', error);
+    }
+  }
+
+  @OnEvent(Events.MessageButtonClicked)
+  async handleMusicEvent(data) {
+    const args = data.button_id.split('_');
+    if (args[0] != 'music') {
+      return;
+    }
+
+    if (args[1] == 'search') {
+      const KOMU = await this.userRepository.findOne({
+        where: { userId: data.sender_id },
+      });
+      const msg: ChannelMessage = {
+        message_id: data.message_id,
+        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+        mode: 2,
+        is_public: true,
+        id: '',
+        channel_id: data.channel_id,
+        channel_label: '',
+        code: EMessageMode.CHANNEL_MESSAGE,
+        create_time: '',
+        sender_id: data.sender_id,
+        username: KOMU?.username || 'KOMU',
+        avatar: KOMU?.avatar,
+        content: { t: '' },
+        attachments: [{}],
+      };
+      const replyMessage = await this.musicService.getMusicListMessage(
+        msg,
+        args[2],
+        args[3],
+      );
+
+      if (replyMessage) {
+        const replyMessageArray = Array.isArray(replyMessage)
+          ? replyMessage
+          : [replyMessage];
+        for (const mess of replyMessageArray) {
+          this.messageQueue.addMessage({ ...mess, sender_id: msg.sender_id }); // add to queue, send every 0.2s
+        }
+      }
+    } else if (args[1] == 'play') {
+      const mp3Link = await this.musicService.getMp3Link(args[2]);
+      this.ffmpegService.killCurrentStream(FileType.MUSIC);
+      await sleep(1000);
+      const channel = await this.client.registerStreamingChannel({
+        clan_id: '1832425511578505216',
+        channel_id: '1840651728458878976',
+      });
+      if (!channel) return;
+      if (channel?.streaming_url !== '') {
+        this.ffmpegService
+          .transcodeMp3ToRtmp(
+            FFmpegImagePath.NCC8,
+            mp3Link,
+            channel?.streaming_url,
+            FileType.MUSIC,
+          )
+          .catch((error) => console.log('error mp3', error));
+      }
     }
   }
 
