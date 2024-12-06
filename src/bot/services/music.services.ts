@@ -87,7 +87,7 @@ export class MusicService {
           {
             components: result.pageNumbers.map((value) => ({
               type: EMessageComponentType.BUTTON,
-              id: `music_search_${songName}_${value}`,
+              id: `music_search_${songName}_${value}_${message.is_public ? 1 : 0}_${message.mode}`,
               component: {
                 label: value,
                 style: EButtonMessageStyle.PRIMARY,
