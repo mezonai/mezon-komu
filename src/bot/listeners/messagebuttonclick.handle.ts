@@ -27,6 +27,7 @@ import { QuizService } from '../services/quiz.services';
 import { refGenerate } from '../utils/generateReplyMessage';
 import { MusicService } from '../services/music.services';
 import { FFmpegService } from '../services/ffmpeg.service';
+import { ChannelDMMezon } from '../models/channelDmMezon.entity';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -43,6 +44,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
     private musicService: MusicService,
     private ffmpegService: FFmpegService,
+    @InjectRepository(ChannelDMMezon)
+    private channelDmMezonRepository: Repository<ChannelDMMezon>,
   ) {
     super(clientService);
   }
@@ -266,11 +269,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             const qrCodeImage = await generateQRCode(
               JSON.stringify(sendTokenData),
             );
+            //
+            const channelDM = await this.channelDmMezonRepository.findOne({
+              where: { user_id: findUnlockTsData.userId },
+            });
+
             // send QR code to user
             const embed: EmbedProps[] = [
               {
                 color: getRandomColor(),
-                title: `Scan this QR for UNLOCK TIMESHEET!`,
+                title: `Click HERE`,
+                url: `https://mezon.ai/chat/direct/message/${channelDM?.channel_id}/3?openPopup=true&token=${sendTokenData.amount}&userId=${sendTokenData.receiver_id}&note=${sendTokenData.note}`,
+                fields: [
+                  {
+                    name: 'Or scan this QR code for UNLOCK TIMESHEET!',
+                    value: '',
+                  },
+                ],
                 image: {
                   url: qrCodeImage + '',
                 },
