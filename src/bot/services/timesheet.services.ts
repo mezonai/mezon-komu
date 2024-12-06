@@ -61,6 +61,7 @@ export class TimeSheetService {
 
   logTimeSheetFromDaily = async ({ content, emailAddress }) => {
     const data = this.parseDailyMessage(content);
+    console.log('data: ', data);
     const projectCode = data.projectCode;
     const results = [];
     for (const task of data.tasks) {
@@ -370,7 +371,7 @@ export class TimeSheetService {
       }, []);
 
       let userNotDaily;
-      let dayToMilliseconds = 86400 * 1000;
+      const dayToMilliseconds = 86400 * 1000;
       try {
         userNotDaily = await Promise.all(
           notDaily.map((user) =>

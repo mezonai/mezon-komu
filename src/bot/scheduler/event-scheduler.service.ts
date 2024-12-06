@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CronExpression, Cron } from '@nestjs/schedule';
+import { CronExpression } from '@nestjs/schedule';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
-import { isFirstDayOfMonth, isLastDayOfMonth } from 'date-fns';
-import { Meeting } from '../models/meeting.entity';
 import { UtilsService } from '../services/utils.services';
 import { ChannelMezon } from '../models/mezonChannel.entity';
 import { ChannelType, MezonClient } from 'mezon-sdk';
@@ -67,7 +65,7 @@ export class EventSchedulerService {
     return listVoiceChannelAvalable;
   }
 
-  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
   async tagEvent() {
     this.logger.warn(
       `time ${CronExpression.EVERY_MINUTE} for job tagEvent to run!`,
@@ -216,7 +214,7 @@ export class EventSchedulerService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
   async updateReminderEvent() {
     this.logger.warn(
       `time ${CronExpression.EVERY_MINUTE} for job updateReminderEvent to run!`,

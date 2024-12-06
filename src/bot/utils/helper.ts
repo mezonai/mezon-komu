@@ -157,3 +157,22 @@ export async function generateQRCode(text: string): Promise<string> {
     throw new Error('Can not generate QR code!');
   }
 }
+export function extractText(content, keyword) {
+  const regex = new RegExp(
+    `${keyword}:\\s*(.*?)\\s*(?=\\b[A-Z][a-z]*:|$)`,
+    'si',
+  );
+  const match = content.match(regex);
+  return match ? match[1].trim() : '';
+}
+
+export function checkButtonAction(
+  buttonId: string,
+): 'submit' | 'cancel' | 'unknown' {
+  if (buttonId.endsWith('-button-cancel')) {
+    return 'cancel';
+  } else if (buttonId.endsWith('-button-submit')) {
+    return 'submit';
+  }
+  return 'unknown';
+}

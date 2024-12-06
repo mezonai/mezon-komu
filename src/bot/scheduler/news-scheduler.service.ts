@@ -7,7 +7,6 @@ import { EMessageMode } from '../constants/configs';
 import { ClientConfigService } from '../config/client-config.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -80,7 +79,7 @@ export class NewsScheduler {
     }
   }
 
-  @Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleNews() {
     const dataNews = await this.fetchRssFeed(
       'https://vnexpress.net/rss/tin-moi-nhat.rss',

@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  ChannelMessage,
-  EButtonMessageStyle,
-  EMessageComponentType,
-  Events,
-} from 'mezon-sdk';
+import { ChannelMessage, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -16,18 +11,26 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
   checkAnswerFormat,
+  checkButtonAction,
+  generateEmail,
   generateQRCode,
   getRandomColor,
+  getUserNameByEmail,
 } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { refGenerate } from '../utils/generateReplyMessage';
 import { ChannelDMMezon } from '../models/channelDmMezon.entity';
+import { TimeSheetService } from '../services/timesheet.services';
+import {
+  checkTimeNotWFH,
+  checkTimeSheet,
+} from '../asterisk-commands/commands/daily/daily.functions';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -44,6 +47,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
     @InjectRepository(ChannelDMMezon)
     private channelDmMezonRepository: Repository<ChannelDMMezon>,
+
+    private timeSheetService: TimeSheetService,
+    @InjectRepository(User)
+    private dailyRepository: Repository<Daily>,
   ) {
     super(clientService);
   }
@@ -280,5 +287,129 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     } catch (e) {
       console.log('handleUnlockTimesheet', e);
     }
+  }
+  @OnEvent(Events.MessageButtonClicked)
+  async handleSubmitDaily(data) {
+    console.log('data: ', data);
+
+    try {
+      // Validate `data.extra_data`
+      if (!data.extra_data) {
+        throw new Error('extra_data is missing');
+      }
+
+      let parsedExtraData;
+      try {
+        parsedExtraData = JSON.parse(data.extra_data);
+      } catch (error) {
+        throw new Error('Invalid JSON in extra_data');
+      }
+
+      // Validate the structure of `parsedExtraData`
+      if (
+        !parsedExtraData.dataInputs ||
+        typeof parsedExtraData.dataInputs !== 'object'
+      ) {
+        throw new Error('Invalid structure in parsedExtraData');
+      }
+
+      const parsedExtraDataValues =
+        Object.values(parsedExtraData.dataInputs) ?? [];
+      if (parsedExtraDataValues.length < 3) {
+        throw new Error('Missing required data in dataInputs');
+      }
+
+      console.log('parsedExtraData: ', parsedExtraData);
+
+      const projectCode = 'Mezon';
+      console.log('projectCode: ', projectCode);
+      const yesterdayValue = parsedExtraDataValues[0];
+      console.log('yesterdayValue: ', yesterdayValue);
+      const todayValue = parsedExtraDataValues[1];
+      console.log('todayValue: ', todayValue);
+      const blockValue = parsedExtraDataValues[2];
+      console.log('blockValue: ', blockValue);
+      const workingTimeValue = parsedExtraDataValues[3];
+      console.log('workingTimeValue: ', workingTimeValue);
+
+      const senderId = data.user_id;
+      const channelId = data.channel_id;
+      const today = parsedExtraDataValues[2];
+
+      const findUser = await this.userRepository
+        .createQueryBuilder()
+        .where(`"userId" = :userId`, { userId: senderId })
+        .andWhere(`"deactive" IS NOT true`)
+        .select('*')
+        .getRawOne();
+
+      if (!findUser) return;
+
+      const authorUsername = findUser.email;
+      const emailAddress = generateEmail(authorUsername);
+
+      const wfhResult = await this.timeSheetService.findWFHUser();
+      const wfhUserEmail = wfhResult.map((item) =>
+        getUserNameByEmail(item.emailAddress),
+      );
+      console.log(1);
+      await this.saveDaily(
+        senderId,
+        channelId,
+        parsedExtraDataValues as string[],
+        authorUsername,
+      );
+
+      const contentGenerated = `*daily ${projectCode}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
+      console.log('contentGenerated: ', contentGenerated);
+
+      await this.timeSheetService.logTimeSheetFromDaily({
+        emailAddress,
+        content: contentGenerated,
+      });
+      console.log(2);
+      const isValidTimeFrame = checkTimeSheet();
+      const isValidWFH = checkTimeNotWFH();
+
+      const baseMessage = '```✅ Daily saved.```';
+      const errorMessageWFH =
+        '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+      const errorMessageNotWFH =
+        '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+
+      const messageContent = wfhUserEmail.includes(authorUsername)
+        ? isValidTimeFrame
+          ? baseMessage
+          : errorMessageWFH
+        : isValidWFH
+          ? baseMessage
+          : errorMessageNotWFH;
+
+      const buttonType = checkButtonAction(data.button_id);
+      console.log('buttonType: ', buttonType);
+    } catch (error) {
+      console.error('Error in handleSubmitDaily:', error.message);
+    }
+  }
+
+  saveDaily(
+    senderId: string,
+    channelId: string,
+    args: string[],
+    email: string,
+  ) {
+    console.log({ senderId, channelId, args, email });
+    return this.dailyRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Daily)
+      .values({
+        userid: senderId,
+        email: email,
+        daily: args.join(' '),
+        createdAt: Date.now(),
+        channelid: channelId,
+      })
+      .execute();
   }
 }

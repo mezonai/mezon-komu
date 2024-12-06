@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository, In } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMessage, MezonClient } from 'mezon-sdk';
+import { ChannelMessage } from 'mezon-sdk';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import moment from 'moment';
 import { ReportDailyService } from 'src/bot/asterisk-commands/commands/report/reportDaily.service';
 import { ReportWFHService } from 'src/bot/utils/report-wfh.serivce';
@@ -35,9 +34,9 @@ export class FineReportSchedulerService {
     private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
+  // @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
+  //   timeZone: 'Asia/Ho_Chi_Minh',
+  // })
   async dailyReportScheduler() {
     const data = await this.calculateAndUpdateSheet();
 

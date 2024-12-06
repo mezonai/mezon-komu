@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { TimeSheetService } from '../services/timesheet.services';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ChannelType, MezonClient } from 'mezon-sdk';
@@ -45,13 +44,14 @@ export class WFHSchedulerService {
     return wfhUserEmail;
   }
 
-  @Cron('*/5 9-10,13-16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('*/5 9-10,13-16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handlePingWFH() {
     try {
       if (await this.utilsService.checkHoliday()) return;
       if (this.utilsService.checkTime(new Date())) return;
 
       const wfhUserEmail = await this.getUserByDateTypeNames();
+      console.log('wfhUserEmail', wfhUserEmail);
       const { notSendUser: userOff } =
         await this.timeSheetService.getUserOffWork(null);
 
@@ -160,7 +160,7 @@ export class WFHSchedulerService {
     }
   }
 
-  @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async punish() {
     if (await this.utilsService.checkHoliday()) return;
     if (this.utilsService.checkTime(new Date())) return;
@@ -249,7 +249,7 @@ export class WFHSchedulerService {
     }
   }
 
-  @Cron('0 9,11,14,16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('0 9,11,14,16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handlePingQuiz() {
     try {
       if (await this.utilsService.checkHoliday()) return;
