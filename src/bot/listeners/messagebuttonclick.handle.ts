@@ -195,8 +195,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       this.ffmpegService.killCurrentStream(FileType.MUSIC);
       await sleep(1000);
       const channel = await this.client.registerStreamingChannel({
-        clan_id: '1832425511578505216',
-        channel_id: '1840651728458878976',
+        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+        channel_id: process.env.MEZON_MUSIC_CHANNEL_ID,
       });
       if (!channel) return;
       if (channel?.streaming_url !== '') {
