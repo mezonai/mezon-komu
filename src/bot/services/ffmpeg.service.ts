@@ -18,15 +18,14 @@ export class FFmpegService {
   }
 
   killCurrentStream(type: FileType) {
-    // if (!this.streamNcc8) return;
     switch (type) {
       case FileType.NCC8:
+        if (!this.streamNcc8) return;
         this.streamNcc8.kill('SIGKILL');
         break;
       case FileType.MUSIC:
-        if (this.streamMusic) {
-          this.streamMusic.kill('SIGKILL');
-        }
+        if (!this.streamMusic) return;
+        this.streamMusic.kill('SIGKILL');
         break;
       case FileType.AUDIOBOOK:
         // this.streamAudioBook.kill('SIGKILL');
