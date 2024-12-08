@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { ChannelMessage } from 'mezon-sdk';
 import { EButtonMessageStyle, EMessageComponentType } from 'mezon-sdk';
 import { CommandMessage } from '../../abstracts/command.abstract';
@@ -38,14 +39,9 @@ export class DailyCommand extends CommandMessage {
     });
 
     if (checkDaily) return dailyHelp;
-    console.log('checkDaily: ', checkDaily);
 
     if (!daily || daily == undefined) {
       return '```please add your daily text```';
-    }
-
-    if (daily.length < 100) {
-      return '```Please enter at least 100 characters in your daily text```';
     }
 
     return false;
@@ -55,6 +51,12 @@ export class DailyCommand extends CommandMessage {
     const content = message.content.t;
     const messageid = message.message_id;
     const messageValidate = this.validateMessage(args);
+
+    const clanId = message.clan_id;
+    const codeMess = message.code;
+    const modeMess = message.mode;
+    const isPublic = message.is_public;
+    const ownerSenderDaily = message.sender_id
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
         ? message.content.t.trim() === '*daily'
@@ -72,10 +74,12 @@ export class DailyCommand extends CommandMessage {
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
     const blockText = extractText(content, 'Block');
+    const today = new Date();
+    const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `New Daily Timesheet`,
+        title: `Daily On ${formattedDate}`,
         fields: [
           {
             name: 'Project:',
@@ -188,7 +192,7 @@ export class DailyCommand extends CommandMessage {
       {
         components: [
           {
-            id: `daily-${messageid}-button-cancel`,
+            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-button-cancel`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -196,7 +200,7 @@ export class DailyCommand extends CommandMessage {
             },
           },
           {
-            id: `daily-${messageid}-button-submit`,
+            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-button-submit`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Submit`,

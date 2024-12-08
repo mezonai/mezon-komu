@@ -1,5 +1,8 @@
+import { ChannelMessage, ChannelStreamMode, EMarkdownType } from 'mezon-sdk';
 import { EMAIL_DOMAIN } from '../constants/configs';
 import * as QRCode from 'qrcode';
+import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
+import { refGenerate } from './generateReplyMessage';
 
 export function extractMessage(message: string) {
   const args = message.replace('\n', ' ').slice('*'.length).trim().split(/ +/);
@@ -166,13 +169,30 @@ export function extractText(content, keyword) {
   return match ? match[1].trim() : '';
 }
 
-export function checkButtonAction(
-  buttonId: string,
-): 'submit' | 'cancel' | 'unknown' {
-  if (buttonId.endsWith('-button-cancel')) {
-    return 'cancel';
-  } else if (buttonId.endsWith('-button-submit')) {
-    return 'submit';
-  }
-  return 'unknown';
+
+export function createReplyMessage(
+  messageText: string,
+  clanIdValue: string,
+  channelId: string,
+  isPublicValue: boolean,
+  modeValue: ChannelStreamMode,
+  msg: ChannelMessage
+): ReplyMezonMessage {
+  return {
+    clan_id: clanIdValue,
+    channel_id: channelId,
+    is_public: isPublicValue,
+    mode: modeValue,
+    msg: {
+      t: messageText,
+      mk: [
+        {
+          type: EMarkdownType.TRIPLE,
+          s: 0,
+          e: messageText.length,
+        },
+      ],
+    },
+    ref: refGenerate(msg),
+  };
 }

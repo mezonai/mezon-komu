@@ -1,6 +1,13 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { ChannelMessage, Events } from 'mezon-sdk';
+import {
+  ChannelMessage,
+  ChannelStreamMode,
+  EMarkdownType,
+  Events,
+} from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -17,7 +24,7 @@ import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
   checkAnswerFormat,
-  checkButtonAction,
+  createReplyMessage,
   generateEmail,
   generateQRCode,
   getRandomColor,
@@ -290,103 +297,154 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
   @OnEvent(Events.MessageButtonClicked)
   async handleSubmitDaily(data) {
-    console.log('data: ', data);
+  console.log('data :', data);
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('-');
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5];
+    const ownerSenderDaily = splitButtonId[6];
+    const buttonType = splitButtonId[8];
+    const invalidLength =
+      '```Please enter at least 100 characters in your daily text```';
+    const invalidOwnerCancel =
+    '```Sorry, only the owner has permission to cancel this.```';
+    const invalidOwnerSubmit =
+    '```Sorry, only the owner has permission to submit this.```';
+    const isOwner = ownerSenderDaily === senderId
+    const cancelledDailyMess = '```The daily has been cancelled.```';
 
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+    
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase()
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase()
     try {
-      // Validate `data.extra_data`
-      if (!data.extra_data) {
-        throw new Error('extra_data is missing');
+      if (!data.extra_data && !isOwner && isCancel) {
+       const replyMessage = createReplyMessage(invalidOwnerCancel, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        return this.messageQueue.addMessage(replyMessage);
+      }
+      
+      if (!data.extra_data && !isOwner && isSubmit) {
+        const replyMessage = createReplyMessage(invalidOwnerSubmit, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        return this.messageQueue.addMessage(replyMessage);
+      }
+      
+      if (!data.extra_data && isOwner && isCancel) {
+        const replyMessage = createReplyMessage(cancelledDailyMess, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        return this.messageQueue.addMessage(replyMessage);
+      }
+      
+      if (!data.extra_data && isOwner && isSubmit) {
+        const replyMessage = createReplyMessage(invalidLength, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        return this.messageQueue.addMessage(replyMessage);
       }
 
-      let parsedExtraData;
-      try {
-        parsedExtraData = JSON.parse(data.extra_data);
-      } catch (error) {
-        throw new Error('Invalid JSON in extra_data');
+      switch (buttonType) {
+        case EUnlockTimeSheet.SUBMIT.toLowerCase():
+          let parsedExtraData;
+          try {
+            parsedExtraData = JSON.parse(data.extra_data);
+          } catch (error) {
+            throw new Error('Invalid JSON in extra_data');
+          }
+          // eslint-disable-next-line prettier/prettier
+          if (!parsedExtraData || typeof parsedExtraData !== 'object') {
+            throw new Error('Invalid structure in parsedExtraData');
+          }
+          const parsedExtraDataValues = Object.values(parsedExtraData) ?? [];
+          const projectCode = '41315';
+          const yesterdayValue = parsedExtraDataValues[0];
+          const todayValue = parsedExtraDataValues[1];
+          const blockValue = parsedExtraDataValues[2];
+          const workingTimeValue = parsedExtraDataValues[3];
+
+          const contentGenerated = `*daily\n ${projectCode}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}`;
+          if (!isOwner) {
+            const replyMessageInvalidOwnerSubmit = createReplyMessage(invalidOwnerSubmit, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            return this.messageQueue.addMessage(replyMessageInvalidOwnerSubmit);
+          }
+
+          if (contentGenerated.length < 100) {
+            const replyMessageInvalidLength = createReplyMessage(invalidLength, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            return this.messageQueue.addMessage(replyMessageInvalidLength);
+          }
+          const findUser = await this.userRepository
+            .createQueryBuilder()
+            .where(`"userId" = :userId`, { userId: senderId })
+            .andWhere(`"deactive" IS NOT true`)
+            .select('*')
+            .getRawOne();
+
+          if (!findUser) return;
+
+          const authorUsername = findUser.email;
+          const emailAddress = generateEmail(authorUsername);
+
+          const wfhResult = await this.timeSheetService.findWFHUser();
+          const wfhUserEmail = wfhResult.map((item) =>
+            getUserNameByEmail(item.emailAddress),
+          );
+
+          await this.saveDaily(
+            senderId,
+            channelId,
+            parsedExtraDataValues as string[],
+            authorUsername,
+          );
+
+          await this.timeSheetService.logTimeSheetFromDaily({
+            emailAddress,
+            content: contentGenerated,
+          });
+          const isValidTimeFrame = checkTimeSheet();
+          const isValidWFH = checkTimeNotWFH();
+          const baseMessage = '```✅ Daily saved.```';
+          const errorMessageWFH =
+            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+          const errorMessageNotWFH =
+            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+
+          const messageContent = wfhUserEmail.includes(authorUsername)
+            ? isValidTimeFrame
+              ? baseMessage
+              : errorMessageWFH
+            : isValidWFH
+              ? baseMessage
+              : errorMessageNotWFH;
+          const replyMessageSubmit = createReplyMessage(messageContent, clanIdValue, channelId, isPublicValue, modeValue, msg);
+          this.messageQueue.addMessage(replyMessageSubmit);
+          break;
+        case EUnlockTimeSheet.CANCEL.toLowerCase():
+          if (!isOwner) {
+            const replyMessageInvalidOwnerCancel = createReplyMessage(invalidOwnerCancel, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            return this.messageQueue.addMessage(replyMessageInvalidOwnerCancel);
+          }
+          const replyMessageCancel = createReplyMessage(cancelledDailyMess, clanIdValue, channelId, isPublicValue, modeValue, msg);
+          this.messageQueue.addMessage(replyMessageCancel);
+          break;
+        default:
+          break;
       }
-
-      // Validate the structure of `parsedExtraData`
-      if (
-        !parsedExtraData.dataInputs ||
-        typeof parsedExtraData.dataInputs !== 'object'
-      ) {
-        throw new Error('Invalid structure in parsedExtraData');
-      }
-
-      const parsedExtraDataValues =
-        Object.values(parsedExtraData.dataInputs) ?? [];
-      if (parsedExtraDataValues.length < 3) {
-        throw new Error('Missing required data in dataInputs');
-      }
-
-      console.log('parsedExtraData: ', parsedExtraData);
-
-      const projectCode = 'Mezon';
-      console.log('projectCode: ', projectCode);
-      const yesterdayValue = parsedExtraDataValues[0];
-      console.log('yesterdayValue: ', yesterdayValue);
-      const todayValue = parsedExtraDataValues[1];
-      console.log('todayValue: ', todayValue);
-      const blockValue = parsedExtraDataValues[2];
-      console.log('blockValue: ', blockValue);
-      const workingTimeValue = parsedExtraDataValues[3];
-      console.log('workingTimeValue: ', workingTimeValue);
-
-      const senderId = data.user_id;
-      const channelId = data.channel_id;
-      const today = parsedExtraDataValues[2];
-
-      const findUser = await this.userRepository
-        .createQueryBuilder()
-        .where(`"userId" = :userId`, { userId: senderId })
-        .andWhere(`"deactive" IS NOT true`)
-        .select('*')
-        .getRawOne();
-
-      if (!findUser) return;
-
-      const authorUsername = findUser.email;
-      const emailAddress = generateEmail(authorUsername);
-
-      const wfhResult = await this.timeSheetService.findWFHUser();
-      const wfhUserEmail = wfhResult.map((item) =>
-        getUserNameByEmail(item.emailAddress),
-      );
-      console.log(1);
-      await this.saveDaily(
-        senderId,
-        channelId,
-        parsedExtraDataValues as string[],
-        authorUsername,
-      );
-
-      const contentGenerated = `*daily ${projectCode}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
-      console.log('contentGenerated: ', contentGenerated);
-
-      await this.timeSheetService.logTimeSheetFromDaily({
-        emailAddress,
-        content: contentGenerated,
-      });
-      console.log(2);
-      const isValidTimeFrame = checkTimeSheet();
-      const isValidWFH = checkTimeNotWFH();
-
-      const baseMessage = '```✅ Daily saved.```';
-      const errorMessageWFH =
-        '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
-      const errorMessageNotWFH =
-        '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
-
-      const messageContent = wfhUserEmail.includes(authorUsername)
-        ? isValidTimeFrame
-          ? baseMessage
-          : errorMessageWFH
-        : isValidWFH
-          ? baseMessage
-          : errorMessageNotWFH;
-
-      const buttonType = checkButtonAction(data.button_id);
-      console.log('buttonType: ', buttonType);
     } catch (error) {
       console.error('Error in handleSubmitDaily:', error.message);
     }
@@ -398,7 +456,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     args: string[],
     email: string,
   ) {
-    console.log({ senderId, channelId, args, email });
     return this.dailyRepository
       .createQueryBuilder()
       .insert()
