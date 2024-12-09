@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { ChannelMessage, ChannelStreamMode, EMarkdownType } from 'mezon-sdk';
 import { EMAIL_DOMAIN } from '../constants/configs';
 import * as QRCode from 'qrcode';
@@ -160,16 +161,15 @@ export async function generateQRCode(text: string): Promise<string> {
     throw new Error('Can not generate QR code!');
   }
 }
+
 export function extractText(content, keyword) {
   const regex = new RegExp(
-    `${keyword}:\\s*(.*?)\\s*(?=\\b[A-Z][a-z]*:|$)`,
-    'si',
+    `${keyword}:\\s*(.*?)\\s*(?=\\b(?:Yesterday|Today|Block|Working Time|Type Of Work):|$)`,
+    'i' 
   );
   const match = content.match(regex);
   return match ? match[1].trim() : '';
 }
-
-
 export function createReplyMessage(
   messageText: string,
   clanIdValue: string,
@@ -195,4 +195,11 @@ export function createReplyMessage(
     },
     ref: refGenerate(msg),
   };
+}
+
+export function findProjectByLabel(optionsProject, projectText) {
+  const normalizedText = projectText.trim().toLowerCase();
+  return (
+    optionsProject.find(option => option.label.trim().toLowerCase() === normalizedText) || null
+  );
 }

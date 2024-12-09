@@ -368,6 +368,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
   @OnEvent(Events.MessageButtonClicked)
   async handleSubmitDaily(data) {
+  console.log('data :', data);
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
@@ -476,7 +477,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const todayKey = `daily-${messid}-today-ip`;
           const blockKey = `daily-${messid}-block-ip`;
           const workingTimeKey = `daily-${messid}-working-time`;
-          const workingHoursTypeKey = `daily-${messid}-working-hours-type`;
+          const workingHoursTypeKey = `daily-${messid}-type-of-work`;
           const projectCode = parsedExtraData[projectKey]?.[0];
           const yesterdayValue = parsedExtraData[yesterdayKey];
           const todayValue = parsedExtraData[todayKey];

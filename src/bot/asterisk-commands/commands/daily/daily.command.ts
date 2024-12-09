@@ -8,7 +8,11 @@ import { Daily, User } from 'src/bot/models';
 import { dailyHelp } from './daily.constants';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { TimeSheetService } from 'src/bot/services/timesheet.services';
-import { extractText, getRandomColor } from 'src/bot/utils/helper';
+import {
+  extractText,
+  findProjectByLabel,
+  getRandomColor,
+} from 'src/bot/utils/helper';
 import { EmbedProps } from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
@@ -52,7 +56,6 @@ export class DailyCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    console.log('message :', message);
     const content = message.content.t;
     const messageid = message.message_id;
     const messageValidate = this.validateMessage(args);
@@ -74,15 +77,16 @@ export class DailyCommand extends CommandMessage {
         },
         message,
       );
+    const projectText = args[0] ?? '';
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
     const blockText = extractText(content, 'Block');
+    const workingTimeText = extractText(content, 'Working Time') || 1;
+    const typeOfWorkText = extractText(content, 'Type Of Work');
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-
     const { project } = this.clientConfigService;
     const httpsAgent = this.clientConfigService.https;
-
     const [pmData] = await Promise.all([
       this.axiosClientService.get(
         `${project.getPMOfUser}?email=${ownerSenderDailyEmail}`,
@@ -97,6 +101,23 @@ export class DailyCommand extends CommandMessage {
       label: project.projectName,
       value: project.projectCode,
     }));
+
+    const optionTypeOfWork = [
+      {
+        label: 'Normal Time',
+        value: 0,
+      },
+      {
+        label: 'Overtime',
+        value: 1,
+      },
+    ];
+    const getProjectFromProjectOpt =
+      findProjectByLabel(optionsProject, projectText) || optionsProject[0];
+    const getTypeOfWorkFromOpt =
+      findProjectByLabel(optionTypeOfWork, typeOfWorkText) ||
+      optionTypeOfWork[0];
+
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
@@ -111,6 +132,7 @@ export class DailyCommand extends CommandMessage {
               component: {
                 options: optionsProject,
                 required: true,
+                valueSelected: getProjectFromProjectOpt,
               },
             },
           },
@@ -125,7 +147,7 @@ export class DailyCommand extends CommandMessage {
                 placeholder: 'Ex. Write something',
                 required: true,
                 textarea: true,
-                value: yesterdayText,
+                defaultValue: yesterdayText,
               },
             },
           },
@@ -140,7 +162,7 @@ export class DailyCommand extends CommandMessage {
                 placeholder: 'Ex. Write something',
                 required: true,
                 textarea: true,
-                value: todayText,
+                defaultValue: todayText,
               },
             },
           },
@@ -156,7 +178,7 @@ export class DailyCommand extends CommandMessage {
                 required: true,
                 textarea: true,
                 type: EMessageSelectType.TEXT,
-                value: blockText,
+                defaultValue: blockText,
               },
             },
           },
@@ -168,30 +190,23 @@ export class DailyCommand extends CommandMessage {
               type: EMessageComponentType.INPUT,
               component: {
                 id: `daily-${messageid}-working-time-plhder`,
-                placeholder: 'Ex. Write something',
+                placeholder: 'Ex. Enter Workingtime',
                 required: true,
-                textarea: true,
+                defaultValue: Number(workingTimeText),
+                type: 'number',
               },
             },
           },
           {
-            name: 'Working Hours Type:',
+            name: 'Type Of Work:',
             value: '',
             inputs: {
-              id: `daily-${messageid}-working-hours-type`,
+              id: `daily-${messageid}-type-of-work`,
               type: EMessageComponentType.SELECT,
               component: {
-                options: [
-                  {
-                    label: 'Normal Time',
-                    value: 0,
-                  },
-                  {
-                    label: 'Overtime',
-                    value: 1,
-                  },
-                ],
+                options: optionTypeOfWork,
                 required: true,
+                valueSelected: getTypeOfWorkFromOpt,
               },
             },
           },
@@ -222,7 +237,6 @@ export class DailyCommand extends CommandMessage {
         ],
       },
     ];
-
     if (onlyDailySyntax || !messageValidate)
       return this.replyMessageGenerate(
         {
