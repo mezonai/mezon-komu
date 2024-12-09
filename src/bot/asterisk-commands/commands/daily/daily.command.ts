@@ -10,6 +10,8 @@ import { Command } from 'src/bot/base/commandRegister.decorator';
 import { TimeSheetService } from 'src/bot/services/timesheet.services';
 import { extractText, getRandomColor } from 'src/bot/utils/helper';
 import { EmbedProps } from 'src/bot/constants/configs';
+import { ClientConfigService } from 'src/bot/config/client-config.service';
+import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 
 export enum EMessageSelectType {
   TEXT = 1,
@@ -24,6 +26,8 @@ export class DailyCommand extends CommandMessage {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Daily) private dailyRepository: Repository<Daily>,
+    private readonly clientConfigService: ClientConfigService,
+    private readonly axiosClientService: AxiosClientService,
   ) {
     super();
   }
@@ -48,15 +52,16 @@ export class DailyCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    console.log('message :', message);
     const content = message.content.t;
     const messageid = message.message_id;
     const messageValidate = this.validateMessage(args);
-
     const clanId = message.clan_id;
     const codeMess = message.code;
     const modeMess = message.mode;
     const isPublic = message.is_public;
-    const ownerSenderDaily = message.sender_id
+    const ownerSenderDaily = message.sender_id;
+    const ownerSenderDailyEmail = message.username + '@ncc.asia';
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
         ? message.content.t.trim() === '*daily'
@@ -69,13 +74,29 @@ export class DailyCommand extends CommandMessage {
         },
         message,
       );
-
-    const projectCode = args[0] ?? '';
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
     const blockText = extractText(content, 'Block');
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+
+    const { project } = this.clientConfigService;
+    const httpsAgent = this.clientConfigService.https;
+
+    const [pmData] = await Promise.all([
+      this.axiosClientService.get(
+        `${project.getPMOfUser}?email=${ownerSenderDailyEmail}`,
+        {
+          httpsAgent,
+        },
+      ),
+    ]);
+
+    const projectMetaData = pmData?.data?.result;
+    const optionsProject = projectMetaData.map((project) => ({
+      label: project.projectName,
+      value: project.projectCode,
+    }));
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
@@ -83,21 +104,12 @@ export class DailyCommand extends CommandMessage {
         fields: [
           {
             name: 'Project:',
-            value: projectCode,
+            value: '',
             inputs: {
               id: `daily-${messageid}-project`,
               type: EMessageComponentType.SELECT,
               component: {
-                options: [
-                  {
-                    label: 'Meo 1',
-                    value: 'meo 1',
-                  },
-                  {
-                    label: 'Meo 2',
-                    value: 'meo 2',
-                  },
-                ],
+                options: optionsProject,
                 required: true,
               },
             },
@@ -172,11 +184,11 @@ export class DailyCommand extends CommandMessage {
                 options: [
                   {
                     label: 'Normal Time',
-                    value: 'normal-time',
+                    value: 0,
                   },
                   {
                     label: 'Overtime',
-                    value: 'overtime',
+                    value: 1,
                   },
                 ],
                 required: true,
@@ -192,7 +204,7 @@ export class DailyCommand extends CommandMessage {
       {
         components: [
           {
-            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-button-cancel`,
+            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-${formattedDate}-cancel`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -200,7 +212,7 @@ export class DailyCommand extends CommandMessage {
             },
           },
           {
-            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-button-submit`,
+            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-${formattedDate}-submit`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Submit`,

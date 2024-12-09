@@ -297,24 +297,28 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
   @OnEvent(Events.MessageButtonClicked)
   async handleSubmitDaily(data) {
-  console.log('data :', data);
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
     const splitButtonId = data.button_id.split('-');
+    const messid = splitButtonId[1];
     const clanIdValue = splitButtonId[2];
     const modeValue = splitButtonId[3];
     const codeMessValue = splitButtonId[4];
     const isPublicValue = splitButtonId[5];
     const ownerSenderDaily = splitButtonId[6];
+    const dateValue = splitButtonId[7];
     const buttonType = splitButtonId[8];
+
     const invalidLength =
       '```Please enter at least 100 characters in your daily text```';
+    const missingField =
+      '```Missing project, yesterday, today, or block field```';
     const invalidOwnerCancel =
-    '```Sorry, only the owner has permission to cancel this.```';
+      '```Sorry, only the owner has permission to cancel this.```';
     const invalidOwnerSubmit =
-    '```Sorry, only the owner has permission to submit this.```';
-    const isOwner = ownerSenderDaily === senderId
+      '```Sorry, only the owner has permission to submit this.```';
+    const isOwner = ownerSenderDaily === senderId;
     const cancelledDailyMess = '```The daily has been cancelled.```';
 
     //init reply message
@@ -335,27 +339,55 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       content: { t: '' },
       attachments: [{}],
     };
-    
-    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase()
-    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase()
+
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
     try {
       if (!data.extra_data && !isOwner && isCancel) {
-       const replyMessage = createReplyMessage(invalidOwnerCancel, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        const replyMessage = createReplyMessage(
+          invalidOwnerCancel,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
         return this.messageQueue.addMessage(replyMessage);
       }
-      
+
       if (!data.extra_data && !isOwner && isSubmit) {
-        const replyMessage = createReplyMessage(invalidOwnerSubmit, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        const replyMessage = createReplyMessage(
+          invalidOwnerSubmit,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
         return this.messageQueue.addMessage(replyMessage);
       }
-      
+
       if (!data.extra_data && isOwner && isCancel) {
-        const replyMessage = createReplyMessage(cancelledDailyMess, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        const replyMessage = createReplyMessage(
+          cancelledDailyMess,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
         return this.messageQueue.addMessage(replyMessage);
       }
-      
+
       if (!data.extra_data && isOwner && isSubmit) {
-        const replyMessage = createReplyMessage(invalidLength, clanIdValue, channelId, isPublicValue, modeValue, msg);
+        const replyMessage = createReplyMessage(
+          invalidLength,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
         return this.messageQueue.addMessage(replyMessage);
       }
 
@@ -367,27 +399,56 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           } catch (error) {
             throw new Error('Invalid JSON in extra_data');
           }
-          // eslint-disable-next-line prettier/prettier
-          if (!parsedExtraData || typeof parsedExtraData !== 'object') {
-            throw new Error('Invalid structure in parsedExtraData');
-          }
-          const parsedExtraDataValues = Object.values(parsedExtraData) ?? [];
-          const projectCode = '41315';
-          const yesterdayValue = parsedExtraDataValues[0];
-          const todayValue = parsedExtraDataValues[1];
-          const blockValue = parsedExtraDataValues[2];
-          const workingTimeValue = parsedExtraDataValues[3];
 
-          const contentGenerated = `*daily\n ${projectCode}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}`;
+          const projectKey = `daily-${messid}-project`;
+          const yesterdayKey = `daily-${messid}-yesterday-ip`;
+          const todayKey = `daily-${messid}-today-ip`;
+          const blockKey = `daily-${messid}-block-ip`;
+          const workingTimeKey = `daily-${messid}-working-time`;
+          const workingHoursTypeKey = `daily-${messid}-working-hours-type`;
+          const projectCode = parsedExtraData[projectKey]?.[0];
+          const yesterdayValue = parsedExtraData[yesterdayKey];
+          const todayValue = parsedExtraData[todayKey];
+          const blockValue = parsedExtraData[blockKey];
+          const workingTimeValue = parsedExtraData[workingTimeKey];
+          const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
+          const isMissingField =
+            !projectCode || !yesterdayValue || !todayValue || !blockValue;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}\n typeOfWork:${typeOfWorkValue}`;
           if (!isOwner) {
-            const replyMessageInvalidOwnerSubmit = createReplyMessage(invalidOwnerSubmit, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            const replyMessageInvalidOwnerSubmit = createReplyMessage(
+              invalidOwnerSubmit,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
             return this.messageQueue.addMessage(replyMessageInvalidOwnerSubmit);
           }
-
           if (contentGenerated.length < 100) {
-            const replyMessageInvalidLength = createReplyMessage(invalidLength, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            const replyMessageInvalidLength = createReplyMessage(
+              invalidLength,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
             return this.messageQueue.addMessage(replyMessageInvalidLength);
           }
+          if (isMissingField) {
+            const replyMessageMissingField = createReplyMessage(
+              missingField,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageMissingField);
+          }
+
           const findUser = await this.userRepository
             .createQueryBuilder()
             .where(`"userId" = :userId`, { userId: senderId })
@@ -408,7 +469,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           await this.saveDaily(
             senderId,
             channelId,
-            parsedExtraDataValues as string[],
+            contentGenerated as string,
             authorUsername,
           );
 
@@ -431,15 +492,36 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             : isValidWFH
               ? baseMessage
               : errorMessageNotWFH;
-          const replyMessageSubmit = createReplyMessage(messageContent, clanIdValue, channelId, isPublicValue, modeValue, msg);
+          const replyMessageSubmit = createReplyMessage(
+            messageContent,
+            clanIdValue,
+            channelId,
+            isPublicValue,
+            modeValue,
+            msg,
+          );
           this.messageQueue.addMessage(replyMessageSubmit);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           if (!isOwner) {
-            const replyMessageInvalidOwnerCancel = createReplyMessage(invalidOwnerCancel, clanIdValue, channelId, isPublicValue, modeValue, msg);
+            const replyMessageInvalidOwnerCancel = createReplyMessage(
+              invalidOwnerCancel,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
             return this.messageQueue.addMessage(replyMessageInvalidOwnerCancel);
           }
-          const replyMessageCancel = createReplyMessage(cancelledDailyMess, clanIdValue, channelId, isPublicValue, modeValue, msg);
+          const replyMessageCancel = createReplyMessage(
+            cancelledDailyMess,
+            clanIdValue,
+            channelId,
+            isPublicValue,
+            modeValue,
+            msg,
+          );
           this.messageQueue.addMessage(replyMessageCancel);
           break;
         default:
@@ -450,12 +532,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  saveDaily(
-    senderId: string,
-    channelId: string,
-    args: string[],
-    email: string,
-  ) {
+  saveDaily(senderId: string, channelId: string, args: string, email: string) {
     return this.dailyRepository
       .createQueryBuilder()
       .insert()
@@ -463,7 +540,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       .values({
         userid: senderId,
         email: email,
-        daily: args.join(' '),
+        daily: args,
         createdAt: Date.now(),
         channelid: channelId,
       })
