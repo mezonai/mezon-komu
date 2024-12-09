@@ -35,18 +35,21 @@ export class MusicService {
     return '';
   }
 
-  async getMusicListMessage(message, songName, page) {
-    const SONG_PER_SEND = 10;
+  async getMusicListMessage(message, songName, page, part) {
+    part = +part;
+    page = +page;
+    const SONG_PER_SEND = 15;
     const result = await this.searchMusic(songName, page);
     if (result.songs.length > 0) {
       let fields = [];
       const mess = [];
-      for (let i = 0; i < result.songs.length; i++) {
+      let embed: EmbedProps[];
+      for (let i = SONG_PER_SEND * +part; i < result.songs.length; i++) {
         const song = result.songs[i];
 
         fields.push({
           name: song.name,
-          // value: song.id,
+          value: song.singer,
           button: [
             {
               id: `music_play_${song.id}`,
@@ -59,55 +62,76 @@ export class MusicService {
           ],
           style: EButtonMessageStyle.PRIMARY,
         });
-        if ((i + 1) % SONG_PER_SEND == 0) {
-          const embed: EmbedProps[] = [
+        if ((i + 1) % SONG_PER_SEND == 0 || 1 + i == result.songs.length) {
+          embed = [
             {
               color: getRandomColor(),
-              title: `List song with keyword "${songName}" trang ${page}`,
+              title: `List song with keyword "${songName}" page ${(page - 1) * 2 + 1 + part} `,
               fields,
               timestamp: new Date().toISOString(),
               footer: MEZON_EMBED_FOOTER,
             },
           ];
 
-          mess.push(
-            replyMessageGenerate(
-              {
-                embed,
-              },
-              message,
-            ),
-          );
-
           fields = [];
+          break;
         }
       }
+      const buttons = [];
+
       if (result.pageNumbers.length > 0) {
-        const components = [
-          {
-            components: result.pageNumbers.map((value) => ({
-              type: EMessageComponentType.BUTTON,
-              id: `music_search_${songName}_${value}_${message.is_public ? 1 : 0}_${message.mode}`,
-              component: {
-                label: value,
-                style: EButtonMessageStyle.PRIMARY,
-              },
-            })),
-          },
-        ];
-        mess.push(
-          replyMessageGenerate(
-            {
-              components,
+        if (page != 1 || part != 0) {
+          let newPage = page;
+          let newPart = part;
+          if (part == 1) {
+            newPart = 0;
+          } else {
+            newPage = page - 1;
+            newPart = 1;
+          }
+
+          buttons.push({
+            type: EMessageComponentType.BUTTON,
+            id: `music_search_${songName}_${newPage}_${newPart}_${message.is_public ? 1 : 0}_${message.mode}`,
+            component: {
+              label: 'Prev',
+              style: EButtonMessageStyle.PRIMARY,
             },
-            message,
-          ),
-        );
+          });
+        }
+
+        if (page != Math.max(...result.pageNumbers) || part != 1) {
+          let newPage = page;
+          let newPart = part;
+          if (part == 0) {
+            newPart = 1;
+          } else {
+            newPage = page + 1;
+            newPart = 0;
+          }
+
+          buttons.push({
+            type: EMessageComponentType.BUTTON,
+            id: `music_search_${songName}_${newPage}_${newPart}_${message.is_public ? 1 : 0}_${message.mode}`,
+            component: {
+              label: 'Next',
+              style: EButtonMessageStyle.PRIMARY,
+            },
+          });
+        }
       }
 
+      const components = [
+        {
+          components: buttons,
+        },
+      ];
+      mess.push(replyMessageGenerate({ embed, components }, message));
       return mess;
     }
+    return [];
   }
+
   async searchMusic(songName: string, page = 1) {
     const url = this.NCTSearchUrl + songName + '&page=' + page;
     const response = await this.axiosClientService.get(url);
@@ -117,13 +141,14 @@ export class MusicService {
 
       $('.sn_search_returns_list_song .sn_search_single_song').each(
         (index, element) => {
-          const linkElement = $(element).find('a');
+          const songLink = $(element).find('.title_song a');
+          const name = songLink.text().trim();
 
-          const name = linkElement.text().trim();
-
-          const id = $(linkElement).attr('key');
+          const singerLink = $(element).find('.singer_song a');
+          const singer = singerLink.text().trim();
+          const id = $(songLink).attr('key');
           if (name && id) {
-            songs.push({ name, id });
+            songs.push({ name, id, singer });
           }
         },
       );

@@ -28,6 +28,7 @@ export class MusicCommand extends CommandMessage {
           message,
           songNameArray.join('+'),
           1,
+          0,
         );
         break;
       default:

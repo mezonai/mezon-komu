@@ -166,8 +166,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const msg: ChannelMessage = {
         message_id: data.message_id,
         clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-        mode: +args[5],
-        is_public: Boolean(+args[4]),
+        mode: +args[6],
+        is_public: Boolean(+args[5]),
         id: '',
         channel_id: data.channel_id,
         channel_label: '',
@@ -183,6 +183,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         msg,
         args[2],
         args[3],
+        args[4],
       );
 
       if (replyMessage) {
