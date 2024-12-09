@@ -55,6 +55,7 @@ import {
   EventMezon,
   MezonTrackerStreaming,
   UnlockTimeSheet,
+  AbsenceDayRequest,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -146,6 +147,10 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
 import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimesheet/unlockts.command';
 import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
+import { RemoteCommand } from './asterisk-commands/commands/absencedayrequest/remote.command';
+import { OnsiteCommand } from './asterisk-commands/commands/absencedayrequest/onsite.command';
+import { OffCommand } from './asterisk-commands/commands/absencedayrequest/off.command';
+import { CustomAbsenceCommand } from './asterisk-commands/commands/absencedayrequest/customAbsence.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -209,6 +214,7 @@ import { MusicService } from './services/music.services';
       BetEventMezon,
       MezonTrackerStreaming,
       UnlockTimeSheet,
+      AbsenceDayRequest,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -298,6 +304,10 @@ import { MusicService } from './services/music.services';
     MessageButtonClickedEvent,
     StreamingEvent,
     UnlockTimeSheetCommand,
+    RemoteCommand,
+    OnsiteCommand,
+    OffCommand,
+    CustomAbsenceCommand,
   ],
   controllers: [KomubotrestController],
 })

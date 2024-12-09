@@ -5,7 +5,8 @@ import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
-  EMessageMode,
+  EMessageMode, ERequestAbsenceDateType,
+  ERequestAbsenceDayStatus, ERequestAbsenceTime, ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -13,12 +14,12 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import { AbsenceDayRequest, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
-  checkAnswerFormat,
+  checkAnswerFormat, generateEmail,
   generateQRCode,
   getRandomColor,
   sleep,
@@ -28,6 +29,9 @@ import { refGenerate } from '../utils/generateReplyMessage';
 import { MusicService } from '../services/music.services';
 import { FFmpegService } from '../services/ffmpeg.service';
 import { ChannelDMMezon } from '../models/channelDmMezon.entity';
+import { AxiosClientService } from '../services/axiosClient.services';
+import { ClientConfigService } from '../config/client-config.service';
+import { TimeSheetService } from '../services/timesheet.services';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -46,6 +50,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private ffmpegService: FFmpegService,
     @InjectRepository(ChannelDMMezon)
     private channelDmMezonRepository: Repository<ChannelDMMezon>,
+    @InjectRepository(AbsenceDayRequest)
+    private absenceDayRequestRepository: Repository<AbsenceDayRequest>,
+    private axiosClientService: AxiosClientService,
+    private clientConfigService: ClientConfigService,
+    private timeSheetService: TimeSheetService,
   ) {
     super(clientService);
   }
@@ -346,5 +355,240 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     } catch (e) {
       console.log('handleUnlockTimesheet', e);
     }
+  }
+
+  @OnEvent(Events.MessageButtonClicked)
+  async handleRequestAbsenceDay(data) {
+    try {
+      // Parse button_id
+      const args = data.button_id.split('_');
+      const typeRequest = args[0];
+      if ((typeRequest !== 'remote' && typeRequest !== 'onsite' && typeRequest !== 'off' && typeRequest !== 'offcustom') || !data?.extra_data) return;
+      // Find absence data
+      const findAbsenceData = await this.absenceDayRequestRepository.findOne({
+        where: { messageId: data.message_id },
+      });
+      if (!findAbsenceData) return;
+
+      // Check user authorization
+      if (findAbsenceData.userId !== data.user_id) return;
+
+      const typeButtonRes = args[1]; // (confirm or cancel)
+      const dataParse = JSON.parse(data.extra_data);
+
+      // Initialize reply message
+      const replyMessage: ReplyMezonMessage = {
+        clan_id: findAbsenceData.clanId,
+        channel_id: findAbsenceData.channelId,
+        is_public: findAbsenceData.isChannelPublic,
+        mode: findAbsenceData.modeMessage,
+        msg: {
+          t: '',
+        },
+      };
+      // find emailAddress by senderId
+      const findUser = await this.userRepository
+        .createQueryBuilder()
+        .where(`"userId" = :userId`, { userId: findAbsenceData.userId })
+        .andWhere(`"deactive" IS NOT true`)
+        .select('*')
+        .getRawOne();
+      if (!findUser) return;
+      const authorUsername = findUser.email;
+      const emailAddress = generateEmail(authorUsername);
+
+      // Process only requests without status
+      if (!findAbsenceData.status) {
+        switch (typeButtonRes) {
+          case EUnlockTimeSheet.CONFIRM:
+            //valid input and format
+            const validDate = this.validateAndFormatDate(dataParse.dateAt);
+            const validHour = this.validateHour(dataParse.hour || '0', typeRequest);
+            const validTypeDate = this.validDateType(dataParse.dateType ? dataParse.dateType[0] : null, typeRequest);
+            const validReason = this.validReason(dataParse.reason, typeRequest);
+            const userId = findAbsenceData.userId;
+            if (!validDate.valid) {
+              this.sendInvalidInputRequestAbsenceDay(userId, validDate.message);
+              return;
+            }
+            if (!validHour.valid) {
+              this.sendInvalidInputRequestAbsenceDay(userId, validHour.message);
+              return;
+            }
+            if (!validTypeDate.valid) {
+              this.sendInvalidInputRequestAbsenceDay(userId, validTypeDate.message);
+              return;
+            }
+            if (!validReason.valid) {
+              this.sendInvalidInputRequestAbsenceDay(userId, validReason.message);
+              return;
+            }
+            dataParse.dateAt = validDate?.formattedDate;
+
+            const body = await this.handleBodyRequestAbsenceDay(dataParse, typeRequest, emailAddress);
+            try {
+              // Call API request absence day
+              const resAbsenceDayRequest = await this.timeSheetService.requestAbsenceDay(body);
+              if (resAbsenceDayRequest?.data?.success) {
+                const embedUnlockSuccess: EmbedProps[] = [
+                  {
+                    color: '#57F287',
+                    title: `✅ Request absence successful!`,
+                  },
+                ];
+                const messageToUser: ReplyMezonMessage = {
+                  userId: findAbsenceData.userId,
+                  textContent: '',
+                  messOptions: { embed: embedUnlockSuccess },
+                };
+                this.messageQueue.addMessage(messageToUser);
+              } else {
+                throw new Error('Request failed!');
+              }
+            } catch (error) {
+              console.log('handleRequestAbsence', error);
+              const embedUnlockFailure: EmbedProps[] = [
+                {
+                  color: '#ED4245',
+                  title: `❌ Request absence failed.`,
+                },
+              ];
+              const messageToUser: ReplyMezonMessage = {
+                userId: findAbsenceData.userId,
+                textContent: '',
+                messOptions: { embed: embedUnlockFailure },
+              };
+              this.messageQueue.addMessage(messageToUser);
+            }
+            // Update status to CONFIRM
+            await this.absenceDayRequestRepository.update(
+              { id: findAbsenceData.id },
+              {
+                status: ERequestAbsenceDayStatus.CONFIRM,
+                reason: body.reason,
+                dateType: body.absences[0].dateType,
+                absenceTime: body.absences[0].absenceTime,
+              },
+            );
+            break;
+
+          default:
+            replyMessage.msg = { t: 'Cancel request absence successful!' };
+            // Update status to CANCEL
+            await this.absenceDayRequestRepository.update(
+              { id: findAbsenceData.id },
+              { status: ERequestAbsenceDayStatus.CANCEL },
+            );
+            break;
+        }
+      } else {
+        replyMessage['msg'] = {
+          t: `This request has been ${findAbsenceData.status}ed!`,
+        };
+      }
+    } catch (e) {
+      console.error('handleRequestAbsence', e);
+    }
+  }
+
+  async handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress){
+    const inputDateType = dataInputs.dateType ? dataInputs.dateType[0] : "CUSTOM";
+    const dateType = ERequestAbsenceDateType[inputDateType as keyof typeof ERequestAbsenceDateType];
+
+    const inputAbsenceTime = dataInputs.absenceTime ? dataInputs.absenceTime[0] : null;
+    const absenceTime = ERequestAbsenceTime[inputAbsenceTime as keyof typeof ERequestAbsenceTime] || null;
+    const type = ERequestAbsenceType[typeRequest.toUpperCase() as keyof typeof ERequestAbsenceType];
+    const body = {
+      reason: dataInputs.reason,
+      absences: [
+        {
+          dateAt: dataInputs.dateAt,
+          dateType: dateType || ERequestAbsenceDateType.CUSTOM,
+          hour: dataInputs.hour || 0,
+          absenceTime: absenceTime || null,
+        },
+      ],
+      dayOffTypeId: dataInputs.absenceType ? dataInputs.absenceType[0] : 1,
+      type: type || ERequestAbsenceType.OFF,
+      emailAddress: emailAddress,
+    };
+    return body;
+  }
+
+  validateHour(inputNumber, typeRequest) {
+    if (typeRequest == 'offcustom' && inputNumber === '0') {
+      return { valid: false, message: "Hour is required." };
+    }
+    if (!inputNumber || inputNumber.trim() === "") {
+      return { valid: false, message: "Input is required." };
+    }
+
+    const number = parseFloat(inputNumber);
+    if (isNaN(number)) {
+      return { valid: false, message: "Invalid number format. Please enter a number." };
+    }
+
+    if (number < 0 || number > 2) {
+      return { valid: false, message: "Number must be in range 0-2." };
+    }
+
+    return { valid: true, formattedNumber: number };
+  }
+
+  validateAndFormatDate(inputDate) {
+    const regex = /^\d{2}-\d{2}-\d{4}$/;
+    if (!regex.test(inputDate)) {
+      return { valid: false, message: "Invalid date format. Use dd-mm-yyyy." };
+    }
+
+    const [day, month, year] = inputDate.split('-').map(Number);
+
+    if (
+      month < 1 || month > 12 ||
+      day < 1 || day > 31 ||
+      (month === 2 && day > 29) ||
+      (month === 2 && day === 29 && !this.isLeapYear(year)) ||
+      ([4, 6, 9, 11].includes(month) && day > 30)
+    ) {
+      return { valid: false, message: "Invalid day, month, or year." };
+    }
+
+    const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return { valid: true, formattedDate };
+  }
+
+  isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  }
+
+  validDateType(inputDateType, typeRequest) {
+    if(typeRequest !== 'offcustom') {
+      if (!inputDateType) return { valid: false, message: "Date type is required." };
+    }
+    return { valid: true, formattedDateType: inputDateType };
+  }
+
+  validReason(inputReason, typeRequest) {
+    if(typeRequest !== 'remote'){
+      if (!inputReason || inputReason.trim() === "") {
+        return { valid: false, message: "Reason is required." };
+      }
+    }
+    return { valid: true, formattedReason: inputReason };
+  }
+
+  sendInvalidInputRequestAbsenceDay(userId, message) {
+    const embedValidFailure: EmbedProps[] = [
+      {
+        color: '#ED4245',
+        title: `❌ ${message || 'Invalid input'}`,
+      },
+    ];
+    const messageToUser: ReplyMezonMessage = {
+      userId: userId,
+      textContent: '',
+      messOptions: { embed: embedValidFailure },
+    };
+    this.messageQueue.addMessage(messageToUser);
   }
 }

@@ -412,4 +412,36 @@ export class TimeSheetService {
       console.log(error);
     }
   }
+
+  requestAbsenceDay = async (body) => {
+    // Call API request absence day
+    const resAbsenceDayRequest = await this.axiosClientService.post(
+      `${this.clientConfigService.absenceDayRequestApi.api_url}`,
+      body,
+      {
+        httpsAgent: this.clientConfigService.https,
+        headers: {
+          securityCode: this.clientConfigService.imsKeySecret,
+        },
+      },
+    );
+    return resAbsenceDayRequest;
+  };
+
+  getAllTypeAbsence = async () => {
+    try {
+      const absenceType = await this.axiosClientService.get(
+        `${this.clientConfigService.absenceTypeApi.api_url}`,
+        {
+          httpsAgent: this.clientConfigService.https,
+          headers: {
+            securityCode: this.clientConfigService.imsKeySecret,
+          },
+        },
+      );
+      return absenceType;
+    } catch (error) {
+      console.log(error);
+    }
+  };
 }
