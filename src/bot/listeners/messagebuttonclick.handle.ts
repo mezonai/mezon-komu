@@ -237,8 +237,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const typeButtonRes = args[1]; // (confirm or cancel)
       const dataParse = JSON.parse(data.extra_data);
-      const value = dataParse?.dataOptions?.[0]?.id.split('_')[1]; // (pm or staff)
-
+      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
       //init reply message
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,

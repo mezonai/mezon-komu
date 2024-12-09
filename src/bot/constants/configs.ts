@@ -114,3 +114,11 @@ export enum ERequestAbsenceTime {
   MIDDLE_OF_DAY = 2,
   LEAVE_EARLY = 3,
 }
+
+export enum EMessageComponentType {
+  BUTTON = 1,
+  SELECT = 2,
+  INPUT = 3,
+  DATEPICKER = 4,
+  RADIO = 5,
+}

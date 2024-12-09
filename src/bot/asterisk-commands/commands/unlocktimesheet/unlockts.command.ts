@@ -1,11 +1,7 @@
-import {
-  ChannelMessage,
-  EButtonMessageStyle,
-  EMessageComponentType,
-} from 'mezon-sdk';
+import { ChannelMessage, EButtonMessageStyle } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
-import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
+import { EmbedProps, EMessageComponentType, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -40,7 +36,7 @@ export class UnlockTimeSheetCommand extends CommandMessage {
     });
     if (!findUser) return;
     const isPm = findUser?.roles?.includes(rolePM?.id ?? 'staff');
-    const options = [
+    const component = [
       {
         label: 'Bạn là Staff:',
         value: 'unlockTs_STAFF',
@@ -50,7 +46,7 @@ export class UnlockTimeSheetCommand extends CommandMessage {
       },
     ];
     if (isPm) {
-      options.unshift({
+      component.unshift({
         label: 'Bạn là PM:',
         value: 'unlockTs_PM',
         description:
@@ -66,7 +62,11 @@ export class UnlockTimeSheetCommand extends CommandMessage {
           {
             name: '',
             value: '',
-            options,
+            inputs: {
+              id: `RADIO`,
+              type: EMessageComponentType.RADIO,
+              component,
+            },
           },
           {
             name: 'Bạn có chắc chắn muốn unlock timesheet?\nTiền phạt sẽ không được hoàn trả!',
