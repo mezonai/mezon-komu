@@ -70,6 +70,14 @@ export class ClientConfigService {
       api_url: `${configService.get<string>('TIMESHEET_API')}Info/Info/UnlockToApproveTimesheet`,
     };
 
+    this.absenceDayRequestApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/SubmitToPendingNewRequestDay`,
+    };
+
+    this.absenceTypeApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/GetAllAbsenceType`,
+    };
+
     this.checkout = {
       api_url: `${configService.get<string>(
         'KOMUBOTREST_CHECK_IN_URL',
@@ -493,7 +501,15 @@ export class ClientConfigService {
   unlockTsPMApi: {
     api_url: string;
   }
-  
+
+  absenceDayRequestApi: {
+    api_url: string;
+  };
+
+  absenceTypeApi: {
+    api_url: string;
+  };
+
   wiki: {
     api_url: string;
     options: string[];
