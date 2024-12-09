@@ -9,6 +9,7 @@ import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class NewsScheduler {
@@ -79,7 +80,7 @@ export class NewsScheduler {
     }
   }
 
-  // @Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleNews() {
     const dataNews = await this.fetchRssFeed(
       'https://vnexpress.net/rss/tin-moi-nhat.rss',

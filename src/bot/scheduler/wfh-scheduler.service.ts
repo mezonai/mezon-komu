@@ -11,6 +11,7 @@ import { UtilsService } from '../services/utils.services';
 import { getUserNameByEmail } from '../utils/helper';
 import moment from 'moment';
 import { MessageQueue } from '../services/messageQueue.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class WFHSchedulerService {
@@ -44,7 +45,7 @@ export class WFHSchedulerService {
     return wfhUserEmail;
   }
 
-  // @Cron('*/5 9-10,13-16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('*/5 9-10,13-16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handlePingWFH() {
     try {
       if (await this.utilsService.checkHoliday()) return;
@@ -160,7 +161,7 @@ export class WFHSchedulerService {
     }
   }
 
-  // @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async punish() {
     if (await this.utilsService.checkHoliday()) return;
     if (this.utilsService.checkTime(new Date())) return;
@@ -249,7 +250,7 @@ export class WFHSchedulerService {
     }
   }
 
-  // @Cron('0 9,11,14,16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('0 9,11,14,16 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handlePingQuiz() {
     try {
       if (await this.utilsService.checkHoliday()) return;

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
-import { CronExpression } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { MezonBotMessage } from '../models';
 import { PollService } from '../services/poll.service';
 
@@ -15,7 +15,7 @@ export class PollSchedulerService {
 
   private readonly logger = new Logger(PollSchedulerService.name);
 
-  // @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleResultPollExpire() {
     this.logger.warn(
       `time ${CronExpression.EVERY_MINUTE} for job handleResultPollExpire to run!`,

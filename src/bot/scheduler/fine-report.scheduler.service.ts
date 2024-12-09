@@ -20,6 +20,7 @@ import { replyMessageGenerate } from 'src/bot/utils/generateReplyMessage';
 import { EMessageMode } from 'src/bot/constants/configs';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { RoleMezon } from 'src/bot/models';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class FineReportSchedulerService {
@@ -34,9 +35,9 @@ export class FineReportSchedulerService {
     private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  // @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
-  //   timeZone: 'Asia/Ho_Chi_Minh',
-  // })
+  @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
   async dailyReportScheduler() {
     const data = await this.calculateAndUpdateSheet();
 

@@ -9,6 +9,7 @@ import { join } from 'path';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MezonClient } from 'mezon-sdk';
 import { ClientConfigService } from '../config/client-config.service';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class Ncc8SchedulerService {
@@ -31,7 +32,7 @@ export class Ncc8SchedulerService {
       .getOne();
   }
 
-  // @Cron('29 11 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('29 11 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
     await sleep(42000);
     this.ffmpegService.killCurrentStream(FileType.NCC8);
