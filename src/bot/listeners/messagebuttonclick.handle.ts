@@ -2,12 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  ChannelMessage,
-  ChannelStreamMode,
-  EMarkdownType,
-  Events,
-} from 'mezon-sdk';
+import { ChannelMessage, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -173,6 +168,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   @OnEvent(Events.MessageButtonClicked)
   async handleMusicEvent(data) {
+    console.log('data: ', data);
     const args = data.button_id.split('_');
     if (args[0] != 'music') {
       return;
@@ -368,7 +364,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
   @OnEvent(Events.MessageButtonClicked)
   async handleSubmitDaily(data) {
-  console.log('data :', data);
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;

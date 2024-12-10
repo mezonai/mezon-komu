@@ -13,7 +13,7 @@ import {
   findProjectByLabel,
   getRandomColor,
 } from 'src/bot/utils/helper';
-import { EmbedProps } from 'src/bot/constants/configs';
+import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 
@@ -213,6 +213,7 @@ export class DailyCommand extends CommandMessage {
         ],
 
         timestamp: new Date().toISOString(),
+        footer: MEZON_EMBED_FOOTER,
       },
     ];
     const components = [

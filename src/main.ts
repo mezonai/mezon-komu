@@ -30,7 +30,7 @@ async function bootstrap() {
   await sendMessageSchedulerService.startCronJobs();
 
   const komubotrestService = app.get(KomubotrestService);
-  // await komubotrestService.startWatchingFolder();
+  await komubotrestService.startWatchingFolder();
 
   await app.listen(3000);
 }

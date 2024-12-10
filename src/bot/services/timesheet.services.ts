@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ApiUrl } from '../constants/api_url';
-import { normalizeString } from '../utils/helper';
+import { extractText, normalizeString } from '../utils/helper';
 import parseDuration from 'parse-duration';
 import * as chrono from 'chrono-node';
 import { AxiosClientService } from './axiosClient.services';
@@ -62,6 +62,8 @@ export class TimeSheetService {
   logTimeSheetFromDaily = async ({ content, emailAddress }) => {
     const data = this.parseDailyMessage(content);
     const projectCode = data.projectCode;
+    const workingTime = Number(extractText(content, 'workingTime')) || 1;
+    const typeOfWork = Number(extractText(content, 'typeOfWork'));
     const results = [];
     for (const task of data.tasks) {
       try {
@@ -69,6 +71,8 @@ export class TimeSheetService {
           projectCode,
           task,
           emailAddress,
+          workingTime,
+          typeOfWork,
         });
         const result = response.data;
         results.push(result);
@@ -83,9 +87,14 @@ export class TimeSheetService {
     }
   };
 
-  logTimeSheetForTask = async ({ task, projectCode, emailAddress }) => {
-    const typeOfWork = task.type === 'ot' ? 1 : 0;
-    const hour = task.duration ? task.duration / 3600000 : 0;
+  logTimeSheetForTask = async ({
+    task,
+    projectCode,
+    emailAddress,
+    workingTime,
+    typeOfWork,
+  }) => {
+    const workingTimeMinutes = workingTime * 60;
     const taskName = task.name;
     const timesheetPayload = {
       note: task.note,
@@ -93,10 +102,11 @@ export class TimeSheetService {
       projectCode,
       typeOfWork,
       taskName,
-      hour,
+      workingTimeMinutes,
     };
+    console.log('timesheetPayload', timesheetPayload);
     const url =
-      !hour || !projectCode
+      !workingTimeMinutes || !projectCode
         ? `${process.env.TIMESHEET_API}MyTimesheets/CreateByKomu`
         : `${process.env.TIMESHEET_API}MyTimesheets/CreateFullByKomu`;
 
