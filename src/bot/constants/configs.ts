@@ -85,3 +85,41 @@ export enum EUnlockTimeSheetPayment {
   PM_PAYMENT = 50000,
   STAFF_PAYMENT = 20000,
 }
+
+export enum EMessageSelectType {
+  TEXT = 1,
+  USER = 2,
+  ROLE = 3,
+  CHANNEL = 4,
+}
+
+export enum ERequestAbsenceDayStatus {
+  CONFIRM = 'CONFIRM',
+  CANCEL = 'CANCEL',
+}
+
+export enum ERequestAbsenceType {
+  OFF = 0,
+  ONSITE = 1,
+  REMOTE = 2,
+}
+export enum ERequestAbsenceDateType {
+  FULL_DAY = 1,
+  MORNING = 2,
+  AFTERNOON = 3,
+  CUSTOM = 4,
+}
+
+export enum ERequestAbsenceTime {
+  ARRIVE_LATE = 1,
+  MIDDLE_OF_DAY = 2,
+  LEAVE_EARLY = 3,
+}
+
+export enum EMessageComponentType {
+  BUTTON = 1,
+  SELECT = 2,
+  INPUT = 3,
+  DATEPICKER = 4,
+  RADIO = 5,
+}

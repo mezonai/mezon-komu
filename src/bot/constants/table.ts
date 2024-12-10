@@ -55,5 +55,6 @@ export const TABLE = {
   EVENT_MEZON: 'komu_eventMezon',
   BET_EVENT_MEZON: 'komu_betEventMezon',
   MEZON_TRACKER_STREAMING: 'komu_mezonTrackerStreaming',
-  UNLOCK_TIMESHEET: 'komu_unlockTimeSheet'
+  UNLOCK_TIMESHEET: 'komu_unlockTimeSheet',
+  ABSENCE_DAY_REQUEST: 'komu_absenceDayRequest',
 };
