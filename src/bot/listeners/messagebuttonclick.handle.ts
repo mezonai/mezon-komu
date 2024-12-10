@@ -405,22 +405,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const clanIdValue = splitButtonId[2];
     const modeValue = splitButtonId[3];
     const codeMessValue = splitButtonId[4];
-    const isPublicValue = splitButtonId[5];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
     const ownerSenderDaily = splitButtonId[6];
     const dateValue = splitButtonId[7];
     const buttonType = splitButtonId[8];
-
     const invalidLength =
       '```Please enter at least 100 characters in your daily text```';
     const missingField =
       '```Missing project, yesterday, today, or block field```';
-    const invalidOwnerCancel =
-      '```Sorry, only the owner has permission to cancel this.```';
-    const invalidOwnerSubmit =
-      '```Sorry, only the owner has permission to submit this.```';
     const isOwner = ownerSenderDaily === senderId;
-    const cancelledDailyMess = '```The daily has been cancelled.```';
-
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
       where: { userId: botId },
@@ -443,54 +436,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
     const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
     try {
-      if (!data.extra_data && !isOwner && isCancel) {
-        const replyMessage = createReplyMessage(
-          invalidOwnerCancel,
-          clanIdValue,
-          channelId,
-          isPublicValue,
-          modeValue,
-          msg,
-        );
-        return this.messageQueue.addMessage(replyMessage);
+      if (!data.extra_data) {
+        if (
+          (!isOwner && (isCancel || isSubmit)) ||
+          (isOwner && (isCancel || isSubmit))
+        ) {
+          return;
+        }
       }
-
-      if (!data.extra_data && !isOwner && isSubmit) {
-        const replyMessage = createReplyMessage(
-          invalidOwnerSubmit,
-          clanIdValue,
-          channelId,
-          isPublicValue,
-          modeValue,
-          msg,
-        );
-        return this.messageQueue.addMessage(replyMessage);
-      }
-
-      if (!data.extra_data && isOwner && isCancel) {
-        const replyMessage = createReplyMessage(
-          cancelledDailyMess,
-          clanIdValue,
-          channelId,
-          isPublicValue,
-          modeValue,
-          msg,
-        );
-        return this.messageQueue.addMessage(replyMessage);
-      }
-
-      if (!data.extra_data && isOwner && isSubmit) {
-        const replyMessage = createReplyMessage(
-          invalidLength,
-          clanIdValue,
-          channelId,
-          isPublicValue,
-          modeValue,
-          msg,
-        );
-        return this.messageQueue.addMessage(replyMessage);
-      }
-
       switch (buttonType) {
         case EUnlockTimeSheet.SUBMIT.toLowerCase():
           let parsedExtraData;
@@ -514,17 +467,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
           const isMissingField =
             !projectCode || !yesterdayValue || !todayValue || !blockValue;
-          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue};${workingTimeValue}h \n block:${blockValue}`;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}; ${workingTimeValue}h, nt, coding\n today:${todayValue}; ${workingTimeValue}h, nt, coding \n block:${blockValue}`;
           if (!isOwner) {
-            const replyMessageInvalidOwnerSubmit = createReplyMessage(
-              invalidOwnerSubmit,
-              clanIdValue,
-              channelId,
-              isPublicValue,
-              modeValue,
-              msg,
-            );
-            return this.messageQueue.addMessage(replyMessageInvalidOwnerSubmit);
+            return;
           }
           if (contentGenerated.length < 100) {
             const replyMessageInvalidLength = createReplyMessage(
@@ -548,7 +493,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             );
             return this.messageQueue.addMessage(replyMessageMissingField);
           }
-
           const findUser = await this.userRepository
             .createQueryBuilder()
             .where(`"userId" = :userId`, { userId: senderId })
@@ -603,27 +547,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           this.messageQueue.addMessage(replyMessageSubmit);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
-          if (!isOwner) {
-            const replyMessageInvalidOwnerCancel = createReplyMessage(
-              invalidOwnerCancel,
-              clanIdValue,
-              channelId,
-              isPublicValue,
-              modeValue,
-              msg,
-            );
-            return this.messageQueue.addMessage(replyMessageInvalidOwnerCancel);
-          }
-          const replyMessageCancel = createReplyMessage(
-            cancelledDailyMess,
-            clanIdValue,
-            channelId,
-            isPublicValue,
-            modeValue,
-            msg,
-          );
-          this.messageQueue.addMessage(replyMessageCancel);
-          break;
+          return;
         default:
           break;
       }
