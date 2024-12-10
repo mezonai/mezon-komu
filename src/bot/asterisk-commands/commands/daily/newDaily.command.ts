@@ -221,7 +221,7 @@ export class NewDailyCommand extends CommandMessage {
       {
         components: [
           {
-            id: `newdaily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}-cancel`,
+            id: `newdaily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}_cancel`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,

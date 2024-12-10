@@ -514,7 +514,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
           const isMissingField =
             !projectCode || !yesterdayValue || !todayValue || !blockValue;
-          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}\n typeOfWork:${typeOfWorkValue}`;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue};${workingTimeValue}h \n block:${blockValue}`;
           if (!isOwner) {
             const replyMessageInvalidOwnerSubmit = createReplyMessage(
               invalidOwnerSubmit,
