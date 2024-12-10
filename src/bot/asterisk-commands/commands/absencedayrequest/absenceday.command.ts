@@ -2,7 +2,7 @@ import { ChannelMessage, EButtonMessageStyle } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import {
-  EmbedProps, EMessageComponentType,
+  EmbedProps, EMessageComponentType, ERequestAbsenceDayType,
   ERequestAbsenceType,
   MEZON_EMBED_FOOTER,
 } from 'src/bot/constants/configs';
@@ -27,8 +27,19 @@ export class RequestAbsenceDayCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     const typeRequest = args[0];
-    if (!['remote', 'onsite', 'off', 'offcustom'].includes(typeRequest)) return;
+    if (!typeRequest) return;
+    const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest.toUpperCase() as keyof typeof ERequestAbsenceDayType];
+    if (!typeRequestDayEnum) return;
 
+    if (typeRequestDayEnum === ERequestAbsenceDayType.HELP){
+      return this.replyMessageGenerate(
+        {
+          messageContent: ERequestAbsenceDayType.HELP,
+          mk: [{ type: 't', s: 0, e: ERequestAbsenceDayType.HELP.length }],
+        },
+        message,
+      );
+    }
     const senderId = message.sender_id;
     const findUser = await this.userRepository
       .createQueryBuilder()
@@ -38,8 +49,8 @@ export class RequestAbsenceDayCommand extends CommandMessage {
       .getRawOne();
     if (!findUser) return;
     let embed: EmbedProps[] = [];
-    switch (typeRequest) {
-      case 'remote':
+    switch (typeRequestDayEnum) {
+      case ERequestAbsenceDayType.REMOTE:
         embed = [
           {
             color: getRandomColor(),
@@ -69,7 +80,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   type: EMessageComponentType.SELECT,
                   component: {
                     max_options: 1,
-                    required: true,
                     options: [
                       {
                         label: 'Full Day',
@@ -96,7 +106,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   component: {
                     id: 'reason',
                     placeholder: 'Reason',
-                    required: false,
                     textarea: true,
                   },
                 },
@@ -107,7 +116,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
           },
         ];
         break;
-      case 'onsite':
+      case ERequestAbsenceDayType.ONSITE:
         embed = [
           {
             color: getRandomColor(),
@@ -137,7 +146,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   type: EMessageComponentType.SELECT,
                   component: {
                     max_options: 1,
-                    required: true,
                     options: [
                       {
                         label: 'Full Day',
@@ -164,7 +172,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   component: {
                     id: 'reason',
                     placeholder: 'Reason',
-                    required: true,
                     textarea: true,
                   },
                 },
@@ -175,7 +182,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
           },
         ];
         break;
-      case 'off':
+      case ERequestAbsenceDayType.OFF:
         const absenceAllType = await this.timeSheetService.getAllTypeAbsence();
         const optionsAbsenceType = absenceAllType.data.result.map((item) => ({
           label: item.name,
@@ -210,7 +217,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   type: EMessageComponentType.SELECT,
                   component: {
                     max_options: 1,
-                    required: true,
                     options: [
                       {
                         label: 'Full Day',
@@ -249,7 +255,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   component: {
                     id: 'reason',
                     placeholder: 'Reason',
-                    required: true,
                     textarea: true,
                   },
                 },
@@ -260,7 +265,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
           },
         ];
         break;
-      case 'offcustom':
+      case ERequestAbsenceDayType.OFFCUSTOM:
         embed = [
           {
             color: getRandomColor(),
@@ -290,7 +295,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   type: EMessageComponentType.SELECT,
                   component: {
                     max_options: 1,
-                    required: true,
                     options: [
                       {
                         label: 'Đi muộn',
@@ -310,11 +314,9 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                 inputs: {
                   id: 'hour',
                   type: EMessageComponentType.INPUT,
-                  required: true,
                   component: {
                     id: 'hour',
                     placeholder: 'Số giờ',
-                    required: true,
                   },
                 },
               },
@@ -327,7 +329,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   component: {
                     id: 'reason',
                     placeholder: 'Reason',
-                    required: false,
                     textarea: true,
                   },
                 },
@@ -346,7 +347,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
       {
         components: [
           {
-            id: `${typeRequest}_CANCEL`,
+            id: `${typeRequestDayEnum}_CANCEL`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -354,7 +355,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
             },
           },
           {
-            id: `${typeRequest}_CONFIRM`,
+            id: `${typeRequestDayEnum}_CONFIRM`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Confirm`,

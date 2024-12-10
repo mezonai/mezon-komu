@@ -1,4 +1,9 @@
-import { ERequestAbsenceDateType, ERequestAbsenceTime, ERequestAbsenceType } from '../constants/configs';
+import {
+  ERequestAbsenceDateType,
+  ERequestAbsenceDayType,
+  ERequestAbsenceTime,
+  ERequestAbsenceType,
+} from '../constants/configs';
 
 export function handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress) {
   const inputDateType = dataInputs.dateType
@@ -38,7 +43,7 @@ export function handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddres
 }
 
 export function validateHourAbsenceDay(inputNumber, typeRequest) {
-  if (typeRequest == 'offcustom' && inputNumber === '0') {
+  if (typeRequest == ERequestAbsenceDayType.OFFCUSTOM && inputNumber === '0') {
     return { valid: false, message: 'Hour is required.' };
   }
   if (!inputNumber || inputNumber.trim() === '') {
@@ -89,7 +94,7 @@ export function isLeapYear(year) {
 }
 
 export function validateTypeAbsenceDay(inputDateType, typeRequest) {
-  if (typeRequest !== 'offcustom') {
+  if (typeRequest !== ERequestAbsenceDayType.OFFCUSTOM) {
     if (!inputDateType)
       return { valid: false, message: 'Date type is required.' };
   }
@@ -97,7 +102,7 @@ export function validateTypeAbsenceDay(inputDateType, typeRequest) {
 }
 
 export function validReasonAbsenceDay(inputReason, typeRequest) {
-  if (typeRequest !== 'remote') {
+  if (typeRequest !== ERequestAbsenceDayType.REMOTE) {
     if (!inputReason || inputReason.trim() === '') {
       return { valid: false, message: 'Reason is required.' };
     }
@@ -106,7 +111,7 @@ export function validReasonAbsenceDay(inputReason, typeRequest) {
 }
 
 export function validateAbsenceTypeDay(inputAbsenceType, typeRequest) {
-  if (typeRequest === 'off') {
+  if (typeRequest === ERequestAbsenceDayType.OFF) {
     if (!inputAbsenceType) {
       return { valid: false, message: 'Absence type is required.' };
     }
@@ -115,7 +120,7 @@ export function validateAbsenceTypeDay(inputAbsenceType, typeRequest) {
 }
 
 export function validateAbsenceTime(inputAbsenceTime, typeRequest) {
-  if (typeRequest === 'offcustom') {
+  if (typeRequest === ERequestAbsenceDayType.OFFCUSTOM) {
     if (!inputAbsenceTime) {
       return { valid: false, message: 'Absence time is required.' };
     }

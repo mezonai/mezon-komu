@@ -7,7 +7,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
   EMessageMode,
-  ERequestAbsenceDayStatus,
+  ERequestAbsenceDayStatus, ERequestAbsenceDayType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -92,10 +92,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'unlockTs':
         this.handleUnlockTimesheet(data);
         break;
-      case 'remote':
-      case 'onsite':
-      case 'off':
-      case 'offcustom':
+      case ERequestAbsenceDayType.REMOTE:
+      case ERequestAbsenceDayType.ONSITE:
+      case ERequestAbsenceDayType.OFF:
+      case ERequestAbsenceDayType.OFFCUSTOM:
         this.handleRequestAbsenceDay(data);
         break;
       case 'newdaily':
@@ -654,14 +654,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      if (
-        (typeRequest !== 'remote' &&
-          typeRequest !== 'onsite' &&
-          typeRequest !== 'off' &&
-          typeRequest !== 'offcustom') ||
-        !data?.extra_data
-      )
-        return;
+      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
+      if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
         where: { messageId: data.message_id },
@@ -698,25 +692,25 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Process only requests without status
       if (!findAbsenceData.status) {
         switch (typeButtonRes) {
-          case EUnlockTimeSheet.CONFIRM:
+          case ERequestAbsenceDayStatus.CONFIRM:
             //valid input and format
             const validDate = validateAndFormatDate(dataParse.dateAt);
             const validHour = validateHourAbsenceDay(
               dataParse.hour || '0',
-              typeRequest,
+              typeRequestDayEnum,
             );
             const validTypeDate = validateTypeAbsenceDay(
               dataParse.dateType ? dataParse.dateType[0] : null,
-              typeRequest,
+              typeRequestDayEnum,
             );
-            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequest);
+            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequestDayEnum);
             const validAbsenceType = validateAbsenceTypeDay(
               dataParse.absenceType ? dataParse.absenceType[0] : null,
-              typeRequest,
+              typeRequestDayEnum,
             );
             const validAbsenceTime = validateAbsenceTime(
               dataParse.absenceTime ? dataParse.absenceTime[0] : null,
-              typeRequest,
+              typeRequestDayEnum,
             );
             const userId = findAbsenceData.userId;
             const validations = [
