@@ -7,10 +7,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
   EMessageMode,
-  ERequestAbsenceDateType,
-  ERequestAbsenceDayStatus,
-  ERequestAbsenceTime,
-  ERequestAbsenceType,
+  ERequestAbsenceDayStatus, ERequestAbsenceDayType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -44,6 +41,12 @@ import {
 } from '../asterisk-commands/commands/daily/daily.functions';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
+import {
+  handleBodyRequestAbsenceDay, validateAbsenceTime, validateAbsenceTypeDay,
+  validateAndFormatDate,
+  validateHourAbsenceDay, validateTypeAbsenceDay,
+  validReasonAbsenceDay,
+} from '../utils/request-helper';
 import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -89,10 +92,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'unlockTs':
         this.handleUnlockTimesheet(data);
         break;
-      case 'remote':
-      case 'onsite':
-      case 'off':
-      case 'offcustom':
+      case ERequestAbsenceDayType.REMOTE:
+      case ERequestAbsenceDayType.ONSITE:
+      case ERequestAbsenceDayType.OFF:
+      case ERequestAbsenceDayType.OFFCUSTOM:
         this.handleRequestAbsenceDay(data);
         break;
       case 'newdaily':
@@ -575,14 +578,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      if (
-        (typeRequest !== 'remote' &&
-          typeRequest !== 'onsite' &&
-          typeRequest !== 'off' &&
-          typeRequest !== 'offcustom') ||
-        !data?.extra_data
-      )
-        return;
+      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
+      if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
         where: { messageId: data.message_id },
@@ -619,44 +616,55 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Process only requests without status
       if (!findAbsenceData.status) {
         switch (typeButtonRes) {
-          case EUnlockTimeSheet.CONFIRM:
+          case ERequestAbsenceDayStatus.CONFIRM:
             //valid input and format
-            const validDate = this.validateAndFormatDate(dataParse.dateAt);
-            const validHour = this.validateHour(
+            const validDate = validateAndFormatDate(dataParse.dateAt);
+            const validHour = validateHourAbsenceDay(
               dataParse.hour || '0',
-              typeRequest,
+              typeRequestDayEnum,
             );
-            const validTypeDate = this.validDateType(
+            const validTypeDate = validateTypeAbsenceDay(
               dataParse.dateType ? dataParse.dateType[0] : null,
-              typeRequest,
+              typeRequestDayEnum,
             );
-            const validReason = this.validReason(dataParse.reason, typeRequest);
+            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequestDayEnum);
+            const validAbsenceType = validateAbsenceTypeDay(
+              dataParse.absenceType ? dataParse.absenceType[0] : null,
+              typeRequestDayEnum,
+            );
+            const validAbsenceTime = validateAbsenceTime(
+              dataParse.absenceTime ? dataParse.absenceTime[0] : null,
+              typeRequestDayEnum,
+            );
             const userId = findAbsenceData.userId;
-            if (!validDate.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validDate.message);
-              return;
+            const validations = [
+              { valid: validDate.valid, message: validDate.message },
+              { valid: validAbsenceTime.valid, message: validAbsenceTime.message },
+              { valid: validHour.valid, message: validHour.message },
+              { valid: validTypeDate.valid, message: validTypeDate.message },
+              { valid: validAbsenceType.valid, message: validAbsenceType.message },
+              { valid: validReason.valid, message: validReason.message },
+            ];
+            for (const { valid, message } of validations) {
+              if (!valid) {
+                const embedValidFailure: EmbedProps[] = [
+                  {
+                    color: '#ED4245',
+                    title: `❌ ${message || 'Invalid input'}`,
+                  },
+                ];
+                const messageToUser: ReplyMezonMessage = {
+                  userId: userId,
+                  textContent: '',
+                  messOptions: { embed: embedValidFailure },
+                };
+                this.messageQueue.addMessage(messageToUser);
+                return;
+              }
             }
-            if (!validHour.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validHour.message);
-              return;
-            }
-            if (!validTypeDate.valid) {
-              this.sendInvalidInputRequestAbsenceDay(
-                userId,
-                validTypeDate.message,
-              );
-              return;
-            }
-            if (!validReason.valid) {
-              this.sendInvalidInputRequestAbsenceDay(
-                userId,
-                validReason.message,
-              );
-              return;
-            }
-            dataParse.dateAt = validDate?.formattedDate;
 
-            const body = await this.handleBodyRequestAbsenceDay(
+            dataParse.dateAt = validDate?.formattedDate;
+            const body = handleBodyRequestAbsenceDay(
               dataParse,
               typeRequest,
               emailAddress,
@@ -725,125 +733,5 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     } catch (e) {
       console.error('handleRequestAbsence', e);
     }
-  }
-
-  async handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress) {
-    const inputDateType = dataInputs.dateType
-      ? dataInputs.dateType[0]
-      : 'CUSTOM';
-    const dateType =
-      ERequestAbsenceDateType[
-        inputDateType as keyof typeof ERequestAbsenceDateType
-      ];
-
-    const inputAbsenceTime = dataInputs.absenceTime
-      ? dataInputs.absenceTime[0]
-      : null;
-    const absenceTime =
-      ERequestAbsenceTime[
-        inputAbsenceTime as keyof typeof ERequestAbsenceTime
-      ] || null;
-    const type =
-      ERequestAbsenceType[
-        typeRequest.toUpperCase() as keyof typeof ERequestAbsenceType
-      ];
-    const body = {
-      reason: dataInputs.reason,
-      absences: [
-        {
-          dateAt: dataInputs.dateAt,
-          dateType: dateType || ERequestAbsenceDateType.CUSTOM,
-          hour: dataInputs.hour || 0,
-          absenceTime: absenceTime || null,
-        },
-      ],
-      dayOffTypeId: dataInputs.absenceType ? dataInputs.absenceType[0] : 1,
-      type: type || ERequestAbsenceType.OFF,
-      emailAddress: emailAddress,
-    };
-    return body;
-  }
-
-  validateHour(inputNumber, typeRequest) {
-    if (typeRequest == 'offcustom' && inputNumber === '0') {
-      return { valid: false, message: 'Hour is required.' };
-    }
-    if (!inputNumber || inputNumber.trim() === '') {
-      return { valid: false, message: 'Input is required.' };
-    }
-
-    const number = parseFloat(inputNumber);
-    if (isNaN(number)) {
-      return {
-        valid: false,
-        message: 'Invalid number format. Please enter a number.',
-      };
-    }
-
-    if (number < 0 || number > 2) {
-      return { valid: false, message: 'Number must be in range 0-2.' };
-    }
-
-    return { valid: true, formattedNumber: number };
-  }
-
-  validateAndFormatDate(inputDate) {
-    const regex = /^\d{2}-\d{2}-\d{4}$/;
-    if (!regex.test(inputDate)) {
-      return { valid: false, message: 'Invalid date format. Use dd-mm-yyyy.' };
-    }
-
-    const [day, month, year] = inputDate.split('-').map(Number);
-
-    if (
-      month < 1 ||
-      month > 12 ||
-      day < 1 ||
-      day > 31 ||
-      (month === 2 && day > 29) ||
-      (month === 2 && day === 29 && !this.isLeapYear(year)) ||
-      ([4, 6, 9, 11].includes(month) && day > 30)
-    ) {
-      return { valid: false, message: 'Invalid day, month, or year.' };
-    }
-
-    const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return { valid: true, formattedDate };
-  }
-
-  isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-  }
-
-  validDateType(inputDateType, typeRequest) {
-    if (typeRequest !== 'offcustom') {
-      if (!inputDateType)
-        return { valid: false, message: 'Date type is required.' };
-    }
-    return { valid: true, formattedDateType: inputDateType };
-  }
-
-  validReason(inputReason, typeRequest) {
-    if (typeRequest !== 'remote') {
-      if (!inputReason || inputReason.trim() === '') {
-        return { valid: false, message: 'Reason is required.' };
-      }
-    }
-    return { valid: true, formattedReason: inputReason };
-  }
-
-  sendInvalidInputRequestAbsenceDay(userId, message) {
-    const embedValidFailure: EmbedProps[] = [
-      {
-        color: '#ED4245',
-        title: `❌ ${message || 'Invalid input'}`,
-      },
-    ];
-    const messageToUser: ReplyMezonMessage = {
-      userId: userId,
-      textContent: '',
-      messOptions: { embed: embedValidFailure },
-    };
-    this.messageQueue.addMessage(messageToUser);
   }
 }

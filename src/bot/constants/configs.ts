@@ -123,3 +123,23 @@ export enum EMessageComponentType {
   DATEPICKER = 4,
   RADIO = 5,
 }
+
+export enum ERequestAbsenceDayType {
+  OFF = 'OFF',
+  ONSITE = 'ONSITE',
+  REMOTE = 'REMOTE',
+  OFFCUSTOM = 'OFFCUSTOM',
+  HELP = '```' +
+  'request remote\n' +
+  'command: *request remote\n' +
+  '\n' +
+  'request off\n' +
+  'command: *request off\n' +
+  '\n' +
+  'request onsite\n' +
+  'command: *request onsite\n' +
+  '\n' +
+  'request Đi muộn/ Về sớm\n' +
+  'command: *request offcustom ' +
+  '```',
+}
