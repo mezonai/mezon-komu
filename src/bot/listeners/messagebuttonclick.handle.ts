@@ -1,8 +1,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { ChannelMessage, Events } from 'mezon-sdk';
+import { ChannelMessage } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -75,7 +74,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     super(clientService);
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
     // check case by buttonId
@@ -95,6 +93,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'off':
       case 'offcustom':
         this.handleRequestAbsenceDay(data);
+        break;
+      case 'newdaily':
+        this.handleSubmitDaily(data);
         break;
       default:
         break;
@@ -395,7 +396,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       console.log('handleUnlockTimesheet', e);
     }
   }
-  @OnEvent(Events.MessageButtonClicked)
   async handleSubmitDaily(data) {
     const senderId = data.user_id;
     const botId = data.sender_id;
@@ -646,7 +646,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       })
       .execute();
   }
-  @OnEvent(Events.MessageButtonClicked)
   async handleRequestAbsenceDay(data) {
     try {
       // Parse button_id

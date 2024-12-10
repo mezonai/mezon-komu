@@ -63,7 +63,7 @@ export class TimeSheetService {
     const data = this.parseDailyMessage(content);
     const projectCode = data.projectCode;
     const workingTime = Number(extractText(content, 'workingTime')) || 1;
-    const typeOfWork = Number(extractText(content, 'typeOfWork'));
+    const typeOfWork = Number(extractText(content, 'typeOfWork')) || 0;
     const results = [];
     for (const task of data.tasks) {
       try {
