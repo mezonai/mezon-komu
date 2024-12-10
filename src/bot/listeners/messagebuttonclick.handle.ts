@@ -400,7 +400,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
-    const splitButtonId = data.button_id.split('-');
+    const splitButtonId = data.button_id.split('_');
     const messid = splitButtonId[1];
     const clanIdValue = splitButtonId[2];
     const modeValue = splitButtonId[3];
