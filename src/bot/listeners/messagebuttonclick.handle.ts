@@ -76,6 +76,31 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   @OnEvent(Events.MessageButtonClicked)
+  async hanndleButtonForm(data) {
+    const args = data.button_id.split('_');
+    // check case by buttonId
+    const buttonConfirmType = args[0];
+    switch (buttonConfirmType) {
+      case 'question':
+        this.handleAnswerQuestionWFH(data);
+        break;
+      case 'music':
+        this.handleMusicEvent(data);
+        break;
+      case 'unlockTs':
+        this.handleUnlockTimesheet(data);
+        break;
+      case 'remote':
+      case 'onsite':
+      case 'off':
+      case 'offcustom':
+        this.handleRequestAbsenceDay(data);
+        break;
+      default:
+        break;
+    }
+  }
+
   async handleAnswerQuestionWFH(data) {
     try {
       const args = data.button_id.split('_');
@@ -177,7 +202,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async handleMusicEvent(data) {
     console.log('data: ', data);
     const args = data.button_id.split('_');
@@ -242,7 +266,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async handleUnlockTimesheet(data) {
     try {
       const args = data.button_id.split('_');
