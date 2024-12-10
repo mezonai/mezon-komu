@@ -7,10 +7,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
   EMessageMode,
-  ERequestAbsenceDateType,
-  ERequestAbsenceDayStatus,
-  ERequestAbsenceTime,
-  ERequestAbsenceType,
+  ERequestAbsenceDayStatus, ERequestAbsenceDayType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -51,6 +48,12 @@ import {
 } from '../asterisk-commands/commands/daily/daily.functions';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
+import {
+  handleBodyRequestAbsenceDay, validateAbsenceTime, validateAbsenceTypeDay,
+  validateAndFormatDate,
+  validateHourAbsenceDay, validateTypeAbsenceDay,
+  validReasonAbsenceDay,
+} from '../utils/request-helper';
 import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
 
@@ -100,10 +103,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'unlockTs':
         this.handleUnlockTimesheet(data);
         break;
-      case 'remote':
-      case 'onsite':
-      case 'off':
-      case 'offcustom':
+      case ERequestAbsenceDayType.REMOTE:
+      case ERequestAbsenceDayType.ONSITE:
+      case ERequestAbsenceDayType.OFF:
+      case ERequestAbsenceDayType.OFFCUSTOM:
         this.handleRequestAbsenceDay(data);
         break;
       case 'newdaily':
@@ -411,7 +414,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
-    const splitButtonId = data.button_id.split('-');
+    const splitButtonId = data.button_id.split('_');
     const messid = splitButtonId[1];
     const clanIdValue = splitButtonId[2];
     const modeValue = splitButtonId[3];
@@ -525,7 +528,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
           const isMissingField =
             !projectCode || !yesterdayValue || !todayValue || !blockValue;
-          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}\n typeOfWork:${typeOfWorkValue}`;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue};${workingTimeValue}h \n block:${blockValue}`;
           if (!isOwner) {
             const replyMessageInvalidOwnerSubmit = createReplyMessage(
               invalidOwnerSubmit,
@@ -662,14 +665,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      if (
-        (typeRequest !== 'remote' &&
-          typeRequest !== 'onsite' &&
-          typeRequest !== 'off' &&
-          typeRequest !== 'offcustom') ||
-        !data?.extra_data
-      )
-        return;
+      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
+      if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
         where: { messageId: data.message_id },
@@ -706,44 +703,55 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Process only requests without status
       if (!findAbsenceData.status) {
         switch (typeButtonRes) {
-          case EUnlockTimeSheet.CONFIRM:
+          case ERequestAbsenceDayStatus.CONFIRM:
             //valid input and format
-            const validDate = this.validateAndFormatDate(dataParse.dateAt);
-            const validHour = this.validateHour(
+            const validDate = validateAndFormatDate(dataParse.dateAt);
+            const validHour = validateHourAbsenceDay(
               dataParse.hour || '0',
-              typeRequest,
+              typeRequestDayEnum,
             );
-            const validTypeDate = this.validDateType(
+            const validTypeDate = validateTypeAbsenceDay(
               dataParse.dateType ? dataParse.dateType[0] : null,
-              typeRequest,
+              typeRequestDayEnum,
             );
-            const validReason = this.validReason(dataParse.reason, typeRequest);
+            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequestDayEnum);
+            const validAbsenceType = validateAbsenceTypeDay(
+              dataParse.absenceType ? dataParse.absenceType[0] : null,
+              typeRequestDayEnum,
+            );
+            const validAbsenceTime = validateAbsenceTime(
+              dataParse.absenceTime ? dataParse.absenceTime[0] : null,
+              typeRequestDayEnum,
+            );
             const userId = findAbsenceData.userId;
-            if (!validDate.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validDate.message);
-              return;
+            const validations = [
+              { valid: validDate.valid, message: validDate.message },
+              { valid: validAbsenceTime.valid, message: validAbsenceTime.message },
+              { valid: validHour.valid, message: validHour.message },
+              { valid: validTypeDate.valid, message: validTypeDate.message },
+              { valid: validAbsenceType.valid, message: validAbsenceType.message },
+              { valid: validReason.valid, message: validReason.message },
+            ];
+            for (const { valid, message } of validations) {
+              if (!valid) {
+                const embedValidFailure: EmbedProps[] = [
+                  {
+                    color: '#ED4245',
+                    title: `❌ ${message || 'Invalid input'}`,
+                  },
+                ];
+                const messageToUser: ReplyMezonMessage = {
+                  userId: userId,
+                  textContent: '',
+                  messOptions: { embed: embedValidFailure },
+                };
+                this.messageQueue.addMessage(messageToUser);
+                return;
+              }
             }
-            if (!validHour.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validHour.message);
-              return;
-            }
-            if (!validTypeDate.valid) {
-              this.sendInvalidInputRequestAbsenceDay(
-                userId,
-                validTypeDate.message,
-              );
-              return;
-            }
-            if (!validReason.valid) {
-              this.sendInvalidInputRequestAbsenceDay(
-                userId,
-                validReason.message,
-              );
-              return;
-            }
-            dataParse.dateAt = validDate?.formattedDate;
 
-            const body = await this.handleBodyRequestAbsenceDay(
+            dataParse.dateAt = validDate?.formattedDate;
+            const body = handleBodyRequestAbsenceDay(
               dataParse,
               typeRequest,
               emailAddress,
@@ -813,7 +821,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       console.error('handleRequestAbsence', e);
     }
   }
-
   async handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress) {
     const inputDateType = dataInputs.dateType
       ? dataInputs.dateType[0]
