@@ -104,7 +104,6 @@ export class TimeSheetService {
       taskName,
       workingTimeMinutes,
     };
-    console.log('timesheetPayload', timesheetPayload);
     const url =
       !workingTimeMinutes || !projectCode
         ? `${process.env.TIMESHEET_API}MyTimesheets/CreateByKomu`

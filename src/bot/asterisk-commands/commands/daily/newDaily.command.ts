@@ -78,7 +78,6 @@ export class NewDailyCommand extends CommandMessage {
         },
         message,
       );
-    console.log('onlyDailySyntax: ', onlyDailySyntax);
     const projectText = args[0] ?? '';
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
