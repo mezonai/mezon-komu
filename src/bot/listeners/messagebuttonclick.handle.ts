@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { ChannelMessage } from 'mezon-sdk';
+import { ChannelMessage, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -44,6 +44,7 @@ import {
 } from '../asterisk-commands/commands/daily/daily.functions';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
+import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -73,7 +74,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   ) {
     super(clientService);
   }
-
+  @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
     // check case by buttonId
