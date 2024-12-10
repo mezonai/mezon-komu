@@ -147,10 +147,7 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
 import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimesheet/unlockts.command';
 import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
-import { RemoteCommand } from './asterisk-commands/commands/absencedayrequest/remote.command';
-import { OnsiteCommand } from './asterisk-commands/commands/absencedayrequest/onsite.command';
-import { OffCommand } from './asterisk-commands/commands/absencedayrequest/off.command';
-import { CustomAbsenceCommand } from './asterisk-commands/commands/absencedayrequest/customAbsence.command';
+import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absencedayrequest/absenceday.command';
 import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
@@ -305,10 +302,7 @@ import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.com
     MessageButtonClickedEvent,
     StreamingEvent,
     UnlockTimeSheetCommand,
-    RemoteCommand,
-    OnsiteCommand,
-    OffCommand,
-    CustomAbsenceCommand,
+    RequestAbsenceDayCommand,
     NewDailyCommand,
   ],
   controllers: [KomubotrestController],
