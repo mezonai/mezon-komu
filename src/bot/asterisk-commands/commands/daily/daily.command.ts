@@ -1,28 +1,14 @@
-/* eslint-disable prettier/prettier */
 import { ChannelMessage } from 'mezon-sdk';
-import { EButtonMessageStyle, EMessageComponentType } from 'mezon-sdk';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Daily, User } from 'src/bot/models';
 import { dailyHelp } from './daily.constants';
 import { Command } from 'src/bot/base/commandRegister.decorator';
+import { generateEmail, getUserNameByEmail } from 'src/bot/utils/helper';
 import { TimeSheetService } from 'src/bot/services/timesheet.services';
-import {
-  extractText,
-  findProjectByLabel,
-  getRandomColor,
-} from 'src/bot/utils/helper';
-import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
-import { ClientConfigService } from 'src/bot/config/client-config.service';
-import { AxiosClientService } from 'src/bot/services/axiosClient.services';
+import { checkTimeNotWFH, checkTimeSheet } from './daily.functions';
 
-export enum EMessageSelectType {
-  TEXT = 1,
-  USER = 2,
-  ROLE = 3,
-  CHANNEL = 4,
-}
 @Command('daily')
 export class DailyCommand extends CommandMessage {
   constructor(
@@ -30,8 +16,6 @@ export class DailyCommand extends CommandMessage {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(Daily) private dailyRepository: Repository<Daily>,
-    private readonly clientConfigService: ClientConfigService,
-    private readonly axiosClientService: AxiosClientService,
   ) {
     super();
   }
@@ -52,24 +36,19 @@ export class DailyCommand extends CommandMessage {
       return '```please add your daily text```';
     }
 
+    if (daily.length < 100) {
+      return '```Please enter at least 100 characters in your daily text```';
+    }
+
     return false;
   }
 
   async execute(args: string[], message: ChannelMessage) {
     const content = message.content.t;
-    const messageid = message.message_id;
+
     const messageValidate = this.validateMessage(args);
-    const clanId = message.clan_id;
-    const codeMess = message.code;
-    const modeMess = message.mode;
-    const isPublic = message.is_public;
-    const ownerSenderDaily = message.sender_id;
-    const ownerSenderDailyEmail = message.username + '@ncc.asia';
-    const onlyDailySyntax =
-      message?.content?.t && typeof message.content.t === 'string'
-        ? message.content.t.trim() === '*daily'
-        : false;
-    if (messageValidate && !onlyDailySyntax)
+
+    if (messageValidate)
       return this.replyMessageGenerate(
         {
           messageContent: messageValidate,
@@ -77,174 +56,68 @@ export class DailyCommand extends CommandMessage {
         },
         message,
       );
-    const projectText = args[0] ?? '';
-    const yesterdayText = extractText(content, 'Yesterday');
-    const todayText = extractText(content, 'Today');
-    const blockText = extractText(content, 'Block');
-    const workingTimeText = extractText(content, 'Working Time') || 1;
-    const typeOfWorkText = extractText(content, 'Type Of Work');
-    const today = new Date();
-    const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-    const { project } = this.clientConfigService;
-    const httpsAgent = this.clientConfigService.https;
-    const [pmData] = await Promise.all([
-      this.axiosClientService.get(
-        `${project.getPMOfUser}?email=${ownerSenderDailyEmail}`,
-        {
-          httpsAgent,
-        },
-      ),
-    ]);
 
-    const projectMetaData = pmData?.data?.result;
-    const optionsProject = projectMetaData.map((project) => ({
-      label: project.projectName,
-      value: project.projectCode,
-    }));
+    const senderId = message.sender_id;
+    const findUser = await this.userRepository
+      .createQueryBuilder()
+      .where(`"userId" = :userId`, { userId: senderId })
+      .andWhere(`"deactive" IS NOT true`)
+      .select('*')
+      .getRawOne();
+    if (!findUser) return;
+    const authorUsername = findUser.email;
+    const emailAddress = generateEmail(authorUsername);
 
-    const optionTypeOfWork = [
-      {
-        label: 'Normal Time',
-        value: 0,
-      },
-      {
-        label: 'Overtime',
-        value: 1,
-      },
-    ];
-    const getProjectFromProjectOpt =
-      findProjectByLabel(optionsProject, projectText) || optionsProject[0];
-    const getTypeOfWorkFromOpt =
-      findProjectByLabel(optionTypeOfWork, typeOfWorkText) ||
-      optionTypeOfWork[0];
+    const wfhResult = await this.timeSheetService.findWFHUser();
 
-    const embed: EmbedProps[] = [
-      {
-        color: getRandomColor(),
-        title: `Daily On ${formattedDate}`,
-        fields: [
-          {
-            name: 'Project:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-project`,
-              type: EMessageComponentType.SELECT,
-              component: {
-                options: optionsProject,
-                required: true,
-                valueSelected: getProjectFromProjectOpt,
-              },
-            },
-          },
-          {
-            name: 'Yesterday:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-yesterday-ip`,
-              type: EMessageComponentType.INPUT,
-              component: {
-                id: `daily-${messageid}-yesterday-plhder`,
-                placeholder: 'Ex. Write something',
-                required: true,
-                textarea: true,
-                defaultValue: yesterdayText,
-              },
-            },
-          },
-          {
-            name: 'Today:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-today-ip`,
-              type: EMessageComponentType.INPUT,
-              component: {
-                id: `daily-${messageid}-today-plhder`,
-                placeholder: 'Ex. Write something',
-                required: true,
-                textarea: true,
-                defaultValue: todayText,
-              },
-            },
-          },
-          {
-            name: 'Block:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-block-ip`,
-              type: EMessageComponentType.INPUT,
-              component: {
-                id: `daily-${messageid}-block-plhder`,
-                placeholder: 'Ex. Write something',
-                required: true,
-                textarea: true,
-                type: EMessageSelectType.TEXT,
-                defaultValue: blockText,
-              },
-            },
-          },
-          {
-            name: 'Working time:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-working-time`,
-              type: EMessageComponentType.INPUT,
-              component: {
-                id: `daily-${messageid}-working-time-plhder`,
-                placeholder: 'Ex. Enter Workingtime',
-                required: true,
-                defaultValue: Number(workingTimeText),
-                type: 'number',
-              },
-            },
-          },
-          {
-            name: 'Type Of Work:',
-            value: '',
-            inputs: {
-              id: `daily-${messageid}-type-of-work`,
-              type: EMessageComponentType.SELECT,
-              component: {
-                options: optionTypeOfWork,
-                required: true,
-                valueSelected: getTypeOfWorkFromOpt,
-              },
-            },
-          },
-        ],
+    const wfhUserEmail = wfhResult.map((item) =>
+      getUserNameByEmail(item.emailAddress),
+    );
 
-        timestamp: new Date().toISOString(),
-        footer: MEZON_EMBED_FOOTER,
-      },
-    ];
-    const components = [
+    await this.saveDaily(message, args, authorUsername);
+
+    await this.timeSheetService.logTimeSheetFromDaily({
+      emailAddress,
+      content: content,
+    });
+
+    const isValidTimeFrame = checkTimeSheet();
+    const isValidWFH = checkTimeNotWFH();
+    const baseMessage = '```✅ Daily saved.```';
+    const errorMessageWFH =
+      '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+    const errorMessageNotWFH =
+      '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+
+    const messageContent = wfhUserEmail.includes(authorUsername)
+      ? isValidTimeFrame
+        ? baseMessage
+        : errorMessageWFH
+      : isValidWFH
+        ? baseMessage
+        : errorMessageNotWFH;
+
+    return this.replyMessageGenerate(
       {
-        components: [
-          {
-            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-${formattedDate}-cancel`,
-            type: EMessageComponentType.BUTTON,
-            component: {
-              label: `Cancel`,
-              style: EButtonMessageStyle.SECONDARY,
-            },
-          },
-          {
-            id: `daily-${messageid}-${clanId}-${modeMess}-${codeMess}-${isPublic}-${ownerSenderDaily}-${formattedDate}-submit`,
-            type: EMessageComponentType.BUTTON,
-            component: {
-              label: `Submit`,
-              style: EButtonMessageStyle.SUCCESS,
-            },
-          },
-        ],
+        messageContent,
+        mk: [{ type: 't', s: 0, e: messageContent.length }],
       },
-    ];
-    if (onlyDailySyntax || !messageValidate)
-      return this.replyMessageGenerate(
-        {
-          embed,
-          components,
-        },
-        message,
-      );
+      message,
+    );
+  }
+
+  saveDaily(message: ChannelMessage, args: string[], email: string) {
+    return this.dailyRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Daily)
+      .values({
+        userid: message.sender_id,
+        email: email,
+        daily: args.join(' '),
+        createdAt: Date.now(),
+        channelid: message.channel_id,
+      })
+      .execute();
   }
 }
