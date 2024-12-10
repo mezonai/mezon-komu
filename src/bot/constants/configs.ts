@@ -78,6 +78,7 @@ export enum EUnlockTimeSheet {
   STAFF = 'STAFF',
   CONFIRM = 'CONFIRM',
   CANCEL = 'CANCEL',
+  SUBMIT = 'SUBMIT',
 }
 
 export enum EUnlockTimeSheetPayment {

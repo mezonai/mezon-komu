@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FFmpegService } from '../services/ffmpeg.service';
 import { sleep } from '../utils/helper';
-import { KomubotrestService } from '../komubot-rest/komubot-rest.service';
 import { Uploadfile } from '../models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,7 +9,7 @@ import { join } from 'path';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MezonClient } from 'mezon-sdk';
 import { ClientConfigService } from '../config/client-config.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class Ncc8SchedulerService {

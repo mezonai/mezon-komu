@@ -5,11 +5,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BotGateway } from './bot/events/bot.gateway';
 // import { MentionSchedulerService } from './bot/scheduler/mention-scheduler.services';
-import { MentionSchedulerService } from './bot/scheduler/mention-scheduler.services';
-import { SendMessageSchedulerService } from './bot/scheduler/send-message-scheduler.services';
-import { MeetingSchedulerService } from './bot/scheduler/meeting-scheduler.services';
 import { setupSwagger } from './setup-swagger';
 import { KomubotrestService } from './bot/komubot-rest/komubot-rest.service';
+import { MentionSchedulerService } from './bot/scheduler/mention-scheduler.services';
+import { SendMessageSchedulerService } from './bot/scheduler/send-message-scheduler.services';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

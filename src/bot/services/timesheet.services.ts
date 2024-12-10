@@ -82,7 +82,6 @@ export class TimeSheetService {
       }
     }
   };
-
   logTimeSheetForTask = async ({ task, projectCode, emailAddress }) => {
     const typeOfWork = task.type === 'ot' ? 1 : 0;
     const hour = task.duration ? task.duration / 3600000 : 0;
@@ -105,7 +104,6 @@ export class TimeSheetService {
         'X-Secret-Key': process.env.DAILY_TO_TIMESHEET,
       },
     });
-
     return response;
   };
 
@@ -370,7 +368,7 @@ export class TimeSheetService {
       }, []);
 
       let userNotDaily;
-      let dayToMilliseconds = 86400 * 1000;
+      const dayToMilliseconds = 86400 * 1000;
       try {
         userNotDaily = await Promise.all(
           notDaily.map((user) =>

@@ -1,5 +1,6 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 import { ChannelMessage, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
@@ -14,21 +15,18 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import {
-  AbsenceDayRequest,
-  Quiz,
-  UnlockTimeSheet,
-  User,
-  UserQuiz,
-} from '../models';
+import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import { AbsenceDayRequest } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
   checkAnswerFormat,
+  createReplyMessage,
   generateEmail,
   generateQRCode,
   getRandomColor,
+  getUserNameByEmail,
   sleep,
 } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
@@ -36,6 +34,11 @@ import { refGenerate } from '../utils/generateReplyMessage';
 import { MusicService } from '../services/music.services';
 import { FFmpegService } from '../services/ffmpeg.service';
 import { ChannelDMMezon } from '../models/channelDmMezon.entity';
+import { TimeSheetService } from '../services/timesheet.services';
+import {
+  checkTimeNotWFH,
+  checkTimeSheet,
+} from '../asterisk-commands/commands/daily/daily.functions';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import { TimeSheetService } from '../services/timesheet.services';
@@ -45,6 +48,7 @@ import {
   validateHourAbsenceDay, validateTypeAbsenceDay,
   validReasonAbsenceDay,
 } from '../utils/request-helper';
+import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -63,20 +67,22 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private ffmpegService: FFmpegService,
     @InjectRepository(ChannelDMMezon)
     private channelDmMezonRepository: Repository<ChannelDMMezon>,
+
+    private timeSheetService: TimeSheetService,
+    @InjectRepository(User)
+    private dailyRepository: Repository<Daily>,
     @InjectRepository(AbsenceDayRequest)
     private absenceDayRequestRepository: Repository<AbsenceDayRequest>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
-    private timeSheetService: TimeSheetService,
   ) {
     super(clientService);
   }
-
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
     // check case by buttonId
-    const buttonConfirmType = args[0]; 
+    const buttonConfirmType = args[0];
     switch (buttonConfirmType) {
       case 'question':
         this.handleAnswerQuestionWFH(data);
@@ -92,6 +98,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'off':
       case 'offcustom':
         this.handleRequestAbsenceDay(data);
+        break;
+      case 'newdaily':
+        this.handleSubmitDaily(data);
         break;
       default:
         break;
@@ -391,7 +400,256 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       console.log('handleUnlockTimesheet', e);
     }
   }
+  async handleSubmitDaily(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5];
+    const ownerSenderDaily = splitButtonId[6];
+    const dateValue = splitButtonId[7];
+    const buttonType = splitButtonId[8];
 
+    const invalidLength =
+      '```Please enter at least 100 characters in your daily text```';
+    const missingField =
+      '```Missing project, yesterday, today, or block field```';
+    const invalidOwnerCancel =
+      '```Sorry, only the owner has permission to cancel this.```';
+    const invalidOwnerSubmit =
+      '```Sorry, only the owner has permission to submit this.```';
+    const isOwner = ownerSenderDaily === senderId;
+    const cancelledDailyMess = '```The daily has been cancelled.```';
+
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
+    try {
+      if (!data.extra_data && !isOwner && isCancel) {
+        const replyMessage = createReplyMessage(
+          invalidOwnerCancel,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
+        return this.messageQueue.addMessage(replyMessage);
+      }
+
+      if (!data.extra_data && !isOwner && isSubmit) {
+        const replyMessage = createReplyMessage(
+          invalidOwnerSubmit,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
+        return this.messageQueue.addMessage(replyMessage);
+      }
+
+      if (!data.extra_data && isOwner && isCancel) {
+        const replyMessage = createReplyMessage(
+          cancelledDailyMess,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
+        return this.messageQueue.addMessage(replyMessage);
+      }
+
+      if (!data.extra_data && isOwner && isSubmit) {
+        const replyMessage = createReplyMessage(
+          invalidLength,
+          clanIdValue,
+          channelId,
+          isPublicValue,
+          modeValue,
+          msg,
+        );
+        return this.messageQueue.addMessage(replyMessage);
+      }
+
+      switch (buttonType) {
+        case EUnlockTimeSheet.SUBMIT.toLowerCase():
+          let parsedExtraData;
+          try {
+            parsedExtraData = JSON.parse(data.extra_data);
+          } catch (error) {
+            throw new Error('Invalid JSON in extra_data');
+          }
+
+          const projectKey = `daily-${messid}-project`;
+          const yesterdayKey = `daily-${messid}-yesterday-ip`;
+          const todayKey = `daily-${messid}-today-ip`;
+          const blockKey = `daily-${messid}-block-ip`;
+          const workingTimeKey = `daily-${messid}-working-time`;
+          const workingHoursTypeKey = `daily-${messid}-type-of-work`;
+          const projectCode = parsedExtraData[projectKey]?.[0];
+          const yesterdayValue = parsedExtraData[yesterdayKey];
+          const todayValue = parsedExtraData[todayKey];
+          const blockValue = parsedExtraData[blockKey];
+          const workingTimeValue = parsedExtraData[workingTimeKey];
+          const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
+          const isMissingField =
+            !projectCode || !yesterdayValue || !todayValue || !blockValue;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}\n workingTime:${workingTimeValue}\n typeOfWork:${typeOfWorkValue}`;
+          if (!isOwner) {
+            const replyMessageInvalidOwnerSubmit = createReplyMessage(
+              invalidOwnerSubmit,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageInvalidOwnerSubmit);
+          }
+          if (contentGenerated.length < 100) {
+            const replyMessageInvalidLength = createReplyMessage(
+              invalidLength,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageInvalidLength);
+          }
+          if (isMissingField) {
+            const replyMessageMissingField = createReplyMessage(
+              missingField,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageMissingField);
+          }
+
+          const findUser = await this.userRepository
+            .createQueryBuilder()
+            .where(`"userId" = :userId`, { userId: senderId })
+            .andWhere(`"deactive" IS NOT true`)
+            .select('*')
+            .getRawOne();
+
+          if (!findUser) return;
+
+          const authorUsername = findUser.email;
+          const emailAddress = generateEmail(authorUsername);
+
+          const wfhResult = await this.timeSheetService.findWFHUser();
+          const wfhUserEmail = wfhResult.map((item) =>
+            getUserNameByEmail(item.emailAddress),
+          );
+
+          await this.saveDaily(
+            senderId,
+            channelId,
+            contentGenerated as string,
+            authorUsername,
+          );
+
+          await this.timeSheetService.logTimeSheetFromDaily({
+            emailAddress,
+            content: contentGenerated,
+          });
+          const isValidTimeFrame = checkTimeSheet();
+          const isValidWFH = checkTimeNotWFH();
+          const baseMessage = '```✅ Daily saved.```';
+          const errorMessageWFH =
+            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+          const errorMessageNotWFH =
+            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+
+          const messageContent = wfhUserEmail.includes(authorUsername)
+            ? isValidTimeFrame
+              ? baseMessage
+              : errorMessageWFH
+            : isValidWFH
+              ? baseMessage
+              : errorMessageNotWFH;
+          const replyMessageSubmit = createReplyMessage(
+            messageContent,
+            clanIdValue,
+            channelId,
+            isPublicValue,
+            modeValue,
+            msg,
+          );
+          this.messageQueue.addMessage(replyMessageSubmit);
+          break;
+        case EUnlockTimeSheet.CANCEL.toLowerCase():
+          if (!isOwner) {
+            const replyMessageInvalidOwnerCancel = createReplyMessage(
+              invalidOwnerCancel,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageInvalidOwnerCancel);
+          }
+          const replyMessageCancel = createReplyMessage(
+            cancelledDailyMess,
+            clanIdValue,
+            channelId,
+            isPublicValue,
+            modeValue,
+            msg,
+          );
+          this.messageQueue.addMessage(replyMessageCancel);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Error in handleSubmitDaily:', error.message);
+    }
+  }
+
+  saveDaily(senderId: string, channelId: string, args: string, email: string) {
+    return this.dailyRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Daily)
+      .values({
+        userid: senderId,
+        email: email,
+        daily: args,
+        createdAt: Date.now(),
+        channelid: channelId,
+      })
+      .execute();
+  }
   async handleRequestAbsenceDay(data) {
     try {
       // Parse button_id
