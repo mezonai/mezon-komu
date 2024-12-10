@@ -1,9 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository, In } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMessage, MezonClient } from 'mezon-sdk';
+import { ChannelMessage } from 'mezon-sdk';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import moment from 'moment';
 import { ReportDailyService } from 'src/bot/asterisk-commands/commands/report/reportDaily.service';
 import { ReportWFHService } from 'src/bot/utils/report-wfh.serivce';
@@ -21,6 +20,7 @@ import { replyMessageGenerate } from 'src/bot/utils/generateReplyMessage';
 import { EMessageMode } from 'src/bot/constants/configs';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { RoleMezon } from 'src/bot/models';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class FineReportSchedulerService {

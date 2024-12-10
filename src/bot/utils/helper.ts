@@ -1,5 +1,9 @@
+/* eslint-disable prettier/prettier */
+import { ChannelMessage, ChannelStreamMode, EMarkdownType } from 'mezon-sdk';
 import { EMAIL_DOMAIN } from '../constants/configs';
 import * as QRCode from 'qrcode';
+import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
+import { refGenerate } from './generateReplyMessage';
 
 export function extractMessage(message: string) {
   const args = message.replace('\n', ' ').slice('*'.length).trim().split(/ +/);
@@ -156,4 +160,46 @@ export async function generateQRCode(text: string): Promise<string> {
   } catch (error) {
     throw new Error('Can not generate QR code!');
   }
+}
+
+export function extractText(content, keyword) {
+  const regex = new RegExp(
+    `${keyword}:\\s*(.*?)\\s*(?=\\b(?:Yesterday|Today|Block|Working Time|Type Of Work):|$)`,
+    'i' 
+  );
+  const match = content.match(regex);
+  return match ? match[1].trim() : '';
+}
+export function createReplyMessage(
+  messageText: string,
+  clanIdValue: string,
+  channelId: string,
+  isPublicValue: boolean,
+  modeValue: ChannelStreamMode,
+  msg: ChannelMessage
+): ReplyMezonMessage {
+  return {
+    clan_id: clanIdValue,
+    channel_id: channelId,
+    is_public: isPublicValue,
+    mode: modeValue,
+    msg: {
+      t: messageText,
+      mk: [
+        {
+          type: EMarkdownType.TRIPLE,
+          s: 0,
+          e: messageText.length,
+        },
+      ],
+    },
+    ref: refGenerate(msg),
+  };
+}
+
+export function findProjectByLabel(optionsProject, projectText) {
+  const normalizedText = projectText.trim().toLowerCase();
+  return (
+    optionsProject.find(option => option.label.trim().toLowerCase() === normalizedText) || null
+  );
 }

@@ -151,6 +151,7 @@ import { RemoteCommand } from './asterisk-commands/commands/absencedayrequest/re
 import { OnsiteCommand } from './asterisk-commands/commands/absencedayrequest/onsite.command';
 import { OffCommand } from './asterisk-commands/commands/absencedayrequest/off.command';
 import { CustomAbsenceCommand } from './asterisk-commands/commands/absencedayrequest/customAbsence.command';
+import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -308,6 +309,7 @@ import { CustomAbsenceCommand } from './asterisk-commands/commands/absencedayreq
     OnsiteCommand,
     OffCommand,
     CustomAbsenceCommand,
+    NewDailyCommand,
   ],
   controllers: [KomubotrestController],
 })

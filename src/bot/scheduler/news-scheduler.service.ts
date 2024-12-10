@@ -7,9 +7,9 @@ import { EMessageMode } from '../constants/configs';
 import { ClientConfigService } from '../config/client-config.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class NewsScheduler {

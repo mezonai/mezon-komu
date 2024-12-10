@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CronExpression, Cron } from '@nestjs/schedule';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { isFirstDayOfMonth, isLastDayOfMonth } from 'date-fns';
 import { Meeting } from '../models/meeting.entity';
