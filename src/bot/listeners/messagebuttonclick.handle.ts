@@ -205,7 +205,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   async handleMusicEvent(data) {
-    console.log('data: ', data);
     const args = data.button_id.split('_');
     if (args[0] != 'music') {
       return;
