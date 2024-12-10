@@ -5,8 +5,11 @@ import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
-  EMessageMode, ERequestAbsenceDateType,
-  ERequestAbsenceDayStatus, ERequestAbsenceTime, ERequestAbsenceType,
+  EMessageMode,
+  ERequestAbsenceDateType,
+  ERequestAbsenceDayStatus,
+  ERequestAbsenceTime,
+  ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -14,12 +17,19 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { AbsenceDayRequest, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import {
+  AbsenceDayRequest,
+  Quiz,
+  UnlockTimeSheet,
+  User,
+  UserQuiz,
+} from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
-  checkAnswerFormat, generateEmail,
+  checkAnswerFormat,
+  generateEmail,
   generateQRCode,
   getRandomColor,
   sleep,
@@ -60,6 +70,31 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   @OnEvent(Events.MessageButtonClicked)
+  async hanndleButtonForm(data) {
+    const args = data.button_id.split('_');
+    // check case by buttonId
+    const buttonConfirmType = args[0]; 
+    switch (buttonConfirmType) {
+      case 'question':
+        this.handleAnswerQuestionWFH(data);
+        break;
+      case 'music':
+        this.handleMusicEvent(data);
+        break;
+      case 'unlockTs':
+        this.handleUnlockTimesheet(data);
+        break;
+      case 'remote':
+      case 'onsite':
+      case 'off':
+      case 'offcustom':
+        this.handleRequestAbsenceDay(data);
+        break;
+      default:
+        break;
+    }
+  }
+
   async handleAnswerQuestionWFH(data) {
     try {
       const args = data.button_id.split('_');
@@ -161,7 +196,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async handleMusicEvent(data) {
     const args = data.button_id.split('_');
     if (args[0] != 'music') {
@@ -225,7 +259,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async handleUnlockTimesheet(data) {
     try {
       const args = data.button_id.split('_');
@@ -356,13 +389,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  @OnEvent(Events.MessageButtonClicked)
   async handleRequestAbsenceDay(data) {
     try {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      if ((typeRequest !== 'remote' && typeRequest !== 'onsite' && typeRequest !== 'off' && typeRequest !== 'offcustom') || !data?.extra_data) return;
+      if (
+        (typeRequest !== 'remote' &&
+          typeRequest !== 'onsite' &&
+          typeRequest !== 'off' &&
+          typeRequest !== 'offcustom') ||
+        !data?.extra_data
+      )
+        return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
         where: { messageId: data.message_id },
@@ -402,8 +441,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           case EUnlockTimeSheet.CONFIRM:
             //valid input and format
             const validDate = this.validateAndFormatDate(dataParse.dateAt);
-            const validHour = this.validateHour(dataParse.hour || '0', typeRequest);
-            const validTypeDate = this.validDateType(dataParse.dateType ? dataParse.dateType[0] : null, typeRequest);
+            const validHour = this.validateHour(
+              dataParse.hour || '0',
+              typeRequest,
+            );
+            const validTypeDate = this.validDateType(
+              dataParse.dateType ? dataParse.dateType[0] : null,
+              typeRequest,
+            );
             const validReason = this.validReason(dataParse.reason, typeRequest);
             const userId = findAbsenceData.userId;
             if (!validDate.valid) {
@@ -415,19 +460,30 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               return;
             }
             if (!validTypeDate.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validTypeDate.message);
+              this.sendInvalidInputRequestAbsenceDay(
+                userId,
+                validTypeDate.message,
+              );
               return;
             }
             if (!validReason.valid) {
-              this.sendInvalidInputRequestAbsenceDay(userId, validReason.message);
+              this.sendInvalidInputRequestAbsenceDay(
+                userId,
+                validReason.message,
+              );
               return;
             }
             dataParse.dateAt = validDate?.formattedDate;
 
-            const body = await this.handleBodyRequestAbsenceDay(dataParse, typeRequest, emailAddress);
+            const body = await this.handleBodyRequestAbsenceDay(
+              dataParse,
+              typeRequest,
+              emailAddress,
+            );
             try {
               // Call API request absence day
-              const resAbsenceDayRequest = await this.timeSheetService.requestAbsenceDay(body);
+              const resAbsenceDayRequest =
+                await this.timeSheetService.requestAbsenceDay(body);
               if (resAbsenceDayRequest?.data?.success) {
                 const embedUnlockSuccess: EmbedProps[] = [
                   {
@@ -490,13 +546,26 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  async handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress){
-    const inputDateType = dataInputs.dateType ? dataInputs.dateType[0] : "CUSTOM";
-    const dateType = ERequestAbsenceDateType[inputDateType as keyof typeof ERequestAbsenceDateType];
+  async handleBodyRequestAbsenceDay(dataInputs, typeRequest, emailAddress) {
+    const inputDateType = dataInputs.dateType
+      ? dataInputs.dateType[0]
+      : 'CUSTOM';
+    const dateType =
+      ERequestAbsenceDateType[
+        inputDateType as keyof typeof ERequestAbsenceDateType
+      ];
 
-    const inputAbsenceTime = dataInputs.absenceTime ? dataInputs.absenceTime[0] : null;
-    const absenceTime = ERequestAbsenceTime[inputAbsenceTime as keyof typeof ERequestAbsenceTime] || null;
-    const type = ERequestAbsenceType[typeRequest.toUpperCase() as keyof typeof ERequestAbsenceType];
+    const inputAbsenceTime = dataInputs.absenceTime
+      ? dataInputs.absenceTime[0]
+      : null;
+    const absenceTime =
+      ERequestAbsenceTime[
+        inputAbsenceTime as keyof typeof ERequestAbsenceTime
+      ] || null;
+    const type =
+      ERequestAbsenceType[
+        typeRequest.toUpperCase() as keyof typeof ERequestAbsenceType
+      ];
     const body = {
       reason: dataInputs.reason,
       absences: [
@@ -516,19 +585,22 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   validateHour(inputNumber, typeRequest) {
     if (typeRequest == 'offcustom' && inputNumber === '0') {
-      return { valid: false, message: "Hour is required." };
+      return { valid: false, message: 'Hour is required.' };
     }
-    if (!inputNumber || inputNumber.trim() === "") {
-      return { valid: false, message: "Input is required." };
+    if (!inputNumber || inputNumber.trim() === '') {
+      return { valid: false, message: 'Input is required.' };
     }
 
     const number = parseFloat(inputNumber);
     if (isNaN(number)) {
-      return { valid: false, message: "Invalid number format. Please enter a number." };
+      return {
+        valid: false,
+        message: 'Invalid number format. Please enter a number.',
+      };
     }
 
     if (number < 0 || number > 2) {
-      return { valid: false, message: "Number must be in range 0-2." };
+      return { valid: false, message: 'Number must be in range 0-2.' };
     }
 
     return { valid: true, formattedNumber: number };
@@ -537,19 +609,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   validateAndFormatDate(inputDate) {
     const regex = /^\d{2}-\d{2}-\d{4}$/;
     if (!regex.test(inputDate)) {
-      return { valid: false, message: "Invalid date format. Use dd-mm-yyyy." };
+      return { valid: false, message: 'Invalid date format. Use dd-mm-yyyy.' };
     }
 
     const [day, month, year] = inputDate.split('-').map(Number);
 
     if (
-      month < 1 || month > 12 ||
-      day < 1 || day > 31 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
       (month === 2 && day > 29) ||
       (month === 2 && day === 29 && !this.isLeapYear(year)) ||
       ([4, 6, 9, 11].includes(month) && day > 30)
     ) {
-      return { valid: false, message: "Invalid day, month, or year." };
+      return { valid: false, message: 'Invalid day, month, or year.' };
     }
 
     const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -557,20 +631,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
   }
 
   validDateType(inputDateType, typeRequest) {
-    if(typeRequest !== 'offcustom') {
-      if (!inputDateType) return { valid: false, message: "Date type is required." };
+    if (typeRequest !== 'offcustom') {
+      if (!inputDateType)
+        return { valid: false, message: 'Date type is required.' };
     }
     return { valid: true, formattedDateType: inputDateType };
   }
 
   validReason(inputReason, typeRequest) {
-    if(typeRequest !== 'remote'){
-      if (!inputReason || inputReason.trim() === "") {
-        return { valid: false, message: "Reason is required." };
+    if (typeRequest !== 'remote') {
+      if (!inputReason || inputReason.trim() === '') {
+        return { valid: false, message: 'Reason is required.' };
       }
     }
     return { valid: true, formattedReason: inputReason };
