@@ -56,6 +56,7 @@ import {
   MezonTrackerStreaming,
   UnlockTimeSheet,
   AbsenceDayRequest,
+  W2Requests
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -152,6 +153,14 @@ import { OnsiteCommand } from './asterisk-commands/commands/absencedayrequest/on
 import { OffCommand } from './asterisk-commands/commands/absencedayrequest/off.command';
 import { CustomAbsenceCommand } from './asterisk-commands/commands/absencedayrequest/customAbsence.command';
 import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.command';
+import { advancePaymentRequestCommand } from './asterisk-commands/commands/w2Requests/advancePaymentRequest.command';
+import { changeOfficeRequestCommand } from './asterisk-commands/commands/w2Requests/changeOfficeRequest.command';
+import { deviceRequestCommand } from './asterisk-commands/commands/w2Requests/deviceRequest.command';
+import { officeEquipmentRequestCommand } from './asterisk-commands/commands/w2Requests/officeEquipmentRequest.command';
+import { probationaryConfirmationRequestCommand } from './asterisk-commands/commands/w2Requests/probationaryConfirmationRequest.command';
+import { resignationRequestCommand } from './asterisk-commands/commands/w2Requests/resignationRequest.command';
+import { unlockTimesheetRequestCommand } from './asterisk-commands/commands/w2Requests/unlockTimesheetRequest.command';
+import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRequest.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -216,6 +225,7 @@ import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.com
       MezonTrackerStreaming,
       UnlockTimeSheet,
       AbsenceDayRequest,
+      W2Requests
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -310,6 +320,14 @@ import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.com
     OffCommand,
     CustomAbsenceCommand,
     NewDailyCommand,
+    wfhRequestCommand,
+    unlockTimesheetRequestCommand,
+    resignationRequestCommand,
+    probationaryConfirmationRequestCommand,
+    officeEquipmentRequestCommand,
+    deviceRequestCommand,
+    changeOfficeRequestCommand,
+    advancePaymentRequestCommand
   ],
   controllers: [KomubotrestController],
 })

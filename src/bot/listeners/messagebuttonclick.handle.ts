@@ -18,7 +18,14 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import {
+  Daily,
+  Quiz,
+  UnlockTimeSheet,
+  User,
+  UserQuiz,
+  W2Requests,
+} from '../models';
 import { AbsenceDayRequest } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -45,6 +52,7 @@ import {
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import { OnEvent } from '@nestjs/event-emitter';
+import axios from 'axios';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -71,9 +79,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private absenceDayRequestRepository: Repository<AbsenceDayRequest>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
+    @InjectRepository(W2Requests)
+    private w2RequestsRepository: Repository<W2Requests>,
   ) {
     super(clientService);
   }
+
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
@@ -921,5 +932,124 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       messOptions: { embed: embedValidFailure },
     };
     this.messageQueue.addMessage(messageToUser);
+  }
+
+  private temporaryStorage: Record<string, any> = {};
+  @OnEvent(Events.MessageButtonClicked)
+  async handleEventRequestW2(data) {
+    const args = data.button_id.split('_');
+    if (args[0] !== 'requestW2CONFIRM') return;
+    const baseUrl = process.env.API_BASE_URL;
+    const { message_id, extra_data, button_id } = data;
+    if (!message_id || !button_id) return;
+
+    const findUnlockTsData = await this.w2RequestsRepository.findOne({
+      where: { messageId: data.message_id },
+    });
+    const replyMessage: ReplyMezonMessage = {
+      clan_id: findUnlockTsData.clanId,
+      channel_id: findUnlockTsData.channelId,
+      is_public: findUnlockTsData.isChannelPublic,
+      mode: findUnlockTsData.modeMessage,
+      msg: {
+        t: '',
+      },
+    };
+
+    if (extra_data === '') {
+      replyMessage['msg'] = {
+        t: `Missing all data !`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    let parsedData;
+
+    try {
+      parsedData =
+        typeof extra_data === 'string' ? JSON.parse(extra_data) : extra_data;
+    } catch (error) {
+      replyMessage['msg'] = {
+        t: `Invalid JSON format in extra_data`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    const storage = this.temporaryStorage[message_id] || {};
+
+    if (!storage.dataInputs) {
+      storage.dataInputs = {};
+    }
+
+    Object.entries(parsedData?.dataInputs || parsedData).forEach(
+      ([key, value]) => {
+        if (Array.isArray(value)) {
+          storage.dataInputs[key] = value.join(', ');
+        } else {
+          storage.dataInputs[key] = value;
+        }
+      },
+    );
+
+    this.temporaryStorage[message_id] = storage;
+
+    const existingData = this.temporaryStorage[message_id];
+    const additionalData = {
+      workflowDefinitionId: findUnlockTsData.workflowId,
+      //email: findUnlockTsData.email,
+      email: 'thien.dang@ncc.asia',// will change later
+    };
+    const completeData = {
+      ...additionalData,
+      ...existingData,
+    };
+
+    let idString = '';
+    if (typeof findUnlockTsData.Id === 'string') {
+      idString = findUnlockTsData.Id;
+    } else if (typeof findUnlockTsData.Id === 'object') {
+      idString = JSON.stringify(findUnlockTsData.Id);
+    }
+    const arr = idString.replace(/[{}"]/g, '').split(',');
+    const missingFields = arr.filter(
+      (field) => !completeData?.dataInputs?.[field],
+    );
+
+    if (missingFields.length > 0) {
+      replyMessage['msg'] = {
+        t: `Missing fields : ${missingFields.join(', ')}`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    try {
+      replyMessage['msg'] = {
+        t: `Sending Request....`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      const response = await axios.post(
+        `${baseUrl}/new-instance`,
+        completeData,
+        {
+          headers: {
+            'x-secret-key': process.env.X_SECRET_KEY,
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        replyMessage['msg'] = {
+          t: `Create request successfully!`,
+        };
+        this.messageQueue.addMessage(replyMessage);
+      } else {
+        throw new Error('Unexpected response status');
+      }
+    } catch (error) {
+      console.error('Error sending form data:', error);
+    }
   }
 }
