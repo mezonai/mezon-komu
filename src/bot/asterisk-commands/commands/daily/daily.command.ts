@@ -118,16 +118,7 @@ export class DailyCommand extends CommandMessage {
       label: task.taskName,
       value: task.taskName,
     }));
-    const metaDataOptions =  taskMetaData.map(project => ({
-      projectName: project.projectName,
-      projectCode: project.projectCode,
-      tasks: project.tasks.map(task => ({
-        projectTaskId: task.projectTaskId,
-        taskName: task.taskName,
-        billable: task.billable,
-        isDefault: task.isDefault,
-      }))
-    }));
+    
     const optionTypeOfWork = [
       {
         label: 'Normal Time',
@@ -236,7 +227,6 @@ export class DailyCommand extends CommandMessage {
                 options: optionsTask,
                 required: true,
                 valueSelected: optionsTask[0],
-                metaDataOptions: metaDataOptions
               },
             },
           },
