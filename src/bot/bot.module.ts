@@ -159,6 +159,7 @@ import { resignationRequestCommand } from './asterisk-commands/commands/w2Reques
 import { unlockTimesheetRequestCommand } from './asterisk-commands/commands/w2Requests/unlockTimesheetRequest.command';
 import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRequest.command';
 
+
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
 @Module({
@@ -229,7 +230,6 @@ import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRe
   ],
   providers: [
     BotGateway,
-    DailyCommand,
     WolCommand,
     WolCommandService,
     UserInfoCommand,
@@ -322,6 +322,7 @@ import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRe
     deviceRequestCommand,
     changeOfficeRequestCommand,
     advancePaymentRequestCommand
+    DailyCommand,
   ],
   controllers: [KomubotrestController],
 })
