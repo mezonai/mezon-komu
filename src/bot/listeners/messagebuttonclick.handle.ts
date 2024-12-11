@@ -461,20 +461,26 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const todayKey = `daily-${messid}-today-ip`;
           const blockKey = `daily-${messid}-block-ip`;
           const workingTimeKey = `daily-${messid}-working-time`;
-          const workingHoursTypeKey = `daily-${messid}-type-of-work`;
+          const typeOfWorkKey = `daily-${messid}-type-of-work`;
+          const taskKey = `daily-${messid}-task`;
+
           const projectCode = parsedExtraData[projectKey]?.[0];
           const yesterdayValue = parsedExtraData[yesterdayKey];
           const todayValue = parsedExtraData[todayKey];
           const blockValue = parsedExtraData[blockKey];
           const workingTimeValue = parsedExtraData[workingTimeKey];
-          const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
+          const taskValue = parsedExtraData[taskKey]?.[0];
+
           const isMissingField =
             !projectCode || !yesterdayValue || !todayValue || !blockValue;
-          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}; ${workingTimeValue}h, nt, coding\n today:${todayValue}; ${workingTimeValue}h, nt, coding \n block:${blockValue}`;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
+          const contentLength = yesterdayValue.length + todayValue.length + blockValue.length;
+
           if (!isOwner) {
             return;
           }
-          if (contentGenerated.length < 100) {
+          if (contentLength < 100) {
             const replyMessageInvalidLength = createReplyMessage(
               invalidLength,
               clanIdValue,
@@ -520,10 +526,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             authorUsername,
           );
 
-          await this.timeSheetService.logTimeSheetFromDaily({
-            emailAddress,
-            content: contentGenerated,
-          });
+          await this.timeSheetService.logTimeSheetForTask(todayValue,emailAddress,projectCode,typeOfWorkValue,taskValue,workingTimeValue
+
+          );
           const isValidTimeFrame = checkTimeSheet();
           const isValidWFH = checkTimeNotWFH();
           const baseMessage = '```✅ Daily saved.```';
