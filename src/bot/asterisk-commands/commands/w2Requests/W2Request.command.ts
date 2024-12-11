@@ -11,17 +11,16 @@ import { User, W2Requests } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import {
   EmbedProps,
-  EMessageSelectType,
-  EUserType,
+  ERequestW2Type,
   MEZON_EMBED_FOOTER,
 } from 'src/bot/constants/configs';
-import { EUserError } from 'src/bot/constants/error';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { getRandomColor } from 'src/bot/utils/helper';
 import axios from 'axios';
+const https = require('https');
 
-@Command('resignationrequest')
-export class resignationRequestCommand extends CommandMessage {
+@Command('w2')
+export class W2RequestCommand extends CommandMessage {
   private client: MezonClient;
   constructor(
     @InjectRepository(User)
@@ -35,79 +34,78 @@ export class resignationRequestCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    let messageContent: string;
-    let userQuery: string;
-    const baseUrl = process.env.API_BASE_URL;
-    if (Array.isArray(message.references) && message.references.length) {
-      userQuery = message.references[0].message_sender_username;
-    } else {
-      if (
-        Array.isArray(message.mentions) &&
-        message.mentions.length &&
-        args[0]?.startsWith('@')
-      ) {
-        const findUser = await this.userRepository.findOne({
-          where: {
-            userId: message.mentions[0].user_id,
-            user_type: EUserType.MEZON,
+    const typeRequest = args[0];
+    if (!typeRequest) return;
+    
+    const typeRequestDayEnum = ERequestW2Type[typeRequest.toUpperCase() as keyof typeof ERequestW2Type];
+    if (!typeRequestDayEnum) return;
+    if (typeRequestDayEnum === ERequestW2Type.HELP){
+        return this.replyMessageGenerate(
+          {
+            messageContent: ERequestW2Type.HELP,
+            mk: [{ type: 't', s: 0, e: ERequestW2Type.HELP.length }],
           },
-        });
-        userQuery = findUser.username;
-      } else {
-        userQuery = args.length ? args[0] : message.username;
+          message,
+        );
       }
-
-      //check fist arg
-      const findUserArg = await this.userRepository
-        .createQueryBuilder('user')
-        .where(
-          '(user.email = :query OR user.username = :query OR user.userId = :query)',
-          { query: args[0] },
-        )
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .getOne();
-      if (findUserArg) {
-        userQuery = findUserArg.username;
-      }
-    }
-
-    const findUser = await this.userRepository.findOne({
-      where: { username: userQuery, user_type: EUserType.MEZON },
-    });
-
-    if (!findUser)
-      return this.replyMessageGenerate(
-        {
-          messageContent: EUserError.INVALID_USER,
-          mk: [{ type: 't', s: 0, e: EUserError.INVALID_USER.length }],
-        },
-        message,
-      );
+    
+    const baseUrl = process.env.W2_REQUEST_API_BASE_URL;    
+      let keyword = '';
+      switch (typeRequestDayEnum) {
+        case ERequestW2Type.CHANGEOFFICEREQUEST:
+          keyword = 'changeofficerequest';
+          break;
+        case ERequestW2Type.DEVICEREQUEST:
+          keyword = 'devicerequest';
+          break;
+        case ERequestW2Type.OFFICEEQUIPMENTREQUEST:
+          keyword = 'officeequipmentrequest';
+          break;
+        case ERequestW2Type.PROBATIONARYCONFIRMATIONREQUEST:
+            keyword = 'probationaryconfirmationrequest';
+            break;
+        case ERequestW2Type.WFHREQUEST:
+            keyword = 'wfhrequest';
+          break;
+        default:
+          return this.replyMessageGenerate(
+            {
+              messageContent: 'Invalid command type',
+              mk: [{ type: 't', s: 0, e: 'Invalid command type'.length }],
+            },
+            message,
+          );
+      }      
     const body = {
-      keyword: 'changeofficerequest',
-      email: 'khanh.tranvan@ncc.asia',// will change later
+      keyword: keyword,
+      email: `${message.username}@ncc.asia`,
     };
     let data;
-    try {
-      data = await axios.post(
-        `${baseUrl}/list-property-definitions-by-command`,
-        body,
-        {
-          headers: {
-            'x-secret-key': process.env.X_SECRET_KEY,
+    const agent = new https.Agent({  
+        rejectUnauthorized: false
+      });
+      
+      try {
+        data = await axios.post(
+          `${baseUrl}/list-property-definitions-by-command`,
+          body,
+          {
+            headers: {
+              'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
+            },
+            httpsAgent: agent,
           },
-        },
-      );
-    } catch (error) {
-      console.error('Error sending form data:', error);
-    }
+        );
+      } catch (error) {
+        console.error('Error sending form data:', error);
+      }
 
     function convertToObject(input) {
       if (Array.isArray(input)) {
         return input?.map(convertToObject);
       } else if (typeof input === 'object' && input !== null) {
         return Object.entries(input).reduce((acc, [key, value]) => {
-          acc[key] = convertToObject(value); 
+          acc[key] = convertToObject(value);
           return acc;
         }, {});
       }
@@ -125,14 +123,15 @@ export class resignationRequestCommand extends CommandMessage {
     }
 
     const result = convertToObject(data?.data?.embed);
+
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `Test input form`,
+        title: `Form Request W2`,
         author: {
-          name: findUser.username,
-          icon_url: findUser.avatar,
-          url: findUser.avatar,
+          name: message.username,
+          icon_url: message.avatar,
+          url: message.avatar,
         },
         fields: [...result?.map((item) => item)],
         timestamp: new Date().toISOString(),
@@ -144,7 +143,7 @@ export class resignationRequestCommand extends CommandMessage {
       {
         components: [
           {
-            id: 'requestCANCEL',
+            id: 'request_W2_CANCEL',
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -152,7 +151,7 @@ export class resignationRequestCommand extends CommandMessage {
             },
           },
           {
-            id: 'requestW2CONFIRM',
+            id: 'request_W2_CONFIRM',
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Confirm`,
@@ -180,6 +179,7 @@ export class resignationRequestCommand extends CommandMessage {
     dataInsert.isChannelPublic = message.is_public;
     dataInsert.createdAt = Date.now();
     dataInsert.workflowId = data?.data?.workflowDefinitionId;
+    dataInsert.email = message.username;
     dataInsert.Id = extractInputIds();
     await this.w2RequestsRepository.save(dataInsert);
     return null;

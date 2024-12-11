@@ -7,7 +7,11 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
   EMessageMode,
-  ERequestAbsenceDayStatus, ERequestAbsenceDayType,
+  ERequestAbsenceDateType,
+  ERequestAbsenceDayStatus,
+  ERequestAbsenceDayType,
+  ERequestAbsenceTime,
+  ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -49,14 +53,17 @@ import {
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import {
-  handleBodyRequestAbsenceDay, validateAbsenceTime, validateAbsenceTypeDay,
+  handleBodyRequestAbsenceDay,
+  validateAbsenceTime,
+  validateAbsenceTypeDay,
   validateAndFormatDate,
-  validateHourAbsenceDay, validateTypeAbsenceDay,
+  validateHourAbsenceDay,
+  validateTypeAbsenceDay,
   validReasonAbsenceDay,
 } from '../utils/request-helper';
 import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
-
+const https = require('https');
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
   constructor(
@@ -665,7 +672,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
+      const typeRequestDayEnum =
+        ERequestAbsenceDayType[
+          typeRequest as keyof typeof ERequestAbsenceDayType
+        ];
       if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
@@ -714,7 +724,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               dataParse.dateType ? dataParse.dateType[0] : null,
               typeRequestDayEnum,
             );
-            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequestDayEnum);
+            const validReason = validReasonAbsenceDay(
+              dataParse.reason,
+              typeRequestDayEnum,
+            );
             const validAbsenceType = validateAbsenceTypeDay(
               dataParse.absenceType ? dataParse.absenceType[0] : null,
               typeRequestDayEnum,
@@ -726,10 +739,16 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             const userId = findAbsenceData.userId;
             const validations = [
               { valid: validDate.valid, message: validDate.message },
-              { valid: validAbsenceTime.valid, message: validAbsenceTime.message },
+              {
+                valid: validAbsenceTime.valid,
+                message: validAbsenceTime.message,
+              },
               { valid: validHour.valid, message: validHour.message },
               { valid: validTypeDate.valid, message: validTypeDate.message },
-              { valid: validAbsenceType.valid, message: validAbsenceType.message },
+              {
+                valid: validAbsenceType.valid,
+                message: validAbsenceType.message,
+              },
               { valid: validReason.valid, message: validReason.message },
             ];
             for (const { valid, message } of validations) {
@@ -944,10 +963,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   private temporaryStorage: Record<string, any> = {};
   @OnEvent(Events.MessageButtonClicked)
   async handleEventRequestW2(data) {
-    const args = data.button_id.split('_');
-    if (args[0] !== 'requestW2CONFIRM') return;
-    
-    const baseUrl = process.env.API_BASE_URL;
+    if (data.button_id !== 'request_W2_CONFIRM') return;
+    const baseUrl = process.env.W2_REQUEST_API_BASE_URL;
     const { message_id, extra_data, button_id } = data;
     if (!message_id || !button_id) return;
 
@@ -963,7 +980,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         t: '',
       },
     };
-    // Validate extra_data
+
     if (extra_data === '') {
       replyMessage['msg'] = {
         t: `Missing all data !`,
@@ -973,6 +990,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
 
     let parsedData;
+
     try {
       parsedData =
         typeof extra_data === 'string' ? JSON.parse(extra_data) : extra_data;
@@ -984,8 +1002,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       return;
     }
 
-    // Process temporary storage
     const storage = this.temporaryStorage[message_id] || {};
+
+    if (!storage.dataInputs) {
+      storage.dataInputs = {};
+    }
+
     Object.entries(parsedData?.dataInputs || parsedData).forEach(
       ([key, value]) => {
         if (Array.isArray(value)) {
@@ -995,33 +1017,44 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       },
     );
-    // Merge data for request
+
     this.temporaryStorage[message_id] = storage;
 
     const existingData = this.temporaryStorage[message_id];
+
     const additionalData = {
       workflowDefinitionId: findUnlockTsData.workflowId,
-      //email: findUnlockTsData.email,
-      email: 'thien.dang@ncc.asia',// will change later
+      email: `${findUnlockTsData.email}@ncc.asia`,
     };
+
     const completeData = {
       ...additionalData,
       ...existingData,
     };
 
-    // Validate required fields
-    const idString = typeof findUnlockTsData.Id === 'string' ? findUnlockTsData.Id : JSON.stringify(findUnlockTsData.Id);
-    const requiredFields = idString.replace(/[{}"']/g, '').split(',');
-    const missingFields = requiredFields.filter(field => !completeData.dataInputs[field]);
-  
+    let idString = '';
+    if (typeof findUnlockTsData.Id === 'string') {
+      idString = findUnlockTsData.Id;
+    } else if (typeof findUnlockTsData.Id === 'object') {
+      idString = JSON.stringify(findUnlockTsData.Id);
+    }
+    const arr = idString.replace(/[{}"]/g, '').split(',');
+    const missingFields = arr.filter(
+      (field) => !completeData?.dataInputs?.[field],
+    );
+
     if (missingFields.length > 0) {
-      replyMessage.msg.t = `Missing fields: ${missingFields.join(', ')}`;
+      replyMessage['msg'] = {
+        t: `Missing fields : ${missingFields.join(', ')}`,
+      };
       this.messageQueue.addMessage(replyMessage);
       return;
     }
 
-    // Send request
     try {
+      const agent = new https.Agent({
+        rejectUnauthorized: false,
+      });
       replyMessage['msg'] = {
         t: `Sending Request....`,
       };
@@ -1031,8 +1064,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         completeData,
         {
           headers: {
-            'x-secret-key': process.env.X_SECRET_KEY,
+            'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
           },
+          httpsAgent: agent,
         },
       );
 

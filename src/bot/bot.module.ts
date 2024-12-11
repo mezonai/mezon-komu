@@ -150,14 +150,7 @@ import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
 import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absencedayrequest/absenceday.command';
 import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.command';
-import { advancePaymentRequestCommand } from './asterisk-commands/commands/w2Requests/advancePaymentRequest.command';
-import { changeOfficeRequestCommand } from './asterisk-commands/commands/w2Requests/changeOfficeRequest.command';
-import { deviceRequestCommand } from './asterisk-commands/commands/w2Requests/deviceRequest.command';
-import { officeEquipmentRequestCommand } from './asterisk-commands/commands/w2Requests/officeEquipmentRequest.command';
-import { probationaryConfirmationRequestCommand } from './asterisk-commands/commands/w2Requests/probationaryConfirmationRequest.command';
-import { resignationRequestCommand } from './asterisk-commands/commands/w2Requests/resignationRequest.command';
-import { unlockTimesheetRequestCommand } from './asterisk-commands/commands/w2Requests/unlockTimesheetRequest.command';
-import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRequest.command';
+import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Request.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -314,14 +307,7 @@ import { wfhRequestCommand } from './asterisk-commands/commands/w2Requests/WFHRe
     UnlockTimeSheetCommand,
     RequestAbsenceDayCommand,
     NewDailyCommand,
-    wfhRequestCommand,
-    unlockTimesheetRequestCommand,
-    resignationRequestCommand,
-    probationaryConfirmationRequestCommand,
-    officeEquipmentRequestCommand,
-    deviceRequestCommand,
-    changeOfficeRequestCommand,
-    advancePaymentRequestCommand
+    W2RequestCommand,
   ],
   controllers: [KomubotrestController],
 })
