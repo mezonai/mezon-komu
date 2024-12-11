@@ -84,7 +84,7 @@ export class wfhRequestCommand extends CommandMessage {
       );
     const body = {
       keyword: 'wfhrequest',
-      email: 'khanh.tranvan@ncc.asia',// will change later
+      email: 'khanh.tranvan@ncc.asia', // will change later
     };
     let data;
     try {

@@ -939,6 +939,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async handleEventRequestW2(data) {
     const args = data.button_id.split('_');
     if (args[0] !== 'requestW2CONFIRM') return;
+    
     const baseUrl = process.env.API_BASE_URL;
     const { message_id, extra_data, button_id } = data;
     if (!message_id || !button_id) return;
@@ -955,7 +956,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         t: '',
       },
     };
-
+    // Validate extra_data
     if (extra_data === '') {
       replyMessage['msg'] = {
         t: `Missing all data !`,
@@ -965,7 +966,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
 
     let parsedData;
-
     try {
       parsedData =
         typeof extra_data === 'string' ? JSON.parse(extra_data) : extra_data;
@@ -977,12 +977,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       return;
     }
 
+    // Process temporary storage
     const storage = this.temporaryStorage[message_id] || {};
-
-    if (!storage.dataInputs) {
-      storage.dataInputs = {};
-    }
-
     Object.entries(parsedData?.dataInputs || parsedData).forEach(
       ([key, value]) => {
         if (Array.isArray(value)) {
@@ -992,7 +988,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       },
     );
-
+    // Merge data for request
     this.temporaryStorage[message_id] = storage;
 
     const existingData = this.temporaryStorage[message_id];
@@ -1006,25 +1002,18 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       ...existingData,
     };
 
-    let idString = '';
-    if (typeof findUnlockTsData.Id === 'string') {
-      idString = findUnlockTsData.Id;
-    } else if (typeof findUnlockTsData.Id === 'object') {
-      idString = JSON.stringify(findUnlockTsData.Id);
-    }
-    const arr = idString.replace(/[{}"]/g, '').split(',');
-    const missingFields = arr.filter(
-      (field) => !completeData?.dataInputs?.[field],
-    );
-
+    // Validate required fields
+    const idString = typeof findUnlockTsData.Id === 'string' ? findUnlockTsData.Id : JSON.stringify(findUnlockTsData.Id);
+    const requiredFields = idString.replace(/[{}"']/g, '').split(',');
+    const missingFields = requiredFields.filter(field => !completeData.dataInputs[field]);
+  
     if (missingFields.length > 0) {
-      replyMessage['msg'] = {
-        t: `Missing fields : ${missingFields.join(', ')}`,
-      };
+      replyMessage.msg.t = `Missing fields: ${missingFields.join(', ')}`;
       this.messageQueue.addMessage(replyMessage);
       return;
     }
 
+    // Send request
     try {
       replyMessage['msg'] = {
         t: `Sending Request....`,
