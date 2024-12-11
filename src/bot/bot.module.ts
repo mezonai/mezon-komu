@@ -149,8 +149,8 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
 import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
 import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absencedayrequest/absenceday.command';
-import { NewDailyCommand } from './asterisk-commands/commands/daily/newDaily.command';
 import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Request.command';
+
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -222,7 +222,6 @@ import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Requ
   ],
   providers: [
     BotGateway,
-    DailyCommand,
     WolCommand,
     WolCommandService,
     UserInfoCommand,
@@ -306,8 +305,8 @@ import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Requ
     StreamingEvent,
     UnlockTimeSheetCommand,
     RequestAbsenceDayCommand,
-    NewDailyCommand,
     W2RequestCommand,
+    DailyCommand,
   ],
   controllers: [KomubotrestController],
 })
