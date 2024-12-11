@@ -404,7 +404,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
   async handleSubmitDaily(data) {
-    console.log('data :', data);
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
