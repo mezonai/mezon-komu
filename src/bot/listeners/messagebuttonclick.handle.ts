@@ -98,7 +98,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case ERequestAbsenceDayType.OFFCUSTOM:
         this.handleRequestAbsenceDay(data);
         break;
-      case 'newdaily':
+      case 'daily':
         this.handleSubmitDaily(data);
         break;
       default:
