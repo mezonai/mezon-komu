@@ -95,7 +95,7 @@ export class DailyCommand extends CommandMessage {
       },
     );
     const projectMetaData = pmData?.data?.result;
-    const optionsProject = projectMetaData.map((project) => ({
+    const optionsProject = projectMetaData?.map((project) => ({
       label: project.projectName,
       value: project.projectCode,
     }));
