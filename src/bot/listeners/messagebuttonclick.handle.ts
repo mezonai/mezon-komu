@@ -96,10 +96,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   @OnEvent(Events.MessageButtonClicked)
-  async hanndleButtonForm(data) {
+  async hanndleButtonForm(data) {        
     const args = data.button_id.split('_');
     // check case by buttonId
-    const buttonConfirmType = args[0];
+    const buttonConfirmType = args[0];    
     switch (buttonConfirmType) {
       case 'question':
         this.handleAnswerQuestionWFH(data);
@@ -119,6 +119,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'daily':
         this.handleSubmitDaily(data);
         break;
+      case 'w2request':
+        this.handleEventRequestW2(data);
       default:
         break;
     }
@@ -885,21 +887,20 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   private temporaryStorage: Record<string, any> = {};
-  @OnEvent(Events.MessageButtonClicked)
-  async handleEventRequestW2(data) {
-    if (data.button_id !== 'request_W2_CONFIRM') return;
+  async handleEventRequestW2(data) {    
+    if (data.button_id !== 'w2request_CONFIRM') return;
     const baseUrl = process.env.W2_REQUEST_API_BASE_URL;
     const { message_id, extra_data, button_id } = data;
     if (!message_id || !button_id) return;
 
-    const findUnlockTsData = await this.w2RequestsRepository.findOne({
+    const findW2requestData = await this.w2RequestsRepository.findOne({
       where: { messageId: data.message_id },
     });
     const replyMessage: ReplyMezonMessage = {
-      clan_id: findUnlockTsData.clanId,
-      channel_id: findUnlockTsData.channelId,
-      is_public: findUnlockTsData.isChannelPublic,
-      mode: findUnlockTsData.modeMessage,
+      clan_id: findW2requestData.clanId,
+      channel_id: findW2requestData.channelId,
+      is_public: findW2requestData.isChannelPublic,
+      mode: findW2requestData.modeMessage,
       msg: {
         t: '',
       },
@@ -947,8 +948,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const existingData = this.temporaryStorage[message_id];
 
     const additionalData = {
-      workflowDefinitionId: findUnlockTsData.workflowId,
-      email: `${findUnlockTsData.email}@ncc.asia`,
+      workflowDefinitionId: findW2requestData.workflowId,
+      email: `${findW2requestData.email}@ncc.asia`,
     };
 
     const completeData = {
@@ -957,10 +958,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     };
 
     let idString = '';
-    if (typeof findUnlockTsData.Id === 'string') {
-      idString = findUnlockTsData.Id;
-    } else if (typeof findUnlockTsData.Id === 'object') {
-      idString = JSON.stringify(findUnlockTsData.Id);
+    if (typeof findW2requestData.Id === 'string') {
+      idString = findW2requestData.Id;
+    } else if (typeof findW2requestData.Id === 'object') {
+      idString = JSON.stringify(findW2requestData.Id);
     }
     const arr = idString.replace(/[{}"]/g, '').split(',');
     const missingFields = arr.filter(

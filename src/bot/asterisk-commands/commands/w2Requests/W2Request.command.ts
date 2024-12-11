@@ -19,7 +19,7 @@ import { getRandomColor } from 'src/bot/utils/helper';
 import axios from 'axios';
 const https = require('https');
 
-@Command('w2')
+@Command('w2request')
 export class W2RequestCommand extends CommandMessage {
   private client: MezonClient;
   constructor(
@@ -34,7 +34,7 @@ export class W2RequestCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    const typeRequest = args[0];
+    const typeRequest = args[0];    
     if (!typeRequest) return;
     
     const typeRequestDayEnum = ERequestW2Type[typeRequest.toUpperCase() as keyof typeof ERequestW2Type];
@@ -52,19 +52,19 @@ export class W2RequestCommand extends CommandMessage {
     const baseUrl = process.env.W2_REQUEST_API_BASE_URL;    
       let keyword = '';
       switch (typeRequestDayEnum) {
-        case ERequestW2Type.CHANGEOFFICEREQUEST:
+        case ERequestW2Type.CHANGEOFFICE:
           keyword = 'changeofficerequest';
           break;
-        case ERequestW2Type.DEVICEREQUEST:
+        case ERequestW2Type.DEVICE:
           keyword = 'devicerequest';
           break;
-        case ERequestW2Type.OFFICEEQUIPMENTREQUEST:
+        case ERequestW2Type.OFFICEEQUIPMENT:
           keyword = 'officeequipmentrequest';
           break;
-        case ERequestW2Type.PROBATIONARYCONFIRMATIONREQUEST:
+        case ERequestW2Type.PROBATIONARYCONFIRMATION:
             keyword = 'probationaryconfirmationrequest';
             break;
-        case ERequestW2Type.WFHREQUEST:
+        case ERequestW2Type.WFH:
             keyword = 'wfhrequest';
           break;
         default:
@@ -143,7 +143,7 @@ export class W2RequestCommand extends CommandMessage {
       {
         components: [
           {
-            id: 'request_W2_CANCEL',
+            id: 'w2request_CANCEL',
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -151,7 +151,7 @@ export class W2RequestCommand extends CommandMessage {
             },
           },
           {
-            id: 'request_W2_CONFIRM',
+            id: 'w2request_CONFIRM',
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Confirm`,
