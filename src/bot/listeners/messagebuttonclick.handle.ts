@@ -121,6 +121,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'logts':
         this.handleLogTimesheet(data);
+        break;
       case 'w2request':
         this.handleEventRequestW2(data);
         break;
