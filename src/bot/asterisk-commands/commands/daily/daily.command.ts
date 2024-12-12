@@ -114,14 +114,25 @@ export class DailyCommand extends CommandMessage {
         accept: 'application/json',
       },
     });
-    const taskMetaData = responseTasks.data.result;
-    const getTaskByProjectCode = taskMetaData.find(
-      (p) => p.projectCode === getProjectFromProjectOpt.value,
+    const taskMetaData = responseTasks?.data?.result;
+    const getTaskByProjectCode = taskMetaData?.find(
+      (p) => p?.projectCode === getProjectFromProjectOpt?.value,
     );
     const optionsTask = getTaskByProjectCode?.tasks?.map((task) => ({
       label: task.taskName,
       value: task.taskName,
     }));
+
+    const optionTypeOfWork = [
+      {
+        label: 'Normal Time',
+        value: 0,
+      },
+      {
+        label: 'Overtime',
+        value: 1,
+      },
+    ];
 
     const getTypeOfWorkFromOpt =
       findProjectByLabel(optionTypeOfWork, typeOfWorkText) ||

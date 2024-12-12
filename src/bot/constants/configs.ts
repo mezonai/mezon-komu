@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export const BOT_ID = process.env.BOT_KOMU_ID;
 
 export const EMAIL_DOMAIN = 'ncc.asia';
@@ -159,3 +160,26 @@ export const optionTypeOfWork = [
     value: EValueTypeOfWork.Overtime,
   },
 ];
+export enum ERequestW2Type {
+  CHANGEOFFICE = 'changeoffice',
+  DEVICE = 'device',
+  OFFICEEQUIPMENT = 'officeequipment',
+  PROBATIONARYCONFIRMATION = 'probationaryconfirmation',
+  WFH = 'wfh',
+  HELP = '```' +
+    'Change Office Request\n' +
+    'command: *w2request changeoffice\n' +
+    '\n' +
+    'Device Request\n' +
+    'command: *w2request device\n' +
+    '\n' +
+    'Office Equipment Request\n' +
+    'command: *w2request officeequipment\n' +
+    '\n' +
+    'Probationary Confirmation Request\n' +
+    'command: *w2request probationaryconfirmation\n' +
+    '\n' +
+    'WFH Request\n' +
+    'command: *w2request wfh' +
+    '```',
+}
