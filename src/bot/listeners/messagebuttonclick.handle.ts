@@ -9,6 +9,7 @@ import {
   EMessageMode,
   ERequestAbsenceDayStatus,
   ERequestAbsenceDayType,
+  ERequestAbsenceDateType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -43,12 +44,9 @@ import {
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import {
-  handleBodyRequestAbsenceDay,
-  validateAbsenceTime,
-  validateAbsenceTypeDay,
+  handleBodyRequestAbsenceDay, validateAbsenceTime, validateAbsenceTypeDay,
   validateAndFormatDate,
-  validateHourAbsenceDay,
-  validateTypeAbsenceDay,
+  validateHourAbsenceDay, validateTypeAbsenceDay,
   validReasonAbsenceDay,
 } from '../utils/request-helper';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -472,27 +470,20 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const todayKey = `daily-${messid}-today-ip`;
           const blockKey = `daily-${messid}-block-ip`;
           const workingTimeKey = `daily-${messid}-working-time`;
-          const typeOfWorkKey = `daily-${messid}-type-of-work`;
-          const taskKey = `daily-${messid}-task`;
-
+          const workingHoursTypeKey = `daily-${messid}-type-of-work`;
           const projectCode = parsedExtraData[projectKey]?.[0];
           const yesterdayValue = parsedExtraData[yesterdayKey];
           const todayValue = parsedExtraData[todayKey];
           const blockValue = parsedExtraData[blockKey];
           const workingTimeValue = parsedExtraData[workingTimeKey];
-          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
-          const taskValue = parsedExtraData[taskKey]?.[0];
-
+          const typeOfWorkValue = parsedExtraData[workingHoursTypeKey]?.[0];
           const isMissingField =
             !projectCode || !yesterdayValue || !todayValue || !blockValue;
-          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
-          const contentLength =
-            yesterdayValue?.length + todayValue?.length + blockValue?.length;
-
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}; ${workingTimeValue}h, nt, coding\n today:${todayValue}; ${workingTimeValue}h, nt, coding \n block:${blockValue}`;
           if (!isOwner) {
             return;
           }
-          if (contentLength < 100) {
+          if (contentGenerated.length < 100) {
             const replyMessageInvalidLength = createReplyMessage(
               invalidLength,
               clanIdValue,
@@ -538,14 +529,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             authorUsername,
           );
 
-          await this.timeSheetService.logTimeSheetForTask(
-            todayValue,
+          await this.timeSheetService.logTimeSheetFromDaily({
             emailAddress,
-            projectCode,
-            typeOfWorkValue,
-            taskValue,
-            workingTimeValue,
-          );
+            content: contentGenerated,
+          });
           const isValidTimeFrame = checkTimeSheet();
           const isValidWFH = checkTimeNotWFH();
           const baseMessage = '```✅ Daily saved.```';
@@ -600,10 +587,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      const typeRequestDayEnum =
-        ERequestAbsenceDayType[
-          typeRequest as keyof typeof ERequestAbsenceDayType
-        ];
+      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
       if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
@@ -652,10 +636,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               dataParse.dateType ? dataParse.dateType[0] : null,
               typeRequestDayEnum,
             );
-            const validReason = validReasonAbsenceDay(
-              dataParse.reason,
-              typeRequestDayEnum,
-            );
+            const validReason = validReasonAbsenceDay(dataParse.reason, typeRequestDayEnum);
             const validAbsenceType = validateAbsenceTypeDay(
               dataParse.absenceType ? dataParse.absenceType[0] : null,
               typeRequestDayEnum,
@@ -667,16 +648,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             const userId = findAbsenceData.userId;
             const validations = [
               { valid: validDate.valid, message: validDate.message },
-              {
-                valid: validAbsenceTime.valid,
-                message: validAbsenceTime.message,
-              },
+              { valid: validAbsenceTime.valid, message: validAbsenceTime.message },
               { valid: validHour.valid, message: validHour.message },
               { valid: validTypeDate.valid, message: validTypeDate.message },
-              {
-                valid: validAbsenceType.valid,
-                message: validAbsenceType.message,
-              },
+              { valid: validAbsenceType.valid, message: validAbsenceType.message },
               { valid: validReason.valid, message: validReason.message },
             ];
             for (const { valid, message } of validations) {
