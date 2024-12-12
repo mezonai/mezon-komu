@@ -70,7 +70,7 @@ export class DailyCommand extends CommandMessage {
     const modeMess = message.mode;
     const isPublic = message.is_public;
     const ownerSenderDaily = message.sender_id;
-    const ownerSenderDailyEmail = message.username + '@ncc.asia';
+    const ownerSenderDailyEmail = message.clan_nick || message.username + '@ncc.asia';
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
         ? message.content.t.trim() === '*daily'
