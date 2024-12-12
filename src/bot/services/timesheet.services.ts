@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
 import { ApiUrl } from '../constants/api_url';
 import { normalizeString } from '../utils/helper';
@@ -10,7 +11,7 @@ import { User } from '../models/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Daily } from '../models/daily.entity';
-import { EUserType } from '../constants/configs';
+import { EUserType, EValueTypeOfWork } from '../constants/configs';
 
 @Injectable()
 export class TimeSheetService {
@@ -88,6 +89,50 @@ export class TimeSheetService {
     return response;
   };
 
+  logTimeSheetByDate = async (
+    typeOfWork,
+    projectTaskId,
+    note,
+    projectTargetUserId,
+    workingTime,
+    targetUserWorkingTime,
+    projectId,
+    dateAt,
+    emailAddress,
+  ) => {
+    const timesheetPayload = {
+      typeOfWork,
+      projectTaskId,
+      note,
+      projectTargetUserId,
+      workingTime,
+      targetUserWorkingTime,
+      projectId,
+      dateAt,
+      emailAddress,
+    };
+
+    const url = `${process.env.TIMESHEET_API}Mezon/CreateTimeSheet`;
+    const response = await this.axiosClientService.post(url, timesheetPayload, {
+      headers: {
+        securityCode: process.env.DAILY_TO_TIMESHEET,
+      },
+    });
+    return response;
+  };
+  logTimeSheetByWeek = async (timesheetPayloadWeek) => {
+    const url = `${process.env.TIMESHEET_API}Mezon/SaveListTimeSheet`;
+    const response = await this.axiosClientService.post(
+      url,
+      timesheetPayloadWeek,
+      {
+        headers: {
+          securityCode: process.env.DAILY_TO_TIMESHEET,
+        },
+      },
+    );
+    return response;
+  };
   parseTimeSheetTask = (chunk) => {
     const [note, meta] = (chunk || '').split(';');
     const [timeRaw, type, name] = (meta || '').split(',');

@@ -165,7 +165,7 @@ export async function generateQRCode(text: string): Promise<string> {
 export function extractText(content, keyword) {
   const regex = new RegExp(
     `${keyword}:\\s*(.*?)\\s*(?=\\b(?:Yesterday|Today|Block|Working Time|Type Of Work):|$)`,
-    'i' 
+    'i',
   );
   const match = content.match(regex);
   return match ? match[1].trim() : '';
@@ -176,7 +176,7 @@ export function createReplyMessage(
   channelId: string,
   isPublicValue: boolean,
   modeValue: ChannelStreamMode,
-  msg: ChannelMessage
+  msg: ChannelMessage,
 ): ReplyMezonMessage {
   return {
     clan_id: clanIdValue,
@@ -200,6 +200,27 @@ export function createReplyMessage(
 export function findProjectByLabel(optionsProject, projectText) {
   const normalizedText = projectText.trim().toLowerCase();
   return (
-    optionsProject.find(option => option.label.trim().toLowerCase() === normalizedText) || null
+    optionsProject.find(
+      (option) => option.label.trim().toLowerCase() === normalizedText,
+    ) || null
   );
+}
+
+export function changeDateFormat(dateValue) {
+  const [year, month, day] = dateValue.split('-');
+  return `${day}-${month}-${year}`;
+}
+
+export function getWeekDays(dateString) {
+  const weekDays = [];
+  const currentDayOfWeek = dateString.getDay();
+  const monday = new Date(dateString);
+  monday.setDate(dateString.getDate() - ((currentDayOfWeek + 6) % 7));
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    weekDays.push(day.toISOString().split('T')[0]);
+  }
+
+  return weekDays;
 }

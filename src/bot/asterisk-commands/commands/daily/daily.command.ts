@@ -14,7 +14,11 @@ import {
   findProjectByLabel,
   getRandomColor,
 } from 'src/bot/utils/helper';
-import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
+import {
+  EmbedProps,
+  MEZON_EMBED_FOOTER,
+  optionTypeOfWork,
+} from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 
