@@ -783,8 +783,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const buttonType = splitButtonId[9];
     const isOwner = ownerSenderId === senderId;
     const missingFieldMessage = '```Missing some field```';
-    const logTimesheetByDateSuccess = '```Log Timesheet Success On```';
-    const logTimesheetByWeekSuccess = '```Log Timesheet Success On Week```';
+    const logTimesheetByDateSuccess = '```Timesheet Logged Successfully on```';
+    const logTimesheetByWeekSuccess =
+      '```Timesheet Logged Successfully for the Week```';
+    const logTimesheetByDateFail = '```Failed to Log Timesheet```';
 
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
@@ -915,6 +917,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (error) {
       console.error('Error in handleLogTimesheet:', error.message);
+      const replyMessageSubmit = createReplyMessage(
+        logTimesheetByDateFail,
+        clanIdValue,
+        channelId,
+        isPublicValue,
+        modeValue,
+        msg,
+      );
+      this.messageQueue.addMessage(replyMessageSubmit);
     }
   }
 }
