@@ -505,7 +505,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           if (!isOwner) {
             return;
           }
-          if (contentLength < 100) {
+          if (contentLength < 80) {
             const replyMessageInvalidLength = createReplyMessage(
               invalidLength,
               clanIdValue,
