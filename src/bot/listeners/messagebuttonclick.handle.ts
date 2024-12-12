@@ -111,6 +111,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'w2request':
         this.handleEventRequestW2(data);
+        break;
       default:
         break;
     }
