@@ -16,7 +16,7 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz } from '../models';
+import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz, W2Request } from '../models';
 import { AbsenceDayRequest } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -52,6 +52,8 @@ import {
   validReasonAbsenceDay,
 } from '../utils/request-helper';
 import { OnEvent } from '@nestjs/event-emitter';
+const https = require('https');
+import axios from 'axios';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -78,6 +80,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private absenceDayRequestRepository: Repository<AbsenceDayRequest>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
+    @InjectRepository(W2Request)
+    private w2RequestsRepository: Repository<W2Request>,
   ) {
     super(clientService);
   }
@@ -104,6 +108,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'daily':
         this.handleSubmitDaily(data);
+        break;
+      case 'w2request':
+        this.handleEventRequestW2(data);
         break;
       default:
         break;
@@ -759,6 +766,128 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (e) {
       console.error('handleRequestAbsence', e);
+    }
+  }
+  private temporaryStorage: Record<string, any> = {};
+  async handleEventRequestW2(data) {    
+    
+    if (data.button_id !== 'w2request_CONFIRM') return;
+    const baseUrl = process.env.W2_REQUEST_API_BASE_URL;
+    const { message_id, extra_data, button_id } = data;
+    if (!message_id || !button_id) return;
+
+    const findW2requestData = await this.w2RequestsRepository.findOne({
+      where: { messageId: data.message_id },
+    });    
+    const replyMessage: ReplyMezonMessage = {
+      clan_id: findW2requestData.clanId,
+      channel_id: findW2requestData.channelId,
+      is_public: findW2requestData.isChannelPublic,
+      mode: findW2requestData.modeMessage,
+      msg: {
+        t: '',
+      },
+    };
+
+    if (extra_data === '') {
+      replyMessage['msg'] = {
+        t: `Missing all data !`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    let parsedData;
+
+    try {
+      parsedData =
+        typeof extra_data === 'string' ? JSON.parse(extra_data) : extra_data;
+    } catch (error) {
+      replyMessage['msg'] = {
+        t: `Invalid JSON format in extra_data`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    const storage = this.temporaryStorage[message_id] || {};
+
+    if (!storage.dataInputs) {
+      storage.dataInputs = {};
+    }
+
+    Object.entries(parsedData?.dataInputs || parsedData).forEach(
+      ([key, value]) => {
+        if (Array.isArray(value)) {
+          storage.dataInputs[key] = value.join(', ');
+        } else {
+          storage.dataInputs[key] = value;
+        }
+      },
+    );
+
+    this.temporaryStorage[message_id] = storage;
+
+    const existingData = this.temporaryStorage[message_id];
+
+    const additionalData = {
+      workflowDefinitionId: findW2requestData.workflowId,
+      email: `${findW2requestData.email}@ncc.asia`,
+    };
+
+    const completeData = {
+      ...additionalData,
+      ...existingData,
+    };
+
+    let idString = '';
+    if (typeof findW2requestData.Id === 'string') {
+      idString = findW2requestData.Id;
+    } else if (typeof findW2requestData.Id === 'object') {
+      idString = JSON.stringify(findW2requestData.Id);
+    }
+    const arr = idString.replace(/[{}"]/g, '').split(',');
+    const missingFields = arr.filter(
+      (field) => !completeData?.dataInputs?.[field],
+    );
+
+    if (missingFields.length > 0) {
+      replyMessage['msg'] = {
+        t: `Missing fields : ${missingFields.join(', ')}`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      return;
+    }
+
+    try {
+      const agent = new https.Agent({
+        rejectUnauthorized: false,
+      });
+      replyMessage['msg'] = {
+        t: `Sending Request....`,
+      };
+      this.messageQueue.addMessage(replyMessage);
+      const response = await axios.post(
+        `${baseUrl}/new-instance`,
+        completeData,
+        {
+          headers: {
+            'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
+          },
+          httpsAgent: agent,
+        },
+      );
+
+      if (response.status === 200) {
+        replyMessage['msg'] = {
+          t: `Create request successfully!`,
+        };
+        this.messageQueue.addMessage(replyMessage);
+      } else {
+        throw new Error('Unexpected response status');
+      }
+    } catch (error) {
+      console.error('Error sending form data:', error);
     }
   }
 }
