@@ -22,12 +22,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
+  changeDateFormat,
   checkAnswerFormat,
   createReplyMessage,
   generateEmail,
   generateQRCode,
   getRandomColor,
   getUserNameByEmail,
+  getWeekDays,
   sleep,
 } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
@@ -104,6 +106,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'daily':
         this.handleSubmitDaily(data);
+        break;
+      case 'logts':
+        this.handleLogTimesheet(data);
         break;
       default:
         break;
@@ -404,7 +409,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
   async handleSubmitDaily(data) {
-    console.log('data :', data);
     const senderId = data.user_id;
     const botId = data.sender_id;
     const channelId = data.channel_id;
@@ -421,6 +425,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       '```Please enter at least 100 characters in your daily text```';
     const missingField =
       '```Missing project, yesterday, today, or block field```';
+
     const isOwner = ownerSenderDaily === senderId;
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
@@ -760,6 +765,156 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (e) {
       console.error('handleRequestAbsence', e);
+    }
+  }
+  async handleLogTimesheet(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const ownerSenderId = splitButtonId[6];
+    const ownerSenderEmail = splitButtonId[7];
+    const isLogByWeek = splitButtonId[8] === 'false' ? false : true;
+    const buttonType = splitButtonId[9];
+    const isOwner = ownerSenderId === senderId;
+    const missingFieldMessage = '```Missing some field```';
+    const logTimesheetByDateSuccess = '```Log Timesheet Success On```';
+    const logTimesheetByWeekSuccess = '```Log Timesheet Success On Week```';
+
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
+    try {
+      if (!data.extra_data) {
+        if (
+          (!isOwner && (isCancel || isSubmit)) ||
+          (isOwner && (isCancel || isSubmit))
+        ) {
+          return;
+        }
+      }
+      switch (buttonType) {
+        case EUnlockTimeSheet.SUBMIT.toLowerCase():
+          let parsedExtraData;
+          try {
+            parsedExtraData = JSON.parse(data.extra_data);
+          } catch (error) {
+            throw new Error('Invalid JSON in extra_data');
+          }
+          const dateKey = `logts-${messid}-date`;
+          const projectKey = `logts-${messid}-project`;
+          const taskKey = `logts-${messid}-task`;
+          const noteKey = `logts-${messid}-note`;
+          const workingTimeKey = `logts-${messid}-working-time`;
+          const typeOfWorkKey = `logts-${messid}-type-of-work`;
+
+          const dateValue = parsedExtraData[dateKey];
+          const projectId = parsedExtraData[projectKey]?.[0];
+          const taskValue = parsedExtraData[taskKey]?.[0];
+          const noteValue = parsedExtraData[noteKey];
+          const workingTimeValue = parsedExtraData[workingTimeKey] * 60;
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
+
+          const isMissingField =
+            (!isLogByWeek && !dateValue) ||
+            !projectId ||
+            !taskValue ||
+            !noteValue ||
+            !workingTimeValue;
+
+          if (!isOwner) {
+            return;
+          }
+
+          if (isMissingField) {
+            const replyMessageMissingField = createReplyMessage(
+              missingFieldMessage,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageMissingField);
+          }
+
+          if (isLogByWeek) {
+            const today = new Date();
+            const daysOfWeek = getWeekDays(today);
+            const mapToPayloadOfWeek = daysOfWeek.map((day) => ({
+              dateAt: day,
+              projectTaskId: taskValue,
+              workingTime: workingTimeValue,
+              typeOfWork: typeOfWorkValue,
+              note: noteValue,
+              emailAddress: ownerSenderEmail,
+            }));
+            await this.timeSheetService.logTimeSheetByWeek(mapToPayloadOfWeek);
+            const replyMessageSubmit = createReplyMessage(
+              logTimesheetByWeekSuccess +
+                `${changeDateFormat(daysOfWeek[0])} to ${changeDateFormat(daysOfWeek[6])} `,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            this.messageQueue.addMessage(replyMessageSubmit);
+          } else {
+            await this.timeSheetService.logTimeSheetByDate(
+              typeOfWorkValue,
+              taskValue,
+              noteValue,
+              null,
+              workingTimeValue,
+              0,
+              projectId,
+              dateValue,
+              ownerSenderEmail,
+            );
+
+            const replyMessageSubmit = createReplyMessage(
+              logTimesheetByDateSuccess + changeDateFormat(dateValue),
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            this.messageQueue.addMessage(replyMessageSubmit);
+          }
+
+          break;
+        case EUnlockTimeSheet.CANCEL.toLowerCase():
+          return;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Error in handleLogTimesheet:', error.message);
     }
   }
 }

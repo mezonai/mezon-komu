@@ -130,16 +130,32 @@ export enum ERequestAbsenceDayType {
   REMOTE = 'REMOTE',
   OFFCUSTOM = 'OFFCUSTOM',
   HELP = '```' +
-  'request remote\n' +
-  'command: *request remote\n' +
-  '\n' +
-  'request off\n' +
-  'command: *request off\n' +
-  '\n' +
-  'request onsite\n' +
-  'command: *request onsite\n' +
-  '\n' +
-  'request Đi muộn/ Về sớm\n' +
-  'command: *request offcustom ' +
-  '```',
+    'request remote\n' +
+    'command: *request remote\n' +
+    '\n' +
+    'request off\n' +
+    'command: *request off\n' +
+    '\n' +
+    'request onsite\n' +
+    'command: *request onsite\n' +
+    '\n' +
+    'request Đi muộn/ Về sớm\n' +
+    'command: *request offcustom ' +
+    '```',
 }
+
+export enum EValueTypeOfWork {
+  NormalTime = 0,
+  Overtime = 1,
+}
+
+export const optionTypeOfWork = [
+  {
+    label: 'Normal Time',
+    value: EValueTypeOfWork.NormalTime,
+  },
+  {
+    label: 'Overtime',
+    value: EValueTypeOfWork.Overtime,
+  },
+];

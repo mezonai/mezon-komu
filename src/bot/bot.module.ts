@@ -148,6 +148,7 @@ import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimes
 import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
 import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absencedayrequest/absenceday.command';
+import { LogTimeSheetCommand } from './asterisk-commands/commands/logtimesheet/logtimesheet.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -302,6 +303,7 @@ import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absenceda
     UnlockTimeSheetCommand,
     RequestAbsenceDayCommand,
     DailyCommand,
+    LogTimeSheetCommand,
   ],
   controllers: [KomubotrestController],
 })
