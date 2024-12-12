@@ -6,7 +6,7 @@ import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
   EmbedProps,
-  EMessageMode,
+  EMessageMode, ERequestAbsenceDateType,
   ERequestAbsenceDayStatus, ERequestAbsenceDayType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
@@ -574,6 +574,36 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       .execute();
   }
   async handleRequestAbsenceDay(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const typeButtonRes = splitButtonId[6]; // (confirm or cancel)
+
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
     try {
       // Parse button_id
       const args = data.button_id.split('_');
@@ -589,7 +619,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Check user authorization
       if (findAbsenceData.userId !== data.user_id) return;
 
-      const typeButtonRes = args[1]; // (confirm or cancel)
       const dataParse = JSON.parse(data.extra_data);
 
       // Initialize reply message
@@ -617,7 +646,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (!findAbsenceData.status) {
         switch (typeButtonRes) {
           case ERequestAbsenceDayStatus.CONFIRM:
-            //valid input and format
+            // Valid input and format
             const validDate = validateAndFormatDate(dataParse.dateAt);
             const validHour = validateHourAbsenceDay(
               dataParse.hour || '0',
@@ -647,18 +676,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             ];
             for (const { valid, message } of validations) {
               if (!valid) {
-                const embedValidFailure: EmbedProps[] = [
-                  {
-                    color: '#ED4245',
-                    title: `❌ ${message || 'Invalid input'}`,
-                  },
-                ];
-                const messageToUser: ReplyMezonMessage = {
-                  userId: userId,
-                  textContent: '',
-                  messOptions: { embed: embedValidFailure },
-                };
-                this.messageQueue.addMessage(messageToUser);
+                const replyMessageInvalidLength = createReplyMessage(
+                  `\`\`\`❌ ${message || 'Invalid input'}\`\`\``,
+                  clanIdValue,
+                  channelId,
+                  isPublicValue,
+                  modeValue,
+                  msg,
+                );
+                this.messageQueue.addMessage(replyMessageInvalidLength);
                 return;
               }
             }
@@ -674,35 +700,29 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const resAbsenceDayRequest =
                 await this.timeSheetService.requestAbsenceDay(body);
               if (resAbsenceDayRequest?.data?.success) {
-                const embedUnlockSuccess: EmbedProps[] = [
-                  {
-                    color: '#57F287',
-                    title: `✅ Request absence successful!`,
-                  },
-                ];
-                const messageToUser: ReplyMezonMessage = {
-                  userId: findAbsenceData.userId,
-                  textContent: '',
-                  messOptions: { embed: embedUnlockSuccess },
-                };
-                this.messageQueue.addMessage(messageToUser);
+                const replyMessageInvalidLength = createReplyMessage(
+                  `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``,
+                  clanIdValue,
+                  channelId,
+                  isPublicValue,
+                  modeValue,
+                  msg,
+                );
+                this.messageQueue.addMessage(replyMessageInvalidLength);
               } else {
                 throw new Error('Request failed!');
               }
             } catch (error) {
-              console.log('handleRequestAbsence', error);
-              const embedUnlockFailure: EmbedProps[] = [
-                {
-                  color: '#ED4245',
-                  title: `❌ Request absence failed.`,
-                },
-              ];
-              const messageToUser: ReplyMezonMessage = {
-                userId: findAbsenceData.userId,
-                textContent: '',
-                messOptions: { embed: embedUnlockFailure },
-              };
-              this.messageQueue.addMessage(messageToUser);
+              const replyMessageInvalidLength = createReplyMessage(
+                `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``,
+                clanIdValue,
+                channelId,
+                isPublicValue,
+                modeValue,
+                msg,
+              );
+              this.messageQueue.addMessage(replyMessageInvalidLength);
+              return;
             }
             // Update status to CONFIRM
             await this.absenceDayRequestRepository.update(
@@ -714,10 +734,57 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 absenceTime: body.absences[0].absenceTime,
               },
             );
-            break;
+            // Send notification to PMs of user
+            const dataPms = await this.timeSheetService.getPMsOfUser(emailAddress);
+            if(dataPms?.data?.success){
+              const resultPms = dataPms.data.result;
+              const emails = resultPms
+                .filter(project => project.projectName !== "Company Activities")
+                .flatMap(project =>
+                  project.pMs.map(pm => pm.emailAddress)
+                )
+                .filter(email => email !== null);
+              const usernames = emails.map(email => email.split('@')[0]);
+              const users = await this.userRepository.find({
+                where: usernames.map((username) => ({
+                  username,
+                  deactive: false,
+                })),
+                select: ['userId'],
+              });
 
+              const userIdPms = users.map((user) => user.userId);
+              const usernameSender = emailAddress.split('@')[0];
+              let dateType = ERequestAbsenceDateType[body.absences[0].dateType];
+              if (dateType === ERequestAbsenceDateType[4]) {
+                dateType = 'Đi muộn/ Về sớm';
+              }
+              for (const userIdPm of userIdPms) {
+                const embedSendMessageToPm: EmbedProps[] = [
+                  {
+                    color: '#57F287',
+                    title: `${usernameSender} has sent a request ${typeRequest} for following dates: ${body.absences[0].dateAt} ${dateType}`,
+                  },
+                ];
+                const messageToUser: ReplyMezonMessage = {
+                  userId: userIdPm,
+                  textContent: '',
+                  messOptions: { embed: embedSendMessageToPm },
+                };
+                this.messageQueue.addMessage(messageToUser);
+              }
+            }
+            break;
           default:
-            replyMessage.msg = { t: 'Cancel request absence successful!' };
+            const replyMessageInvalidLength = createReplyMessage(
+              `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            this.messageQueue.addMessage(replyMessageInvalidLength);
             // Update status to CANCEL
             await this.absenceDayRequestRepository.update(
               { id: findAbsenceData.id },

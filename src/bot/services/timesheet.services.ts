@@ -442,4 +442,14 @@ export class TimeSheetService {
       console.log(error);
     }
   };
+
+  getPMsOfUser = async (email) => {
+    try {
+      return await this.axiosClientService.get(
+        `${this.clientConfigService.getPmsOfUserApi.api_url}?email=${email}`,
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
 }

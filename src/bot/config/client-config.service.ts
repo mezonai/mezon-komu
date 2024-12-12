@@ -78,6 +78,10 @@ export class ClientConfigService {
       api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/GetAllAbsenceType`,
     };
 
+    this.getPmsOfUserApi = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Public/GetPMsOfUser`,
+    };
+
     this.checkout = {
       api_url: `${configService.get<string>(
         'KOMUBOTREST_CHECK_IN_URL',
@@ -507,6 +511,10 @@ export class ClientConfigService {
   };
 
   absenceTypeApi: {
+    api_url: string;
+  };
+
+  getPmsOfUserApi: {
     api_url: string;
   };
 
