@@ -183,3 +183,8 @@ export enum ERequestW2Type {
     'command: *w2request wfh' +
     '```',
 }
+
+export enum EPMRequestAbsenceDay {
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT',
+}

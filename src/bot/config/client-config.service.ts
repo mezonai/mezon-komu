@@ -82,6 +82,14 @@ export class ClientConfigService {
       api_url: `${configService.get<string>('TIMESHEET_API')}Public/GetPMsOfUser`,
     };
 
+    this.PMApproveRequestDay = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/ApproveRequestDay`,
+    };
+
+    this.PMRejectRequestDay = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/RejectRequestDay`,
+    };
+
     this.checkout = {
       api_url: `${configService.get<string>(
         'KOMUBOTREST_CHECK_IN_URL',
@@ -515,6 +523,14 @@ export class ClientConfigService {
   };
 
   getPmsOfUserApi: {
+    api_url: string;
+  };
+
+  PMApproveRequestDay: {
+    api_url: string;
+  };
+
+  PMRejectRequestDay: {
     api_url: string;
   };
 
