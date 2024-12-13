@@ -12,8 +12,8 @@ export class FFmpegService {
   private streamFilm;
   private streamMusic;
   constructor() {
-    ffmpeg.setFfmpegPath(ffmpegPath);
-    // ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+    // ffmpeg.setFfmpegPath(ffmpegPath);
+    ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
     ffmpeg.setFfprobePath(ffprobePath.path);
   }
 
@@ -54,7 +54,7 @@ export class FFmpegService {
         .input(imagePathJoined)
         .inputOptions('-re')
         .loop()
-        .input(inputPath)
+        .input("C:/Users/man.maihong/Downloads/7070d0553db0a63b7d4d793a6b451965.mp3")
         .audioCodec('aac')
         .videoCodec('libx264')
         .output(rtmpUrl)

@@ -15,7 +15,6 @@ import {
   Channel,
   ChannelMezon,
   Mentioned,
-  MentionedPmConfirm,
   Msg,
   Quiz,
   User,
@@ -56,10 +55,7 @@ export class EventListenerChannelMessage {
     private mentionedRepository: Repository<Mentioned>,
     @InjectRepository(ChannelMezon)
     private channelRepository: Repository<ChannelMezon>,
-    @InjectRepository(Msg) private msgRepository: Repository<Msg>,
     @InjectRepository(User) private userRepository: Repository<User>,
-    @InjectRepository(MentionedPmConfirm)
-    private mentionPmConfirm: Repository<MentionedPmConfirm>,
     @InjectRepository(UserQuiz)
     private userQuizRepository: Repository<UserQuiz>,
     @InjectRepository(Quiz)

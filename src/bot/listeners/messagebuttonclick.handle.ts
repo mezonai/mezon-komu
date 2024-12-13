@@ -95,6 +95,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   ) {
     super(clientService);
   }
+
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
@@ -562,11 +563,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           );
           const isValidTimeFrame = checkTimeSheet();
           const isValidWFH = checkTimeNotWFH();
-          const baseMessage = '```✅ Daily saved.```';
+          const baseMessage = '✅ Daily saved.';
           const errorMessageWFH =
-            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
           const errorMessageNotWFH =
-            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
 
           const messageContent = wfhUserEmail.includes(authorUsername)
             ? isValidTimeFrame
@@ -583,7 +584,33 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             modeValue,
             msg,
           );
-          this.messageQueue.addMessage(replyMessageSubmit);
+          const textDailySuccess =
+            '```' +
+            messageContent +
+            '\n' +
+            `Date: ${dateValue}` +
+            '\n' +
+            `Yesterday: ${yesterdayValue}` +
+            '\n' +
+            `Today: ${todayValue}` +
+            '\n' +
+            `Block: ${blockValue}` +
+            '\n' +
+            `Working time: ${workingTimeValue}h` +
+            '```';
+          const msgDailySuccess = {
+            t: textDailySuccess,
+            mk: [{ type: 't', s: 0, e: textDailySuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgDailySuccess,
+          );
+          // this.messageQueue.addMessage(replyMessageSubmit);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           return;

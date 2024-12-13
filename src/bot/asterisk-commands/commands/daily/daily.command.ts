@@ -87,7 +87,7 @@ export class DailyCommand extends CommandMessage {
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
     const blockText = extractText(content, 'Block');
-    const workingTimeText = extractText(content, 'Working Time') || 1;
+    const workingTimeText = extractText(content, 'Working Time') || 8;
     const typeOfWorkText = extractText(content, 'Type Of Work');
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
