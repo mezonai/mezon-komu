@@ -12,7 +12,7 @@ import { User, AbsenceDayRequest } from '../../../models';
 import { TimeSheetService } from '../../../services/timesheet.services';
 import { Repository } from 'typeorm';
 import { MezonClientService } from '../../../../mezon/services/client.service';
-@Command('request')
+@Command('ts')
 export class RequestAbsenceDayCommand extends CommandMessage {
   constructor(
     private clientService: MezonClientService,

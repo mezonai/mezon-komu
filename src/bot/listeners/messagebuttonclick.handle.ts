@@ -776,29 +776,37 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const resAbsenceDayRequest =
                 await this.timeSheetService.requestAbsenceDay(body);
               if (resAbsenceDayRequest?.data?.success) {
-                const replyMessageInvalidLength = createReplyMessage(
-                  `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``,
+                requestId = resAbsenceDayRequest.data.result.absences[0].requestId;
+                const textSuccess = `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``;
+                const msgSuccess = {
+                  t: textSuccess,
+                  mk: [{ type: 't', s: 0, e: textSuccess.length }],
+                };
+                await this.client.updateChatMessage(
                   clanIdValue,
                   channelId,
-                  isPublicValue,
                   modeValue,
-                  msg,
+                  isPublicValue,
+                  data.message_id,
+                  msgSuccess,
                 );
-                requestId = resAbsenceDayRequest.data.result.absences[0].requestId;
-                this.messageQueue.addMessage(replyMessageInvalidLength);
               } else {
                 throw new Error('Request failed!');
               }
             } catch (error) {
-              const replyMessageInvalidLength = createReplyMessage(
-                `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``,
+              const textError = `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``;
+              const msgError = {
+                t: textError,
+                mk: [{ type: 't', s: 0, e: textError.length }],
+              };
+              await this.client.updateChatMessage(
                 clanIdValue,
                 channelId,
-                isPublicValue,
                 modeValue,
-                msg,
+                isPublicValue,
+                data.message_id,
+                msgError,
               );
-              this.messageQueue.addMessage(replyMessageInvalidLength);
               return;
             }
             // Update status to CONFIRM
@@ -880,15 +888,20 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             }
             break;
           default:
-            const replyMessageInvalidLength = createReplyMessage(
-              `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``,
+            const textCancel = `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``;
+            const msgCancel = {
+              t: textCancel,
+              mk: [{ type: 't', s: 0, e: textCancel.length }],
+            };
+            await this.client.updateChatMessage(
               clanIdValue,
               channelId,
-              isPublicValue,
               modeValue,
-              msg,
+              isPublicValue,
+              data.message_id,
+              msgCancel,
             );
-            this.messageQueue.addMessage(replyMessageInvalidLength);
+
             // Update status to CANCEL
             await this.absenceDayRequestRepository.update(
               { id: findAbsenceData.id },
