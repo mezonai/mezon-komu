@@ -4,7 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ApiMessageReaction, ChannelType, Events } from 'mezon-sdk';
 import {
   Mentioned,
-  MentionedPmConfirm,
   MezonBotMessage,
   User,
   WorkFromHome,
@@ -28,7 +27,6 @@ export class EventListenerMessageReaction extends BaseHandleEvent {
     private mentionedRepository: Repository<Mentioned>,
     @InjectRepository(WorkFromHome)
     private clientConfig: ClientConfigService,
-    @InjectRepository(MentionedPmConfirm)
     @InjectRepository(MezonBotMessage)
     private mezonBotMessageRepository: Repository<MezonBotMessage>,
     private pollService: PollService,

@@ -54,7 +54,18 @@ export class Ncc8SchedulerService {
           channel?.streaming_url,
           FileType.NCC8,
         )
-        .catch((error) => console.log('error mp3', error));
+        .catch(async (error) => {
+          console.log('error mp3', error);
+          await sleep(1000);
+          this.ffmpegService
+            .transcodeMp3ToRtmp(
+              FFmpegImagePath.NCC8,
+              currentNcc8FilePath,
+              channel?.streaming_url,
+              FileType.NCC8,
+            )
+            .catch((error) => console.log('error mp3 2', error));
+        });
     }
   }
 }
