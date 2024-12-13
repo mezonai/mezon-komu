@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
@@ -16,18 +17,27 @@ import {
   MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
-import { Daily, Quiz, UnlockTimeSheet, User, UserQuiz, W2Request } from '../models';
+import {
+  Daily,
+  Quiz,
+  UnlockTimeSheet,
+  User,
+  UserQuiz,
+  W2Request,
+} from '../models';
 import { AbsenceDayRequest } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import {
+  changeDateFormat,
   checkAnswerFormat,
   createReplyMessage,
   generateEmail,
   generateQRCode,
   getRandomColor,
   getUserNameByEmail,
+  getWeekDays,
   sleep,
 } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
@@ -85,6 +95,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   ) {
     super(clientService);
   }
+
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
     const args = data.button_id.split('_');
@@ -108,6 +119,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'daily':
         this.handleSubmitDaily(data);
+        break;
+      case 'logts':
+        this.handleLogTimesheet(data);
         break;
       case 'w2request':
         this.handleEventRequestW2(data);
@@ -427,6 +441,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       '```Please enter at least 100 characters in your daily text```';
     const missingField =
       '```Missing project, yesterday, today, or block field```';
+
     const isOwner = ownerSenderDaily === senderId;
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
@@ -492,7 +507,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           if (!isOwner) {
             return;
           }
-          if (contentLength < 100) {
+          if (contentLength < 80) {
             const replyMessageInvalidLength = createReplyMessage(
               invalidLength,
               clanIdValue,
@@ -548,11 +563,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           );
           const isValidTimeFrame = checkTimeSheet();
           const isValidWFH = checkTimeNotWFH();
-          const baseMessage = '```✅ Daily saved.```';
+          const baseMessage = '✅ Daily saved.';
           const errorMessageWFH =
-            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)```';
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
           const errorMessageNotWFH =
-            '```✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)```';
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
 
           const messageContent = wfhUserEmail.includes(authorUsername)
             ? isValidTimeFrame
@@ -569,7 +584,33 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             modeValue,
             msg,
           );
-          this.messageQueue.addMessage(replyMessageSubmit);
+          const textDailySuccess =
+            '```' +
+            messageContent +
+            '\n' +
+            `Date: ${dateValue}` +
+            '\n' +
+            `Yesterday: ${yesterdayValue}` +
+            '\n' +
+            `Today: ${todayValue}` +
+            '\n' +
+            `Block: ${blockValue}` +
+            '\n' +
+            `Working time: ${workingTimeValue}h` +
+            '```';
+          const msgDailySuccess = {
+            t: textDailySuccess,
+            mk: [{ type: 't', s: 0, e: textDailySuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgDailySuccess,
+          );
+          // this.messageQueue.addMessage(replyMessageSubmit);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           return;
@@ -823,9 +864,169 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       console.error('handleRequestAbsence', e);
     }
   }
+  async handleLogTimesheet(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const ownerSenderId = splitButtonId[6];
+    const ownerSenderEmail = splitButtonId[7];
+    const isLogByWeek = splitButtonId[8] === 'false' ? false : true;
+    const buttonType = splitButtonId[9];
+    const isOwner = ownerSenderId === senderId;
+    const missingFieldMessage = '```Missing some field```';
+    const logTimesheetByDateSuccess = '```Timesheet Logged Successfully on```';
+    const logTimesheetByWeekSuccess =
+      '```Timesheet Logged Successfully for the Week```';
+    const logTimesheetByDateFail = '```Failed to Log Timesheet```';
+
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
+    try {
+      if (!data.extra_data) {
+        if (
+          (!isOwner && (isCancel || isSubmit)) ||
+          (isOwner && (isCancel || isSubmit))
+        ) {
+          return;
+        }
+      }
+      switch (buttonType) {
+        case EUnlockTimeSheet.SUBMIT.toLowerCase():
+          let parsedExtraData;
+          try {
+            parsedExtraData = JSON.parse(data.extra_data);
+          } catch (error) {
+            throw new Error('Invalid JSON in extra_data');
+          }
+          const dateKey = `logts-${messid}-date`;
+          const projectKey = `logts-${messid}-project`;
+          const taskKey = `logts-${messid}-task`;
+          const noteKey = `logts-${messid}-note`;
+          const workingTimeKey = `logts-${messid}-working-time`;
+          const typeOfWorkKey = `logts-${messid}-type-of-work`;
+
+          const dateValue = parsedExtraData[dateKey];
+          const projectId = parsedExtraData[projectKey]?.[0];
+          const taskValue = parsedExtraData[taskKey]?.[0];
+          const noteValue = parsedExtraData[noteKey];
+          const workingTimeValue = parsedExtraData[workingTimeKey] * 60;
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
+
+          const isMissingField =
+            (!isLogByWeek && !dateValue) ||
+            !projectId ||
+            !taskValue ||
+            !noteValue ||
+            !workingTimeValue;
+
+          if (!isOwner) {
+            return;
+          }
+
+          if (isMissingField) {
+            const replyMessageMissingField = createReplyMessage(
+              missingFieldMessage,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageMissingField);
+          }
+
+          if (isLogByWeek) {
+            const today = new Date();
+            const daysOfWeek = getWeekDays(today);
+            const mapToPayloadOfWeek = daysOfWeek.map((day) => ({
+              dateAt: day,
+              projectTaskId: taskValue,
+              workingTime: workingTimeValue,
+              typeOfWork: typeOfWorkValue,
+              note: noteValue,
+              emailAddress: ownerSenderEmail,
+            }));
+            await this.timeSheetService.logTimeSheetByWeek(mapToPayloadOfWeek);
+            const replyMessageSubmit = createReplyMessage(
+              logTimesheetByWeekSuccess +
+                `${changeDateFormat(daysOfWeek[0])} to ${changeDateFormat(daysOfWeek[6])} `,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            this.messageQueue.addMessage(replyMessageSubmit);
+          } else {
+            await this.timeSheetService.logTimeSheetByDate(
+              typeOfWorkValue,
+              taskValue,
+              noteValue,
+              null,
+              workingTimeValue,
+              0,
+              projectId,
+              dateValue,
+              ownerSenderEmail,
+            );
+
+            const replyMessageSubmit = createReplyMessage(
+              logTimesheetByDateSuccess + changeDateFormat(dateValue),
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            this.messageQueue.addMessage(replyMessageSubmit);
+          }
+
+          break;
+        case EUnlockTimeSheet.CANCEL.toLowerCase():
+          return;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Error in handleLogTimesheet:', error.message);
+      const replyMessageSubmit = createReplyMessage(
+        logTimesheetByDateFail,
+        clanIdValue,
+        channelId,
+        isPublicValue,
+        modeValue,
+        msg,
+      );
+      this.messageQueue.addMessage(replyMessageSubmit);
+    }
+  }
   private temporaryStorage: Record<string, any> = {};
-  async handleEventRequestW2(data) {    
-    
+  async handleEventRequestW2(data) {
     if (data.button_id !== 'w2request_CONFIRM') return;
     const baseUrl = process.env.W2_REQUEST_API_BASE_URL;
     const { message_id, extra_data, button_id } = data;
@@ -833,7 +1034,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
     const findW2requestData = await this.w2RequestsRepository.findOne({
       where: { messageId: data.message_id },
-    });    
+    });
     const replyMessage: ReplyMezonMessage = {
       clan_id: findW2requestData.clanId,
       channel_id: findW2requestData.channelId,

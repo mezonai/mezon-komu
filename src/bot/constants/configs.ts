@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export const BOT_ID = process.env.BOT_KOMU_ID;
 
 export const EMAIL_DOMAIN = 'ncc.asia';
@@ -130,27 +131,42 @@ export enum ERequestAbsenceDayType {
   REMOTE = 'REMOTE',
   OFFCUSTOM = 'OFFCUSTOM',
   HELP = '```' +
-  'request remote\n' +
-  'command: *request remote\n' +
-  '\n' +
-  'request off\n' +
-  'command: *request off\n' +
-  '\n' +
-  'request onsite\n' +
-  'command: *request onsite\n' +
-  '\n' +
-  'request Đi muộn/ Về sớm\n' +
-  'command: *request offcustom ' +
-  '```',
+    'request remote\n' +
+    'command: *request remote\n' +
+    '\n' +
+    'request off\n' +
+    'command: *request off\n' +
+    '\n' +
+    'request onsite\n' +
+    'command: *request onsite\n' +
+    '\n' +
+    'request Đi muộn/ Về sớm\n' +
+    'command: *request offcustom ' +
+    '```',
 }
 
+export enum EValueTypeOfWork {
+  NormalTime = 0,
+  Overtime = 1,
+}
+
+export const optionTypeOfWork = [
+  {
+    label: 'Normal Time',
+    value: EValueTypeOfWork.NormalTime,
+  },
+  {
+    label: 'Overtime',
+    value: EValueTypeOfWork.Overtime,
+  },
+];
 export enum ERequestW2Type {
-    CHANGEOFFICE = 'changeoffice',
-    DEVICE = 'device',
-    OFFICEEQUIPMENT = 'officeequipment',
-    PROBATIONARYCONFIRMATION = 'probationaryconfirmation',
-    WFH = 'wfh',
-    HELP = '```' +
+  CHANGEOFFICE = 'changeoffice',
+  DEVICE = 'device',
+  OFFICEEQUIPMENT = 'officeequipment',
+  PROBATIONARYCONFIRMATION = 'probationaryconfirmation',
+  WFH = 'wfh',
+  HELP = '```' +
     'Change Office Request\n' +
     'command: *w2request changeoffice\n' +
     '\n' +
@@ -166,4 +182,4 @@ export enum ERequestW2Type {
     'WFH Request\n' +
     'command: *w2request wfh' +
     '```',
-  }
+}

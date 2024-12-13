@@ -14,7 +14,11 @@ import {
   findProjectByLabel,
   getRandomColor,
 } from 'src/bot/utils/helper';
-import { EmbedProps, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
+import {
+  EmbedProps,
+  MEZON_EMBED_FOOTER,
+  optionTypeOfWork,
+} from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 
@@ -66,7 +70,7 @@ export class DailyCommand extends CommandMessage {
     const modeMess = message.mode;
     const isPublic = message.is_public;
     const ownerSenderDaily = message.sender_id;
-    const ownerSenderDailyEmail = message.username + '@ncc.asia';
+    const ownerSenderDailyEmail = (message.clan_nick || message.username) + '@ncc.asia';
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
         ? message.content.t.trim() === '*daily'
@@ -83,7 +87,7 @@ export class DailyCommand extends CommandMessage {
     const yesterdayText = extractText(content, 'Yesterday');
     const todayText = extractText(content, 'Today');
     const blockText = extractText(content, 'Block');
-    const workingTimeText = extractText(content, 'Working Time') || 1;
+    const workingTimeText = extractText(content, 'Working Time') || 8;
     const typeOfWorkText = extractText(content, 'Type Of Work');
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
