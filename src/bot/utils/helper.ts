@@ -198,9 +198,7 @@ export function createReplyMessage(
 }
 
 export function findProjectByLabel(optionsProject, projectText) {
-
   if (!Array.isArray(optionsProject)) {
-    console.error('Invalid optionsProject. Expected an array.');
     return null;
   }
 
