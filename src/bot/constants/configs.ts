@@ -132,16 +132,16 @@ export enum ERequestAbsenceDayType {
   OFFCUSTOM = 'OFFCUSTOM',
   HELP = '```' +
     'request remote\n' +
-    'command: *request remote\n' +
+    'command: *ts remote\n' +
     '\n' +
     'request off\n' +
-    'command: *request off\n' +
+    'command: *ts off\n' +
     '\n' +
     'request onsite\n' +
-    'command: *request onsite\n' +
+    'command: *ts onsite\n' +
     '\n' +
     'request Đi muộn/ Về sớm\n' +
-    'command: *request offcustom ' +
+    'command: *ts offcustom ' +
     '```',
 }
 
@@ -182,4 +182,9 @@ export enum ERequestW2Type {
     'WFH Request\n' +
     'command: *w2request wfh' +
     '```',
+}
+
+export enum EPMRequestAbsenceDay {
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT',
 }
