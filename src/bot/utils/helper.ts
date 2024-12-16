@@ -198,11 +198,20 @@ export function createReplyMessage(
 }
 
 export function findProjectByLabel(optionsProject, projectText) {
+  if (!Array.isArray(optionsProject)) {
+    return null;
+  }
+
   const normalizedText = projectText.trim().toLowerCase();
+
   return (
-    optionsProject.find(
-      (option) => option.label.trim().toLowerCase() === normalizedText,
-    ) || null
+    optionsProject.find((option) => {
+      const value = option?.value;
+      if (typeof value === 'string') {
+        return value.trim().toLowerCase() === normalizedText;
+      }
+      return false;
+    }) || null
   );
 }
 

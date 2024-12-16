@@ -140,7 +140,7 @@ export class LogTimeSheetCommand extends CommandMessage {
               component: {
                 placeholder: 'Ex. Enter Workingtime',
                 required: true,
-                defaultValue: 1,
+                defaultValue: 8,
                 type: 'number',
               },
             },
