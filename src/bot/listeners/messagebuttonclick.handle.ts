@@ -609,6 +609,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             isPublicValue,
             data.message_id,
             msgDailySuccess,
+            [],
+            [],
+            true,
           );
           // this.messageQueue.addMessage(replyMessageSubmit);
           break;
