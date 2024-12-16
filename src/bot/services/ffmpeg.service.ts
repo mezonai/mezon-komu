@@ -54,7 +54,7 @@ export class FFmpegService {
         .input(imagePathJoined)
         .inputOptions('-re')
         .loop()
-        .input("C:/Users/man.maihong/Downloads/7070d0553db0a63b7d4d793a6b451965.mp3")
+        .input(inputPath)
         .audioCodec('aac')
         .videoCodec('libx264')
         .output(rtmpUrl)
