@@ -825,9 +825,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const buttonType = splitButtonId[9];
     const isOwner = ownerSenderId === senderId;
     const missingFieldMessage = '```Missing some field```';
-    const logTimesheetByDateSuccess = '```Timesheet Logged Successfully on```';
+    const logTimesheetByDateSuccess = 'Timesheet Logged Successfully on';
     const logTimesheetByWeekSuccess =
-      '```Timesheet Logged Successfully for the Week```';
+      'Timesheet Logged Successfully for the Week';
     const logTimesheetByDateFail = '```Failed to Log Timesheet```';
 
     //init reply message
@@ -860,6 +860,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           return;
         }
       }
+
       switch (buttonType) {
         case EUnlockTimeSheet.SUBMIT.toLowerCase():
           let parsedExtraData;
@@ -868,6 +869,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           } catch (error) {
             throw new Error('Invalid JSON in extra_data');
           }
+
           const dateKey = `logts-${messid}-date`;
           const projectKey = `logts-${messid}-project`;
           const taskKey = `logts-${messid}-task`;
@@ -881,6 +883,26 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const noteValue = parsedExtraData[noteKey];
           const workingTimeValue = parsedExtraData[workingTimeKey] * 60;
           const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
+
+          const urlGetTasks = `${process.env.TIMESHEET_API}Mezon/GetProjectsIncludingTasks?emailAddress=${ownerSenderEmail}`;
+          const responseTasks = await this.axiosClientService.get(urlGetTasks, {
+            headers: {
+              securityCode: process.env.SECURITY_CODE,
+              accept: 'application/json',
+            },
+          });
+          const taskMetaData = responseTasks?.data?.result;
+
+          const project = taskMetaData.find((item) => item.id === projectId);
+          const getTaskByProjectId = taskMetaData.find(
+            (p) => p.id === projectId,
+          );
+          const task = getTaskByProjectId?.tasks?.find(
+            (item) => item.projectTaskId === taskValue,
+          );
+          const taskName = task.taskName;
+          const typeOfWork =
+            Number(typeOfWorkValue) === 0 ? 'Normal Time' : 'Overtime';
 
           const isMissingField =
             (!isLogByWeek && !dateValue) ||
@@ -917,16 +939,40 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               emailAddress: ownerSenderEmail,
             }));
             await this.timeSheetService.logTimeSheetByWeek(mapToPayloadOfWeek);
-            const replyMessageSubmit = createReplyMessage(
+
+            const textSubmitByWeekSuccess =
+              '```' +
               logTimesheetByWeekSuccess +
-                `${changeDateFormat(daysOfWeek[0])} to ${changeDateFormat(daysOfWeek[6])} `,
+              '\n' +
+              `Time: ${changeDateFormat(daysOfWeek[0])} to ${changeDateFormat(daysOfWeek[6])}` +
+              '\n' +
+              `Project: ${project.projectName}` +
+              '\n' +
+              `Task: ${taskName}` +
+              '\n' +
+              `Note: ${noteValue}` +
+              '\n' +
+              `Working time: ${workingTimeValue / 60}h` +
+              '\n' +
+              `Type Of Work: ${typeOfWork}` +
+              '\n' +
+              '```';
+            const msgSubmitByWeekSuccess = {
+              t: textSubmitByWeekSuccess,
+              mk: [{ type: 't', s: 0, e: textSubmitByWeekSuccess.length }],
+            };
+
+            await this.client.updateChatMessage(
               clanIdValue,
               channelId,
-              isPublicValue,
               modeValue,
-              msg,
+              isPublicValue,
+              data.message_id,
+              msgSubmitByWeekSuccess,
+              [],
+              [],
+              true,
             );
-            this.messageQueue.addMessage(replyMessageSubmit);
           } else {
             await this.timeSheetService.logTimeSheetByDate(
               typeOfWorkValue,
@@ -940,15 +986,39 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               ownerSenderEmail,
             );
 
-            const replyMessageSubmit = createReplyMessage(
-              logTimesheetByDateSuccess + changeDateFormat(dateValue),
+            const textSubmitByDateSuccess =
+              '```' +
+              logTimesheetByDateSuccess +
+              '\n' +
+              `Date: ${changeDateFormat(dateValue)}` +
+              '\n' +
+              `Project: ${project.projectName}` +
+              '\n' +
+              `Task: ${taskName}` +
+              '\n' +
+              `Note: ${noteValue}` +
+              '\n' +
+              `Working time: ${workingTimeValue / 60}h` +
+              '\n' +
+              `Type Of Work: ${typeOfWork}` +
+              '\n' +
+              '```';
+            const msgSubmitByDateSuccess = {
+              t: textSubmitByDateSuccess,
+              mk: [{ type: 't', s: 0, e: textSubmitByDateSuccess.length }],
+            };
+
+            await this.client.updateChatMessage(
               clanIdValue,
               channelId,
-              isPublicValue,
               modeValue,
-              msg,
+              isPublicValue,
+              data.message_id,
+              msgSubmitByDateSuccess,
+              [],
+              [],
+              true,
             );
-            this.messageQueue.addMessage(replyMessageSubmit);
           }
 
           break;
