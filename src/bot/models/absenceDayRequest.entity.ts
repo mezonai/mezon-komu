@@ -42,4 +42,7 @@ export class AbsenceDayRequest {
 
   @Column({ type: 'numeric', nullable: true })
   createdAt: number;
+
+  @Column({ type: 'numeric', nullable: true })
+  requestId: number;
 }

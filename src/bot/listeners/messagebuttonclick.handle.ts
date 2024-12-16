@@ -2,14 +2,14 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { ChannelMessage, Events } from 'mezon-sdk';
+import { ChannelMessage, EButtonMessageStyle, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
-  EmbedProps,
-  EMessageMode,
+  EmbedProps, EMessageComponentType,
+  EMessageMode, EPMRequestAbsenceDay, ERequestAbsenceDateType,
   ERequestAbsenceDayStatus,
-  ERequestAbsenceDayType,
+  ERequestAbsenceDayType, ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -125,6 +125,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'w2request':
         this.handleEventRequestW2(data);
+        break;
+      case 'PMRequestDay':
+        this.handlePMRequestAbsenceDay(data);
         break;
       default:
         break;
@@ -637,14 +640,41 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       .execute();
   }
   async handleRequestAbsenceDay(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const typeButtonRes = splitButtonId[6]; // (confirm or cancel)
+
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
     try {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      const typeRequestDayEnum =
-        ERequestAbsenceDayType[
-          typeRequest as keyof typeof ERequestAbsenceDayType
-        ];
+      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
       if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
@@ -655,7 +685,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Check user authorization
       if (findAbsenceData.userId !== data.user_id) return;
 
-      const typeButtonRes = args[1]; // (confirm or cancel)
       const dataParse = JSON.parse(data.extra_data);
 
       // Initialize reply message
@@ -683,7 +712,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (!findAbsenceData.status) {
         switch (typeButtonRes) {
           case ERequestAbsenceDayStatus.CONFIRM:
-            //valid input and format
+            // Valid input and format
             const validDate = validateAndFormatDate(dataParse.dateAt);
             const validHour = validateHourAbsenceDay(
               dataParse.hour || '0',
@@ -722,18 +751,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             ];
             for (const { valid, message } of validations) {
               if (!valid) {
-                const embedValidFailure: EmbedProps[] = [
-                  {
-                    color: '#ED4245',
-                    title: `❌ ${message || 'Invalid input'}`,
-                  },
-                ];
-                const messageToUser: ReplyMezonMessage = {
-                  userId: userId,
-                  textContent: '',
-                  messOptions: { embed: embedValidFailure },
-                };
-                this.messageQueue.addMessage(messageToUser);
+                const replyMessageInvalidLength = createReplyMessage(
+                  `\`\`\`❌ ${message || 'Invalid input'}\`\`\``,
+                  clanIdValue,
+                  channelId,
+                  isPublicValue,
+                  modeValue,
+                  msg,
+                );
+                this.messageQueue.addMessage(replyMessageInvalidLength);
                 return;
               }
             }
@@ -744,40 +770,44 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               typeRequest,
               emailAddress,
             );
+            let requestId = 0;
             try {
               // Call API request absence day
               const resAbsenceDayRequest =
                 await this.timeSheetService.requestAbsenceDay(body);
               if (resAbsenceDayRequest?.data?.success) {
-                const embedUnlockSuccess: EmbedProps[] = [
-                  {
-                    color: '#57F287',
-                    title: `✅ Request absence successful!`,
-                  },
-                ];
-                const messageToUser: ReplyMezonMessage = {
-                  userId: findAbsenceData.userId,
-                  textContent: '',
-                  messOptions: { embed: embedUnlockSuccess },
+                requestId = resAbsenceDayRequest.data.result.absences[0].requestId;
+                const textSuccess = `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``;
+                const msgSuccess = {
+                  t: textSuccess,
+                  mk: [{ type: 't', s: 0, e: textSuccess.length }],
                 };
-                this.messageQueue.addMessage(messageToUser);
+                await this.client.updateChatMessage(
+                  clanIdValue,
+                  channelId,
+                  modeValue,
+                  isPublicValue,
+                  data.message_id,
+                  msgSuccess,
+                );
               } else {
                 throw new Error('Request failed!');
               }
             } catch (error) {
-              console.log('handleRequestAbsence', error);
-              const embedUnlockFailure: EmbedProps[] = [
-                {
-                  color: '#ED4245',
-                  title: `❌ Request absence failed.`,
-                },
-              ];
-              const messageToUser: ReplyMezonMessage = {
-                userId: findAbsenceData.userId,
-                textContent: '',
-                messOptions: { embed: embedUnlockFailure },
+              const textError = `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``;
+              const msgError = {
+                t: textError,
+                mk: [{ type: 't', s: 0, e: textError.length }],
               };
-              this.messageQueue.addMessage(messageToUser);
+              await this.client.updateChatMessage(
+                clanIdValue,
+                channelId,
+                modeValue,
+                isPublicValue,
+                data.message_id,
+                msgError,
+              );
+              return;
             }
             // Update status to CONFIRM
             await this.absenceDayRequestRepository.update(
@@ -787,12 +817,91 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 reason: body.reason,
                 dateType: body.absences[0].dateType,
                 absenceTime: body.absences[0].absenceTime,
+                requestId: requestId,
               },
             );
-            break;
+            // Send notification to PMs of user
+            const dataPms = await this.timeSheetService.getPMsOfUser(emailAddress);
+            if(dataPms?.data?.success){
+              const resultPms = dataPms.data.result;
+              const emails = resultPms
+                .filter(project => project.projectName !== "Company Activities")
+                .flatMap(project =>
+                  project.pMs.map(pm => pm.emailAddress)
+                )
+                .filter(email => email !== null);
 
+              const usernames = emails.map(email => email.split('@')[0]);
+              const users = await this.userRepository.find({
+                where: usernames.map((username) => ({
+                  username,
+                  deactive: false,
+                })),
+                select: ['userId'],
+              });
+
+              const userIdPms = users.map((user) => user.userId);
+              const usernameSender = emailAddress.split('@')[0];
+              let dateType = ERequestAbsenceDateType[body.absences[0].dateType];
+              if (dateType === ERequestAbsenceDateType[4]) {
+                dateType = 'Đi muộn/ Về sớm';
+              }
+              for (const userIdPm of userIdPms) {
+                const embedSendMessageToPm: EmbedProps[] = [
+                  {
+                    color: '#57F287',
+                    title: `${usernameSender} has sent a request ${typeRequest} for following dates: ${body.absences[0].dateAt} ${dateType}`,
+                  },
+                ];
+                const componentsSendPm = [
+                  {
+                    components: [
+                      {
+                        id: `PMRequestDay_REJECT_${requestId}_${usernameSender}_${typeRequest}_${body.absences[0].dateAt}_${dateType}`,
+                        type: EMessageComponentType.BUTTON,
+                        component: {
+                          label: `Reject`,
+                          style: EButtonMessageStyle.DANGER,
+                        },
+                      },
+                      {
+                        id: `PMRequestDay_APPROVE_${requestId}_${usernameSender}_${typeRequest}_${body.absences[0].dateAt}_${dateType}`,
+                        type: EMessageComponentType.BUTTON,
+                        component: {
+                          label: `Approve`,
+                          style: EButtonMessageStyle.SUCCESS,
+                        },
+                      },
+                    ],
+                  },
+                ];
+                const messageToUser: ReplyMezonMessage = {
+                  userId: userIdPm,
+                  textContent: '',
+                  messOptions: {
+                    embed: embedSendMessageToPm,
+                    components: componentsSendPm,
+                  },
+                };
+                this.messageQueue.addMessage(messageToUser);
+              }
+            }
+            break;
           default:
-            replyMessage.msg = { t: 'Cancel request absence successful!' };
+            const textCancel = `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``;
+            const msgCancel = {
+              t: textCancel,
+              mk: [{ type: 't', s: 0, e: textCancel.length }],
+            };
+            await this.client.updateChatMessage(
+              clanIdValue,
+              channelId,
+              modeValue,
+              isPublicValue,
+              data.message_id,
+              msgCancel,
+            );
+
             // Update status to CANCEL
             await this.absenceDayRequestRepository.update(
               { id: findAbsenceData.id },
@@ -1089,6 +1198,109 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (error) {
       console.error('Error sending form data:', error);
+    }
+  }
+
+  async handlePMRequestAbsenceDay(data) {
+    const splitButtonId = data.button_id.split('_');
+    let typeButtonRes = splitButtonId[1]; // (approve or reject)
+    const requestIdButton = splitButtonId[2];
+    const requestIds = [Number(requestIdButton)];
+    const usernameEmployee = splitButtonId[3];
+    const typeRequest = splitButtonId[4];
+    const dateAt = splitButtonId[5];
+    const dateType = splitButtonId[6];
+    try {
+      // Find emailAddress by senderId
+      const findUser = await this.userRepository
+        .createQueryBuilder()
+        .where(`"userId" = :userId`, { userId: data.user_id })
+        .andWhere(`"deactive" IS NOT true`)
+        .select('*')
+        .getRawOne();
+
+      if (!findUser) return;
+      const authorUsername = findUser.email;
+      const emailAddress = generateEmail(authorUsername);
+      // Process requests status
+      switch (typeButtonRes.trim()) {
+        case EPMRequestAbsenceDay.APPROVE:
+          try {
+            // Call API pm approve request absence day
+            const PmAbsenceDayRequestApprove = await this.timeSheetService.PMApproveRequestDay(requestIds, emailAddress);
+            if (PmAbsenceDayRequestApprove?.data?.success) {
+              const embedSendMessageToPm: EmbedProps[] = [
+                {
+                  color: '#f2e357',
+                  title: `Approve successfully the request: ${usernameEmployee} ${typeRequest} ${dateAt} ${dateType}`,
+                },
+              ];
+              const messageToUser: ReplyMezonMessage = {
+                userId: data.user_id,
+                textContent: ``,
+                messOptions: { embed: embedSendMessageToPm },
+              };
+              this.messageQueue.addMessage(messageToUser);
+              return;
+            } else {
+              throw new Error('Request failed!');
+            }
+          } catch (error) {
+            const messageError = error.response.data.error.message;
+            const embedSendMessageToPm: EmbedProps[] = [
+              {
+                color: '#FF0000',
+                title: `${messageError}`,
+              },
+            ];
+            const messageToUser: ReplyMezonMessage = {
+              userId: data.user_id,
+              textContent: '',
+              messOptions: { embed: embedSendMessageToPm },
+            };
+            this.messageQueue.addMessage(messageToUser);
+          }
+          break;
+        default:
+          try {
+            // Call API pm reject request absence day
+            const PmAbsenceDayRequestApprove = await this.timeSheetService.PMRejectRequestDay(requestIds, emailAddress);
+            if (PmAbsenceDayRequestApprove?.data?.success) {
+              const embedSendMessageToPm: EmbedProps[] = [
+                {
+                  color: '#f2e357',
+                  title: `Reject successfully the request: ${usernameEmployee} ${typeRequest} ${dateAt} ${dateType}`,
+                },
+              ];
+              const messageToUser: ReplyMezonMessage = {
+                userId: data.user_id,
+                textContent: ``,
+                messOptions: { embed: embedSendMessageToPm },
+              };
+              this.messageQueue.addMessage(messageToUser);
+            } else {
+              throw new Error('Request failed!');
+            }
+          } catch (error) {
+            const messageError = error.response.data.error.message;
+            const embedSendMessageToPm: EmbedProps[] = [
+              {
+                color: '#FF0000',
+                title: `${messageError}`,
+              },
+            ];
+            const messageToUser: ReplyMezonMessage = {
+              userId: data.user_id,
+              textContent: '',
+              messOptions: { embed: embedSendMessageToPm },
+            };
+            this.messageQueue.addMessage(messageToUser);
+          }
+          break;
+      }
+
+    } catch (e) {
+      console.error('handleRequestAbsence', e);
     }
   }
 }

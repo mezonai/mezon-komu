@@ -12,7 +12,7 @@ import { User, AbsenceDayRequest } from '../../../models';
 import { TimeSheetService } from '../../../services/timesheet.services';
 import { Repository } from 'typeorm';
 import { MezonClientService } from '../../../../mezon/services/client.service';
-@Command('request')
+@Command('ts')
 export class RequestAbsenceDayCommand extends CommandMessage {
   constructor(
     private clientService: MezonClientService,
@@ -26,6 +26,11 @@ export class RequestAbsenceDayCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    const messageid = message.message_id;
+    const clanId = message.clan_id;
+    const codeMess = message.code;
+    const modeMess = message.mode;
+    const isPublic = message.is_public;
     const typeRequest = args[0];
     if (!typeRequest) return;
     const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest.toUpperCase() as keyof typeof ERequestAbsenceDayType];
@@ -347,7 +352,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
       {
         components: [
           {
-            id: `${typeRequestDayEnum}_CANCEL`,
+            id: `${typeRequestDayEnum}_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_CANCEL`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -355,7 +360,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
             },
           },
           {
-            id: `${typeRequestDayEnum}_CONFIRM`,
+            id: `${typeRequestDayEnum}_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_CONFIRM`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Confirm`,

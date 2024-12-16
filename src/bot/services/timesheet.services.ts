@@ -468,4 +468,53 @@ export class TimeSheetService {
       console.log(error);
     }
   };
+
+  getPMsOfUser = async (email) => {
+    try {
+      return await this.axiosClientService.get(
+        `${this.clientConfigService.getPmsOfUserApi.api_url}?email=${email}`,
+        {
+          httpsAgent: this.clientConfigService.https,
+          headers: {
+            securityCode: this.clientConfigService.imsKeySecret,
+          },
+        },
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  PMApproveRequestDay = async (requestIds, email) => {
+    const body = {
+      requestIds: requestIds,
+      email: email,
+    };
+    return await this.axiosClientService.post(
+      `${this.clientConfigService.PMApproveRequestDay.api_url}`,
+      body,
+      {
+        httpsAgent: this.clientConfigService.https,
+        headers: {
+          securityCode: this.clientConfigService.imsKeySecret,
+        },
+      },
+    );
+  };
+  PMRejectRequestDay = async (requestIds, email) => {
+    const body = {
+      requestIds: requestIds,
+      email: email,
+    };
+    return this.axiosClientService.post(
+      `${this.clientConfigService.PMRejectRequestDay.api_url}`,
+      body,
+      {
+        httpsAgent: this.clientConfigService.https,
+        headers: {
+          securityCode: this.clientConfigService.imsKeySecret,
+        },
+      },
+    );
+  };
 }
