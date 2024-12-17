@@ -1257,10 +1257,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const agent = new https.Agent({
         rejectUnauthorized: false,
       });
-      replyMessage['msg'] = {
-        t: `Sending Request....`,
-      };
-      this.messageQueue.addMessage(replyMessage);
       const response = await axios.post(
         `${baseUrl}/new-instance`,
         completeData,
@@ -1273,10 +1269,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       );
 
       if (response.status === 200) {
-        replyMessage['msg'] = {
-          t: `Create request successfully!`,
-        };
-        this.messageQueue.addMessage(replyMessage);
+        const textCreateRequestSuccess = '```Create request successfully!```';
+        const msgCreateSuccess = {
+            t: textCreateRequestSuccess,
+            mk: [{ type: 't', s: 0, e: textCreateRequestSuccess.length }],
+          };        
+        await this.client.updateChatMessage(
+            findW2requestData.clanId,
+            findW2requestData.channelId,
+            findW2requestData.modeMessage,
+            findW2requestData.isChannelPublic,
+            data.message_id,
+            msgCreateSuccess,
+          );
       } else {
         throw new Error('Unexpected response status');
       }
