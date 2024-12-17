@@ -9,7 +9,7 @@ import {
   EmbedProps, EMessageComponentType,
   EMessageMode, EPMRequestAbsenceDay, ERequestAbsenceDateType,
   ERequestAbsenceDayStatus,
-  ERequestAbsenceDayType, ERequestAbsenceType,
+  ERequestAbsenceDayType, ERequestAbsenceTime, ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -846,14 +846,25 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const userIdPms = users.map((user) => user.userId);
               const usernameSender = emailAddress.split('@')[0];
               let dateType = ERequestAbsenceDateType[body.absences[0].dateType];
+              let hourNumber;
+              let dayOffTypeName;
+              if(body.type === ERequestAbsenceType.OFF && dateType !== ERequestAbsenceDateType[4]){
+                const absenceAllType = await this.timeSheetService.getAllTypeAbsence();
+                const dayOffType = absenceAllType.data.result.find(
+                  (item) => item.id === body.dayOffTypeId
+                );
+                dayOffTypeName = dayOffType.name;
+              }
               if (dateType === ERequestAbsenceDateType[4]) {
-                dateType = 'Đi muộn/ Về sớm';
+                if(body.absences[0].absenceTime === ERequestAbsenceTime.ARRIVE_LATE) dateType = 'Đi muộn';
+                if(body.absences[0].absenceTime === ERequestAbsenceTime.LEAVE_EARLY) dateType = 'Về sớm';
+                hourNumber = body.absences[0].hour.toString() + 'h';
               }
               for (const userIdPm of userIdPms) {
                 const embedSendMessageToPm: EmbedProps[] = [
                   {
                     color: '#57F287',
-                    title: `${usernameSender} has sent a request ${typeRequest} for following dates: ${body.absences[0].dateAt} ${dateType}`,
+                    title: `${usernameSender} has sent a request ${typeRequest} ${dayOffTypeName || ""}\nfor following dates: ${body.absences[0].dateAt} ${dateType} ${hourNumber || ""}\nReason: ${body.reason}`,
                   },
                 ];
                 const componentsSendPm = [
