@@ -6,10 +6,15 @@ import { ChannelMessage, EButtonMessageStyle, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
-  EmbedProps, EMessageComponentType,
-  EMessageMode, EPMRequestAbsenceDay, ERequestAbsenceDateType,
+  EmbedProps,
+  EMessageComponentType,
+  EMessageMode,
+  EPMRequestAbsenceDay,
+  ERequestAbsenceDateType,
   ERequestAbsenceDayStatus,
-  ERequestAbsenceDayType, ERequestAbsenceTime, ERequestAbsenceType,
+  ERequestAbsenceDayType,
+  ERequestAbsenceTime,
+  ERequestAbsenceType,
   EUnlockTimeSheet,
   EUnlockTimeSheetPayment,
   FFmpegImagePath,
@@ -579,14 +584,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             : isValidWFH
               ? baseMessage
               : errorMessageNotWFH;
-          const replyMessageSubmit = createReplyMessage(
-            messageContent,
-            clanIdValue,
-            channelId,
-            isPublicValue,
-            modeValue,
-            msg,
-          );
+
           const textDailySuccess =
             '```' +
             messageContent +
@@ -616,9 +614,24 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             [],
             true,
           );
-          // this.messageQueue.addMessage(replyMessageSubmit);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
+          const textDailyCancelSuccess = '```The daily has been cancelled```';
+          const msgDailyCancelSuccess = {
+            t: textDailyCancelSuccess,
+            mk: [{ type: 't', s: 0, e: textDailyCancelSuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgDailyCancelSuccess,
+            [],
+            [],
+            true,
+          );
           return;
         default:
           break;
@@ -677,7 +690,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Parse button_id
       const args = data.button_id.split('_');
       const typeRequest = args[0];
-      const typeRequestDayEnum = ERequestAbsenceDayType[typeRequest as keyof typeof ERequestAbsenceDayType];
+      const typeRequestDayEnum =
+        ERequestAbsenceDayType[
+          typeRequest as keyof typeof ERequestAbsenceDayType
+        ];
       if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
@@ -779,7 +795,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const resAbsenceDayRequest =
                 await this.timeSheetService.requestAbsenceDay(body);
               if (resAbsenceDayRequest?.data?.success) {
-                requestId = resAbsenceDayRequest.data.result.absences[0].requestId;
+                requestId =
+                  resAbsenceDayRequest.data.result.absences[0].requestId;
                 const textSuccess = `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``;
                 const msgSuccess = {
                   t: textSuccess,
@@ -824,17 +841,18 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               },
             );
             // Send notification to PMs of user
-            const dataPms = await this.timeSheetService.getPMsOfUser(emailAddress);
-            if(dataPms?.data?.success){
+            const dataPms =
+              await this.timeSheetService.getPMsOfUser(emailAddress);
+            if (dataPms?.data?.success) {
               const resultPms = dataPms.data.result;
               const emails = resultPms
-                .filter(project => project.projectName !== "Company Activities")
-                .flatMap(project =>
-                  project.pMs.map(pm => pm.emailAddress)
+                .filter(
+                  (project) => project.projectName !== 'Company Activities',
                 )
-                .filter(email => email !== null);
+                .flatMap((project) => project.pMs.map((pm) => pm.emailAddress))
+                .filter((email) => email !== null);
 
-              const usernames = emails.map(email => email.split('@')[0]);
+              const usernames = emails.map((email) => email.split('@')[0]);
               const users = await this.userRepository.find({
                 where: usernames.map((username) => ({
                   username,
@@ -848,23 +866,35 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               let dateType = ERequestAbsenceDateType[body.absences[0].dateType];
               let hourNumber;
               let dayOffTypeName;
-              if(body.type === ERequestAbsenceType.OFF && dateType !== ERequestAbsenceDateType[4]){
-                const absenceAllType = await this.timeSheetService.getAllTypeAbsence();
+              if (
+                body.type === ERequestAbsenceType.OFF &&
+                dateType !== ERequestAbsenceDateType[4]
+              ) {
+                const absenceAllType =
+                  await this.timeSheetService.getAllTypeAbsence();
                 const dayOffType = absenceAllType.data.result.find(
-                  (item) => item.id === body.dayOffTypeId
+                  (item) => item.id === body.dayOffTypeId,
                 );
                 dayOffTypeName = dayOffType.name;
               }
               if (dateType === ERequestAbsenceDateType[4]) {
-                if(body.absences[0].absenceTime === ERequestAbsenceTime.ARRIVE_LATE) dateType = 'Đi muộn';
-                if(body.absences[0].absenceTime === ERequestAbsenceTime.LEAVE_EARLY) dateType = 'Về sớm';
+                if (
+                  body.absences[0].absenceTime ===
+                  ERequestAbsenceTime.ARRIVE_LATE
+                )
+                  dateType = 'Đi muộn';
+                if (
+                  body.absences[0].absenceTime ===
+                  ERequestAbsenceTime.LEAVE_EARLY
+                )
+                  dateType = 'Về sớm';
                 hourNumber = body.absences[0].hour.toString() + 'h';
               }
               for (const userIdPm of userIdPms) {
                 const embedSendMessageToPm: EmbedProps[] = [
                   {
                     color: '#57F287',
-                    title: `${usernameSender} has sent a request ${typeRequest} ${dayOffTypeName || ""}\nfor following dates: ${body.absences[0].dateAt} ${dateType} ${hourNumber || ""}\nReason: ${body.reason}`,
+                    title: `${usernameSender} has sent a request ${typeRequest} ${dayOffTypeName || ''}\nfor following dates: ${body.absences[0].dateAt} ${dateType} ${hourNumber || ''}\nReason: ${body.reason}`,
                   },
                 ];
                 const componentsSendPm = [
@@ -1146,6 +1176,22 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
+        const textLogTsCancelSuccess = '```The log timesheet has been cancelled```';
+        const msgLogtsCancelSuccess = {
+          t: textLogTsCancelSuccess,
+          mk: [{ type: 't', s: 0, e: textLogTsCancelSuccess.length }],
+        };
+        await this.client.updateChatMessage(
+          clanIdValue,
+          channelId,
+          modeValue,
+          isPublicValue,
+          data.message_id,
+          msgLogtsCancelSuccess,
+          [],
+          [],
+          true,
+        );
           return;
         default:
           break;
@@ -1271,17 +1317,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (response.status === 200) {
         const textCreateRequestSuccess = '```Create request successfully!```';
         const msgCreateSuccess = {
-            t: textCreateRequestSuccess,
-            mk: [{ type: 't', s: 0, e: textCreateRequestSuccess.length }],
-          };        
+          t: textCreateRequestSuccess,
+          mk: [{ type: 't', s: 0, e: textCreateRequestSuccess.length }],
+        };
         await this.client.updateChatMessage(
-            findW2requestData.clanId,
-            findW2requestData.channelId,
-            findW2requestData.modeMessage,
-            findW2requestData.isChannelPublic,
-            data.message_id,
-            msgCreateSuccess,
-          );
+          findW2requestData.clanId,
+          findW2requestData.channelId,
+          findW2requestData.modeMessage,
+          findW2requestData.isChannelPublic,
+          data.message_id,
+          msgCreateSuccess,
+        );
       } else {
         throw new Error('Unexpected response status');
       }
@@ -1316,7 +1362,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         case EPMRequestAbsenceDay.APPROVE:
           try {
             // Call API pm approve request absence day
-            const PmAbsenceDayRequestApprove = await this.timeSheetService.PMApproveRequestDay(requestIds, emailAddress);
+            const PmAbsenceDayRequestApprove =
+              await this.timeSheetService.PMApproveRequestDay(
+                requestIds,
+                emailAddress,
+              );
             if (PmAbsenceDayRequestApprove?.data?.success) {
               const embedSendMessageToPm: EmbedProps[] = [
                 {
@@ -1353,7 +1403,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         default:
           try {
             // Call API pm reject request absence day
-            const PmAbsenceDayRequestApprove = await this.timeSheetService.PMRejectRequestDay(requestIds, emailAddress);
+            const PmAbsenceDayRequestApprove =
+              await this.timeSheetService.PMRejectRequestDay(
+                requestIds,
+                emailAddress,
+              );
             if (PmAbsenceDayRequestApprove?.data?.success) {
               const embedSendMessageToPm: EmbedProps[] = [
                 {
@@ -1387,7 +1441,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           }
           break;
       }
-
     } catch (e) {
       console.error('handleRequestAbsence', e);
     }
