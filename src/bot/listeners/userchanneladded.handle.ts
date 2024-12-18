@@ -20,7 +20,7 @@ export class EventListenerUserChannelAdded extends BaseHandleEvent {
 
   @OnEvent(Events.UserChannelAdded)
   async handleChannelAdded(input: UserChannelAddedEvent) {
-    const channelId = input.channel_id;
+    const channelId = input.channel_desc.channel_id;
     // Find the channel by channel_id
     const channel = await this.channelRepository.findOne({
       where: { channel_id: channelId },
@@ -29,24 +29,31 @@ export class EventListenerUserChannelAdded extends BaseHandleEvent {
       const {
         channel_id,
         clan_id,
-        channel_type,
-        is_public,
-        status,
-        parent_id,
-      } = input;
-      const channel_private = is_public ? 0 : 1;
+        type,
+        channel_private,
+        parrent_id,
+        channel_label,
+        category_id,
+        meeting_code
+      } = input.channel_desc;
       this.eventEmitter.emit(Events.ChannelCreated, {
         channel_id,
         clan_id,
-        channel_type,
+        channel_type: type,
         channel_private,
-        status: Number(status),
-        parrent_id: parent_id,
+        status: Number(input.status),
+        parrent_id: parrent_id,
+        channel_label,
+        category_id,
+        meeting_code
       });
     } else {
       this.channelRepository.update(
         { channel_id: channelId },
-        { channel_private: input.is_public ? 0 : 1 },
+        { channel_private: input.channel_desc.channel_private,
+          channel_label: input.channel_desc.channel_label,
+          category_id: input.channel_desc.category_id
+         },
       );
     }
 
