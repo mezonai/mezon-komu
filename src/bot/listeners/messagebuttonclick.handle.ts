@@ -2,7 +2,12 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common';
-import { ChannelMessage, EButtonMessageStyle, Events } from 'mezon-sdk';
+import {
+  ChannelMessage,
+  EButtonMessageStyle,
+  EMarkdownType,
+  Events,
+} from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
@@ -306,16 +311,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async handleUnlockTimesheet(data) {
     try {
       const args = data.button_id.split('_');
-      const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
-        where: { messageId: data.message_id },
-      });
-      if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
-        return;
-      if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const typeButtonRes = args[1]; // (confirm or cancel)
-      const dataParse = JSON.parse(data.extra_data);
-      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
-      //init reply message
+      const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
+        where: { messageId: data.message_id, channelId: data.channel_id },
+      });
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -325,6 +324,47 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           t: '',
         },
       };
+
+      // handle cancel
+      if (typeButtonRes === EUnlockTimeSheet.CANCEL) {
+        const messageContentDefault =
+          '```The unlock timesheet has been cancelled!```';
+        replyMessage['msg'] = {
+          t: messageContentDefault,
+          mk: [
+            {
+              type: EMarkdownType.TRIPLE,
+              s: 0,
+              e: messageContentDefault.length,
+            },
+          ],
+        };
+        // update status active
+        await this.unlockTimeSheetRepository.update(
+          { id: findUnlockTsData.id },
+          {
+            status: EUnlockTimeSheet.CANCEL,
+          },
+        );
+        await this.client.updateChatMessage(
+          replyMessage.clan_id,
+          replyMessage.channel_id,
+          replyMessage.mode,
+          replyMessage.is_public,
+          data.message_id,
+          replyMessage.msg,
+          [],
+          [],
+          true,
+        );
+        return;
+      }
+      if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
+        return;
+      if (findUnlockTsData.userId !== data.user_id) return; // check auth
+      const dataParse = JSON.parse(data.extra_data);
+      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
+      //init reply message
 
       // only process with no status (not confirm or cancel request yet)
       if (!findUnlockTsData.status) {
@@ -385,49 +425,39 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               messOptions: { embed },
             };
             this.messageQueue.addMessage(messageToUser);
+            const messageContent =
+              '```Confirm successful! KOMU was sent to you a message, please check!```';
             replyMessage['msg'] = {
-              t: 'KOMU was sent to you a message, please check!',
+              t: messageContent,
+              mk: [
+                { type: EMarkdownType.TRIPLE, s: 0, e: messageContent.length },
+              ],
             };
             break;
           default:
-            replyMessage['msg'] = {
-              t: 'Cancel unlock timesheet successful!',
-            };
-            // update status active
-            await this.unlockTimeSheetRepository.update(
-              { id: findUnlockTsData.id },
-              {
-                status: EUnlockTimeSheet.CANCEL,
-              },
-            );
             break;
         }
       } else {
+        const messageContent =
+          '```' +
+          `This request has been ${findUnlockTsData.status.toLowerCase()}ed!` +
+          '```';
         replyMessage['msg'] = {
-          t: `This request has been ${findUnlockTsData.status.toLowerCase()}ed!`,
+          t: messageContent,
+          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: messageContent.length }],
         };
       }
-
-      // generate ref bot message
-      const KOMU = await this.userRepository.findOne({
-        where: { userId: process.env.BOT_KOMU_ID },
-      });
-      const msg: ChannelMessage = {
-        message_id: data.message_id,
-        id: '',
-        channel_id: findUnlockTsData.channelId,
-        channel_label: '',
-        code: findUnlockTsData.modeMessage,
-        create_time: '',
-        sender_id: process.env.BOT_KOMU_ID,
-        username: KOMU.username || 'KOMU',
-        avatar: KOMU.avatar,
-        content: { t: '' },
-        attachments: [{}],
-      };
-      replyMessage['ref'] = refGenerate(msg);
-      //send message
-      this.messageQueue.addMessage(replyMessage);
+      await this.client.updateChatMessage(
+        replyMessage.clan_id,
+        replyMessage.channel_id,
+        replyMessage.mode,
+        replyMessage.is_public,
+        data.message_id,
+        replyMessage.msg,
+        [],
+        [],
+        true,
+      );
     } catch (e) {
       console.log('handleUnlockTimesheet', e);
     }
@@ -697,7 +727,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
-        where: { messageId: data.message_id },
+        where: { messageId: data.message_id, channelId: data.channel_id },
       });
       if (!findAbsenceData) return;
 
@@ -1176,22 +1206,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
-        const textLogTsCancelSuccess = '```The log timesheet has been cancelled```';
-        const msgLogtsCancelSuccess = {
-          t: textLogTsCancelSuccess,
-          mk: [{ type: 't', s: 0, e: textLogTsCancelSuccess.length }],
-        };
-        await this.client.updateChatMessage(
-          clanIdValue,
-          channelId,
-          modeValue,
-          isPublicValue,
-          data.message_id,
-          msgLogtsCancelSuccess,
-          [],
-          [],
-          true,
-        );
+          const textLogTsCancelSuccess =
+            '```The log timesheet has been cancelled!```';
+          const msgLogtsCancelSuccess = {
+            t: textLogTsCancelSuccess,
+            mk: [{ type: 't', s: 0, e: textLogTsCancelSuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgLogtsCancelSuccess,
+            [],
+            [],
+            true,
+          );
           return;
         default:
           break;
@@ -1217,7 +1248,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     if (!message_id || !button_id) return;
 
     const findW2requestData = await this.w2RequestsRepository.findOne({
-      where: { messageId: data.message_id },
+      where: { messageId: data.message_id, channelId: data.channel_id },
     });
     const replyMessage: ReplyMezonMessage = {
       clan_id: findW2requestData.clanId,
