@@ -149,6 +149,7 @@ export class KomubotrestService {
     }
     const username = sendMessageToUserDTO.username;
     const message = sendMessageToUserDTO.message;
+    const options = sendMessageToUserDTO.options;
 
     try {
       const findUser = await this.userRepository.findOne({
@@ -158,6 +159,7 @@ export class KomubotrestService {
       const messageToUser: ReplyMezonMessage = {
         userId: findUser.userId,
         textContent: message,
+        messOptions: options ?? {}
       };
       this.messageQueue.addMessage(messageToUser);
       res.status(200).send({ message: 'Successfully!' });
@@ -197,6 +199,7 @@ export class KomubotrestService {
     }
     let message = sendMessageToChannelDTO.message;
     const channelId = sendMessageToChannelDTO.channelid;
+    const options = sendMessageToChannelDTO.options;
 
     // get mentions in text
     const mentions = await Promise.all(
@@ -246,6 +249,7 @@ export class KomubotrestService {
         msg: {
           t: message,
           lk,
+          ...(options ? { ...options } : {})
         },
         mentions: mentions.filter((user) => user) || [],
       };
