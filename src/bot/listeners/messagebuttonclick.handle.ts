@@ -108,8 +108,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
-    console.log(data);
-
     const args = data.button_id.split('_');
     // check case by buttonId
     const buttonConfirmType = args[0];
