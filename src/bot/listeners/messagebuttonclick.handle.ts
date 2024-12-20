@@ -1341,7 +1341,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       
       if (invalidDates.length > 0) {
         replyMessage['msg'] = {
-          t: `The following dates are invalid because they are earlier than today: ${invalidDates.map((d) => d.toLocaleDateString()).join(', ')}`,
+          t: `Invalid dates: ${invalidDates.map((d) => d.toLocaleDateString()).join(', ')} (earlier than today)`,
         };
         this.messageQueue.addMessage(replyMessage);
         return;
