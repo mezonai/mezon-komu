@@ -1303,7 +1303,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
     const additionalData = {
       workflowDefinitionId: findW2requestData.workflowId,
-      email: `thien.dang@ncc.asia`,
+      email: `${findW2requestData.email}@ncc.asia`,
     };
 
     const completeData = {
