@@ -481,6 +481,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       '```Missing project, yesterday, today, or block field```';
 
     const isOwner = ownerSenderDaily === senderId;
+    if (!isOwner) return;
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
       where: { userId: botId },
