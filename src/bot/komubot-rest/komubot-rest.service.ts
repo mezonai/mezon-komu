@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import { UtilsService } from '../services/utils.services';
 import { ReportDailyDTO } from '../dto/reportDaily';
 import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
+import { ChannelType } from 'mezon-sdk';
 
 @Injectable()
 export class KomubotrestService {
@@ -159,7 +160,7 @@ export class KomubotrestService {
       const messageToUser: ReplyMezonMessage = {
         userId: findUser.userId,
         textContent: message,
-        messOptions: options ?? {}
+        messOptions: options ?? {},
       };
       this.messageQueue.addMessage(messageToUser);
       res.status(200).send({ message: 'Successfully!' });
@@ -172,7 +173,7 @@ export class KomubotrestService {
   sendMessageToChannel = async (
     sendMessageToChannelDTO: SendMessageToChannelDTO,
     header,
-    res
+    res,
   ) => {
     if (!header || header !== this.clientConfig.komubotRestSecretKey) {
       res.status(403).send({ message: 'Missing secret key!' });
@@ -220,23 +221,23 @@ export class KomubotrestService {
     const regexHttp = /http[s]?:\/\/[^\s]+/g;
     const matches = Array.from(message.matchAll(regexHttp));
 
-    const lk = matches.map((match) => ({
-      // text: match[0],
-      s: match.index || 0,
-      e: (match.index || 0) + match[0].length,
-    })) || [];
+    const lk =
+      matches.map((match) => ({
+        // text: match[0],
+        s: match.index || 0,
+        e: (match.index || 0) + match[0].length,
+      })) || [];
 
     try {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: channelId },
       });
-      console.log('findChannel', findChannel)
       if (!findChannel) {
         res.status(400).send({ message: 'Cannot find this channel!s' });
         return;
       }
       const isThread =
-        findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
       const replyMessage = {
         clan_id: this.clientConfig.clandNccId,
         channel_id: channelId,
@@ -249,7 +250,7 @@ export class KomubotrestService {
         msg: {
           t: message,
           lk,
-          ...(options ? { ...options } : {})
+          ...(options ? { ...options } : {}),
         },
         mentions: mentions.filter((user) => user) || [],
       };
