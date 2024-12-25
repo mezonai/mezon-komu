@@ -1,4 +1,4 @@
-import { EMarkdownType } from 'mezon-sdk';
+import { ChannelType, EMarkdownType } from 'mezon-sdk';
 import { ChannelMezon, MezonBotMessage, User } from '../models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -117,7 +117,7 @@ export class PollService {
         },
       });
       const isThread =
-        findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
       const findUser = await this.userRepository.findOne({
         where: { userId: findMessagePoll.userId, user_type: EUserType.MEZON },
       });

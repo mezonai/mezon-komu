@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMessageAck, MezonClient } from 'mezon-sdk';
+import { ChannelMessageAck, ChannelType, MezonClient } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ChannelMezon, User } from '../models';
 import { Repository } from 'typeorm';
@@ -30,7 +30,7 @@ export class KomuService {
     botPing = false,
     isSendQuiz = false,
     components,
-    embed
+    embed,
   ) => {
     try {
       const userdb = await this.userRepository
@@ -69,7 +69,7 @@ export class KomuService {
             messOptions: {
               mk: [{ type: 't', s: 0, e: msg.length + 6 }],
               components,
-              embed
+              embed,
             },
             channelDmId: newDMChannel.channel_id,
           };
@@ -80,7 +80,7 @@ export class KomuService {
             messOptions: {
               mk: [{ type: 't', s: 0, e: msg.length + 6 }],
               components,
-              embed
+              embed,
             },
             channelDmId: findDMChannel.channel_id,
           };
@@ -142,9 +142,7 @@ export class KomuService {
 
       const messageItAdmin = `KOMU không gửi được tin nhắn cho @${userDb.email}. #admin-username hỗ trợ nhé!!!`;
 
-      await Promise.all([
-        this.sendErrorToDev(messageItAdmin),
-      ]);
+      await Promise.all([this.sendErrorToDev(messageItAdmin)]);
 
       return null;
     }
@@ -169,7 +167,7 @@ export class KomuService {
       where: { channel_id: channelId },
     });
     const isThread =
-      findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+      findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
       channel_id: channelId,
