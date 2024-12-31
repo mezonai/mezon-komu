@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
+import { convertName } from 'src/bot/utils/helper';
 
 @Command('call')
 export class CallCommand extends CommandMessage {
@@ -100,7 +101,7 @@ export class CallCommand extends CommandMessage {
 
         const filter = new Set();
         const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-          if (item.participant !== message.display_name) {
+          if (convertName(item.participant) !== message.username) {
             return false;
           }
           const identifier = `${item.user_id}-${item.channel_id}`;

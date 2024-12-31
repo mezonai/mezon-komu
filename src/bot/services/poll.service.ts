@@ -41,7 +41,7 @@ export class PollService {
 
   getOptionPoll(pollString: string) {
     let option;
-    const regex = /:\s*(.*)\n/g;
+    const regex = /\d️⃣:\s*(.*)/g;
     const options = [];
     while ((option = regex.exec(pollString)) !== null) {
       options.push(option[1].trim());
