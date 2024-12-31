@@ -315,6 +315,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
         where: { messageId: data.message_id, channelId: data.channel_id },
       });
+      if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -361,7 +362,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
-      if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const dataParse = JSON.parse(data.extra_data);
       const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
       //init reply message
