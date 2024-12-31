@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { EMessageMode, EUserType } from '../constants/configs';
 import { QuizService } from '../services/quiz.services';
 import { UtilsService } from '../services/utils.services';
-import { getUserNameByEmail } from '../utils/helper';
+import { convertName, getUserNameByEmail } from '../utils/helper';
 import moment from 'moment';
 import { MessageQueue } from '../services/messageQueue.service';
 import { Cron } from '@nestjs/schedule';
