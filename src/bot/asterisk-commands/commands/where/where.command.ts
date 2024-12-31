@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
+import { convertName } from 'src/bot/utils/helper';
 
 @Command('where')
 export class WhereCommand extends CommandMessage {
@@ -80,11 +81,11 @@ export class WhereCommand extends CommandMessage {
         const filter = new Set();
         const currentUserVoiceChannelFindUser = listChannelVoiceUsers.filter(
           (item) => {
-            if (item.participant !== findUser.display_name) {
+            if (convertName(item.participant) !== message.username) {
               return false;
             }
             const identifier = `${item.user_id}-${item.channel_id}`;
-            
+
             if (!filter.has(identifier)) {
               filter.add(identifier);
               return true;

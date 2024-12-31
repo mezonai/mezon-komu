@@ -60,19 +60,19 @@ export class WFHSchedulerService {
         '',
         ChannelType.CHANNEL_TYPE_VOICE,
       );
-      const displayNames = new Set();
+      const username = new Set();
       if ('voice_channel_users' in userClans) {
         userClans.voice_channel_users.forEach((user) =>
-          displayNames.add(user.participant),
+          username.add(convertName(user.participant)),
         );
       }
 
       let useridJoining = [];
-      if (displayNames.size > 0) {
+      if (username.size > 0) {
         const userIds = await this.userRepository
           .createQueryBuilder()
-          .where('display_name IN (:...names)', {
-            names: Array.from(displayNames),
+          .where('clan_nick IN (:...names)', {
+            names: Array.from(username),
           })
           .getMany();
         useridJoining = userIds.map((user) => user?.userId);
