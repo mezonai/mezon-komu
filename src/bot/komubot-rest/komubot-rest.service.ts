@@ -3,7 +3,14 @@ import { GetUserIdByUsernameDTO } from '../dto/getUserIdByUsername';
 import { ClientConfigService } from '../config/client-config.service';
 import { Brackets, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMezon, Daily, Uploadfile, User } from '../models';
+import {
+  Application,
+  ChannelMezon,
+  Daily,
+  Transaction,
+  Uploadfile,
+  User,
+} from '../models';
 import { SendMessageToUserDTO } from '../dto/sendMessageToUser';
 import { EMessageMode, EUserType, FileType } from '../constants/configs';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
@@ -14,12 +21,15 @@ import * as fs from 'fs';
 import { UtilsService } from '../services/utils.services';
 import { ReportDailyDTO } from '../dto/reportDaily';
 import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
-import { ChannelType } from 'mezon-sdk';
+import { ChannelType, MezonClient } from 'mezon-sdk';
+import { PayoutApplication } from '../dto/payoutApplication';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class KomubotrestService {
   private folderPath = '/home/nccsoft/projects/uploads/';
   private watcher: fs.FSWatcher;
+  private client: MezonClient;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -32,7 +42,14 @@ export class KomubotrestService {
     private utilsService: UtilsService,
     @InjectRepository(ChannelMezon)
     private channelRepository: Repository<ChannelMezon>,
-  ) {}
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(Application)
+    private applicationRepository: Repository<Application>,
+    private clientService: MezonClientService,
+  ) {
+    this.client = this.clientService.getClient();
+  }
 
   async findUserData(_pramams) {
     return await this.userRepository
@@ -369,5 +386,87 @@ export class KomubotrestService {
       }
     });
     console.log(`Started watching folder: ${this.folderPath}`);
+  }
+
+  async getTotalAmountBySessionIdAndAppId(
+    sessionId: string,
+    appId: string,
+  ): Promise<number> {
+    const result = await this.transactionRepository
+      .createQueryBuilder('transaction')
+      .select('SUM(transaction.amount)', 'total')
+      .where('transaction.sessionId = :sessionId', { sessionId })
+      .andWhere('transaction.appId = :appId', { appId })
+      .getRawOne();
+
+    return result?.total || 0;
+  }
+
+  async handlePayoutApplication(
+    payoutApplication: PayoutApplication,
+    apiKey: string,
+    appId: string,
+    res,
+  ) {
+    if (!apiKey || !appId || !payoutApplication.sessionId) {
+      res.status(400).send({ message: 'Missing apiKey, appId or sessionId!' });
+      return;
+    }
+    const app = await this.applicationRepository.findOne({
+      where: { id: appId },
+    });
+    if (!app || app?.apiKey !== apiKey) {
+      res.status(400).send({ message: 'Wrong apiKey or appId!' });
+      return;
+    }
+
+    const totalAmountBySessionId = await this.getTotalAmountBySessionIdAndAppId(
+      payoutApplication.sessionId,
+      appId,
+    );
+    if (!totalAmountBySessionId) {
+      res
+        .status(400)
+        .send({ message: 'Not found transaction for this sessionId!' });
+      return;
+    }
+    const totalAmountReward = payoutApplication.userRewardedList.reduce(
+      (sum, item) => sum + item.amount,
+      0,
+    );
+    if (totalAmountReward > totalAmountBySessionId) {
+      res.status(400).send({
+        message:
+          'Total amount reward bigger than total amount in this session!',
+      });
+      return;
+    }
+    const sendSuccessList = [];
+    const sendFailList = [];
+    await Promise.all(
+      payoutApplication.userRewardedList.map(async (item) => {
+        const findUser = await this.userRepository.findOne({
+          where: { username: item.username },
+        });
+
+        if (!findUser) {
+          sendFailList.push(item.username);
+          return;
+        }
+
+        const dataSendToken = {
+          sender_id: process.env.BOT_KOMU_ID,
+          sender_name: 'KOMU',
+          receiver_id: findUser.userId,
+          amount: +item.amount,
+        };
+        sendSuccessList.push(item.username);
+        return this.client.sendToken(dataSendToken);
+      }),
+    );
+    
+    res
+      .status(200)
+      .send({ message: 'Successfully!', sendSuccessList, sendFailList });
   }
 }

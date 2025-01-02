@@ -51,3 +51,5 @@ export { MezonTrackerStreaming } from './timeTrackerStreaming.entity';
 export { UnlockTimeSheet } from './unlockTimeSheet.entity';
 export { AbsenceDayRequest } from './absenceDayRequest.entity';
 export { W2Request } from './requestW2.entity';
+export { Transaction } from './mezonTransaction.entity';
+export { Application } from './mezonApplication.entity';
