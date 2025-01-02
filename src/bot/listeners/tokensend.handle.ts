@@ -251,7 +251,7 @@ export class EventTokenSend extends BaseHandleEvent {
       const appId = extraAttribute.appId;
       const sessionId = extraAttribute.sessionId;
       const transactionDataInsert = new Transaction();
-      transactionDataInsert.id = data?.transactionId || sessionId+data.sender_name;
+      transactionDataInsert.id = data?.transaction_id || sessionId+data.sender_name;
       transactionDataInsert.appId = appId;
       transactionDataInsert.sessionId = sessionId;
       transactionDataInsert.username = data.sender_name;
