@@ -57,6 +57,8 @@ import {
   UnlockTimeSheet,
   AbsenceDayRequest,
   W2Request,
+  Transaction,
+  Application,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -215,7 +217,9 @@ import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Requ
       MezonTrackerStreaming,
       UnlockTimeSheet,
       AbsenceDayRequest,
-      W2Request
+      W2Request,
+      Transaction,
+      Application
     ]),
     HttpModule,
     ScheduleModule.forRoot(),

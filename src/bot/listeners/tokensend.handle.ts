@@ -6,7 +6,13 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { MessageQueue } from '../services/messageQueue.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BetEventMezon, UnlockTimeSheet, User } from '../models';
+import {
+  Application,
+  BetEventMezon,
+  Transaction,
+  UnlockTimeSheet,
+  User,
+} from '../models';
 import {
   EmbedProps,
   EMessageMode,
@@ -29,6 +35,10 @@ export class EventTokenSend extends BaseHandleEvent {
     private messageQueue: MessageQueue,
     @InjectRepository(UnlockTimeSheet)
     private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
+    @InjectRepository(Application)
+    private applicationRepository: Repository<Application>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
   ) {
@@ -223,6 +233,33 @@ export class EventTokenSend extends BaseHandleEvent {
       }
     } catch (error) {
       console.log('handleUnlockTimesheet');
+    }
+  }
+
+  @OnEvent(Events.TokenSend)
+  async handlePayoutApplication(data) {
+    if (!data?.extra_attribute || data.receiver_id !== process.env.BOT_KOMU_ID) return; // check send to bot
+    try {
+      const extraAttribute = JSON.parse(data.extra_attribute);
+      if (!extraAttribute?.appId || !extraAttribute?.sessionId) return;
+
+      const findApp = await this.applicationRepository.findOne({
+        where: { id: extraAttribute?.appId },
+      });
+      if (!findApp) return;
+
+      const appId = extraAttribute.appId;
+      const sessionId = extraAttribute.sessionId;
+      const transactionDataInsert = new Transaction();
+      transactionDataInsert.id = data?.transactionId || sessionId+data.sender_name;
+      transactionDataInsert.appId = appId;
+      transactionDataInsert.sessionId = sessionId;
+      transactionDataInsert.username = data.sender_name;
+      transactionDataInsert.amount = data.amount;
+      transactionDataInsert.createdAt = Date.now();
+      await this.transactionRepository.save(transactionDataInsert);
+    } catch (error) {
+      console.log('ERROR handlePayoutApplication', error);
     }
   }
 }
