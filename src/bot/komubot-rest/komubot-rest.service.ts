@@ -435,13 +435,13 @@ export class KomubotrestService {
       return;
     }
 
-    const checkPayouSession = await this.transactionRepository.findOne({
+    const checkPayoutSession = await this.transactionRepository.findOne({
       where: {
         senderId: process.env.BOT_KOMU_ID,
         sessionId: payoutApplication.sessionId,
       },
     });
-    if (checkPayouSession) {
+    if (checkPayoutSession) {
       res.status(400).send({ message: 'This session had been payout!' });
       return;
     }
