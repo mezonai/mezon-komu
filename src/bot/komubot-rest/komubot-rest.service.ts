@@ -388,6 +388,21 @@ export class KomubotrestService {
     console.log(`Started watching folder: ${this.folderPath}`);
   }
 
+  async getAllNcc8Playlist() {
+    return await this.uploadFileData.find({
+      where: { file_type: FileType.NCC8 },
+      order: { episode: 'DESC' },
+    });
+  }
+
+  async getLatestNcc8Episode() {
+    return await this.uploadFileData
+      .createQueryBuilder('upload_file')
+      .where('upload_file.file_type = :fileType', { fileType: FileType.NCC8 })
+      .orderBy('upload_file.episode', 'DESC')
+      .getOne();
+  }
+
   async getTotalAmountBySessionIdAndAppId(
     sessionId: string,
     appId: string,
@@ -464,7 +479,7 @@ export class KomubotrestService {
         return this.client.sendToken(dataSendToken);
       }),
     );
-    
+
     res
       .status(200)
       .send({ message: 'Successfully!', sendSuccessList, sendFailList });
