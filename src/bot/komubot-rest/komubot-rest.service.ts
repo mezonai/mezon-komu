@@ -435,6 +435,17 @@ export class KomubotrestService {
       return;
     }
 
+    const checkPayoutSession = await this.transactionRepository.findOne({
+      where: {
+        senderId: process.env.BOT_KOMU_ID,
+        sessionId: payoutApplication.sessionId,
+      },
+    });
+    if (checkPayoutSession) {
+      res.status(400).send({ message: 'This session had been payout!' });
+      return;
+    }
+
     const totalAmountBySessionId = await this.getTotalAmountBySessionIdAndAppId(
       payoutApplication.sessionId,
       appId,
@@ -456,27 +467,35 @@ export class KomubotrestService {
       });
       return;
     }
+
+    const senderIdWhiteList = (
+      await this.transactionRepository.find({
+        select: ['senderId'],
+        where: { sessionId: payoutApplication.sessionId },
+      })
+    ).map((transaction) => transaction.senderId);
+
     const sendSuccessList = [];
     const sendFailList = [];
     await Promise.all(
       payoutApplication.userRewardedList.map(async (item) => {
-        const findUser = await this.userRepository.findOne({
-          where: { username: item.username, user_type: EUserType.MEZON },
-        });
-
-        if (!findUser) {
-          sendFailList.push(item.username);
+        if (!senderIdWhiteList.includes(item.userId)) {
+          sendFailList.push(item.userId);
           return;
         }
 
         const dataSendToken = {
           sender_id: process.env.BOT_KOMU_ID,
           sender_name: 'KOMU',
-          receiver_id: findUser.userId,
+          receiver_id: item.userId,
           amount: +item.amount,
+          extra_attribute: JSON.stringify({
+            appId,
+            sessionId: payoutApplication.sessionId,
+          }),
         };
-        console.log('dataSendToken', dataSendToken)
-        sendSuccessList.push(item.username);
+
+        sendSuccessList.push(item.userId);
         return this.client.sendToken(dataSendToken);
       }),
     );

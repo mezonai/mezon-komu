@@ -238,7 +238,7 @@ export class EventTokenSend extends BaseHandleEvent {
 
   @OnEvent(Events.TokenSend)
   async handlePayoutApplication(data) {
-    if (!data?.extra_attribute || data.receiver_id !== process.env.BOT_KOMU_ID) return; // check send to bot
+    if (!data?.extra_attribute) return;
     try {
       const extraAttribute = JSON.parse(data.extra_attribute);
       if (!extraAttribute?.appId || !extraAttribute?.sessionId) return;
@@ -255,6 +255,8 @@ export class EventTokenSend extends BaseHandleEvent {
       transactionDataInsert.appId = appId;
       transactionDataInsert.sessionId = sessionId;
       transactionDataInsert.username = data.sender_name;
+      transactionDataInsert.senderId = data.sender_id;
+      transactionDataInsert.receiverId = data.receiver_id;
       transactionDataInsert.amount = data.amount;
       transactionDataInsert.createdAt = Date.now();
       await this.transactionRepository.save(transactionDataInsert);

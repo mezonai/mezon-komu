@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 
 class UserRewarded {
   @ApiProperty()
-  username?: string;
+  userId?: string;
 
   @ApiProperty()
   amount?: number;
