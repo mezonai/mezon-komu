@@ -1,9 +1,10 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn, Unique } from 'typeorm';
 
 import { TABLE } from '../constants/table';
 
 @Index(['id', 'sessionId', 'appId', 'username', 'amount'])
 @Entity(TABLE.TRANSACTION)
+@Unique(['sessionId', 'senderId'])
 export class Transaction {
   @PrimaryColumn({ type: 'text' })
   id: string;
@@ -16,6 +17,12 @@ export class Transaction {
 
   @Column({ type: 'text' })
   username: string;
+
+  @Column({ type: 'text', default: null })
+  senderId: string;
+
+  @Column({ type: 'text', default: null })
+  receiverId: string;
 
   @Column({ type: 'decimal' })
   amount: number;
