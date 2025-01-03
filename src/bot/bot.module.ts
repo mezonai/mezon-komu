@@ -57,6 +57,8 @@ import {
   UnlockTimeSheet,
   AbsenceDayRequest,
   W2Request,
+  Transaction,
+  Application,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -217,6 +219,8 @@ import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller
       UnlockTimeSheet,
       AbsenceDayRequest,
       W2Request,
+      Transaction,
+      Application
     ]),
     HttpModule,
     ScheduleModule.forRoot(),

@@ -326,6 +326,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
         where: { messageId: data.message_id, channelId: data.channel_id },
       });
+      if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -372,7 +373,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
-      if (findUnlockTsData.userId !== data.user_id) return; // check auth
       const dataParse = JSON.parse(data.extra_data);
       const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
       //init reply message
@@ -437,7 +437,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             };
             this.messageQueue.addMessage(messageToUser);
             const messageContent =
-              '```Confirm successful! KOMU was sent to you a message, please check!```';
+              '```Transaction pending! KOMU was sent to you a message, please check!```';
             replyMessage['msg'] = {
               t: messageContent,
               mk: [
@@ -489,9 +489,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const invalidLength =
       '```Please enter at least 100 characters in your daily text```';
     const missingField =
-      '```Missing project, yesterday, today, or block field```';
+      '```Missing project, yesterday, today, block or task field```';
 
     const isOwner = ownerSenderDaily === senderId;
+    if (!isOwner) return;
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
       where: { userId: botId },
@@ -548,7 +549,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const taskValue = parsedExtraData[taskKey]?.[0];
 
           const isMissingField =
-            !projectCode || !yesterdayValue || !todayValue || !blockValue;
+            !projectCode || !yesterdayValue || !todayValue || !blockValue || !taskValue;
           const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
           const contentLength =
             yesterdayValue?.length + todayValue?.length + blockValue?.length;

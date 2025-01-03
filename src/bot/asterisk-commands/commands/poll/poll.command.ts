@@ -11,7 +11,7 @@ export class PollCommand extends CommandMessage {
   execute(args: string[], message: ChannelMessage) {
     let messageContent = '';
     const cmds = args.join(' ').split('+');
-    const options = cmds.slice(1);
+    const options = cmds.slice(1).filter(Boolean);
     const iconList = [
       '1️⃣: ',
       '2️⃣: ',

@@ -90,7 +90,7 @@ export class MeetingSchedulerService {
           where: { channel_id: dataMeeing.channelId },
         });
         const isThread =
-          findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+          findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
         const replyMessage = {
           clan_id: this.clientConfig.clandNccId,
           channel_id: dataMeeing.channelId,
@@ -192,7 +192,7 @@ export class MeetingSchedulerService {
       where: { channel_id: data.channelId },
     });
     const isThread =
-      findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '';
+      findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
     const replyMessage = {
       clan_id: this.clientConfig.clandNccId,
       channel_id: data.channelId,

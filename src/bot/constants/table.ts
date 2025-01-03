@@ -58,4 +58,6 @@ export const TABLE = {
   UNLOCK_TIMESHEET: 'komu_unlockTimeSheet',
   ABSENCE_DAY_REQUEST: 'komu_absenceDayRequest',
   W2_REQUEST: 'komu_w2Request',
+  APPLICATION: 'komu_application',
+  TRANSACTION: 'komu_transaction'
 };
