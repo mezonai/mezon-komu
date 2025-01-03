@@ -461,7 +461,7 @@ export class KomubotrestService {
     await Promise.all(
       payoutApplication.userRewardedList.map(async (item) => {
         const findUser = await this.userRepository.findOne({
-          where: { username: item.username },
+          where: { username: item.username, user_type: EUserType.MEZON },
         });
 
         if (!findUser) {
@@ -475,6 +475,7 @@ export class KomubotrestService {
           receiver_id: findUser.userId,
           amount: +item.amount,
         };
+        console.log('dataSendToken', dataSendToken)
         sendSuccessList.push(item.username);
         return this.client.sendToken(dataSendToken);
       }),
