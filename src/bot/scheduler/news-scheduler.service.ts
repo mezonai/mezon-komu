@@ -80,7 +80,7 @@ export class NewsScheduler {
     }
   }
 
-  @Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  //@Cron('0 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleNews() {
     const dataNews = await this.fetchRssFeed(
       'https://vnexpress.net/rss/tin-moi-nhat.rss',
