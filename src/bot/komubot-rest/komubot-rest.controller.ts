@@ -132,6 +132,16 @@ export class KomubotrestController {
     return await this.komubotrestService.getReportUserDaily(query);
   }
 
+  @Get('/getAllNcc8Playlist')
+  async getAllNcc8Playlist() {
+    return await this.komubotrestService.getAllNcc8Playlist();
+  }
+
+  @Get('/getLatestNcc8Episode')
+  async getMaxNcc8Episode() {
+    return await this.komubotrestService.getLatestNcc8Episode();
+  }
+
   @Post('/uploadFile')
   @UseInterceptors(
     FileInterceptor('file', {
