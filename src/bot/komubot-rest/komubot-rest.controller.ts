@@ -39,6 +39,8 @@ import { ReportWFHService } from '../utils/report-wfh.serivce';
 import { ReportDailyDTO } from '../dto/reportDaily';
 import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
 import { PayoutApplication } from '../dto/payoutApplication';
+import moment from 'moment';
+import { ReportTrackerService } from '../services/reportTracker.sevicer';
 
 @ApiTags('Komu')
 @Controller()
@@ -51,6 +53,7 @@ export class KomubotrestController {
     private clientConfigService: ClientConfigService,
     private reportDailyService: ReportDailyService,
     private reportWFHService: ReportWFHService,
+    private reportTrackerService: ReportTrackerService,
   ) {}
 
   @Post('/getUserIdByUsername')
@@ -120,11 +123,17 @@ export class KomubotrestController {
 
   @Get('/getDailyReport')
   async getDailyReport(@Query() query: { date: string }) {
-    const date = parse(query.date, 'dd/MM/yyyy', new Date());
-    const { notDaily } = await this.reportDailyService.getUserNotDaily(date);
-    const mention = await this.reportWFHService.reportMachleo(date);
+    const parsedDate = moment(query.date, 'DD/MM/YYYY').startOf('day').toDate();
+    const formatedDate = query.date;
 
-    return { daily: notDaily, mention };
+    const [daily, mention, wfh, tracker] = await Promise.all([
+      this.reportDailyService.getUserNotDaily(parsedDate),
+      this.reportWFHService.reportMachleo(parsedDate),
+      this.reportWFHService.reportWfh([, formatedDate], false),
+      this.reportTrackerService.reportTrackerNot([, formatedDate], false),
+    ]);
+
+    return { daily: daily.notDaily, mention, wfh, tracker };
   }
 
   @Get('/reportDaily')

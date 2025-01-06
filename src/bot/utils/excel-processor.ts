@@ -21,19 +21,21 @@ export class ExcelProcessor {
 
   private getSheetName(): string {
     const month = this.reportDate.month();
+    const year = this.reportDate.year();
 
     let monday = this.reportDate.clone().startOf('week').add(1, 'day');
     let friday = this.reportDate.clone().endOf('week').add(-1, 'day');
 
-    while (monday.month() < month) {
+    while (monday.month() < month || monday.year() < year) {
       monday = monday.add(1, 'day');
     }
 
-    while (friday.month() > month) {
+    while (friday.month() > month || friday.year() > year) {
       friday = friday.add(-1, 'day');
     }
 
-    return `${monday.format('DD')}-${friday.format('DD/MM')}`;
+    const result = `${monday.format('DD')}-${friday.format('DD/MM')}`;
+    return result;
   }
 
   private getColumnIndex = (targetValue: string) => {

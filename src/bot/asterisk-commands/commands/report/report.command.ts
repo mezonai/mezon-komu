@@ -301,7 +301,7 @@ export class ReportCommand extends CommandMessage {
             )
           ) {
             const messageContent =
-              '```' + '*report fine dd/MM/YYYY sheet-id(optional)' + '```';
+              '```' + '*report saodo dd/MM/YYYY sheet-id(optional)' + '```';
             return this.replyMessageGenerate(
               {
                 messageContent,
@@ -327,7 +327,7 @@ export class ReportCommand extends CommandMessage {
           );
         } else {
           const messageContent =
-            '```' + '*report fine dd/MM/YYYY sheet-id(optional)' + '```';
+            '```' + '*report saodo dd/MM/YYYY sheet-id(optional)' + '```';
           return this.replyMessageGenerate(
             {
               messageContent,
