@@ -1606,8 +1606,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           );
           const payload = {
             id: this.taskId,
-            //email: `${findUser[0].username}@ncc.asia`,
-            email: 'thien.dang@ncc.asia',
+            email: `${findUser[0].username}@ncc.asia`,
           };
           const response = await axios.post(
             `${process.env.W2_REQUEST_API_BASE_URL}/approve-w2task`,
@@ -1713,8 +1712,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const payload = {
           id: this.taskId,
           reason: extraData.submitRejectTask,
-          //  email: `${findUser[0].username}@ncc.asia`,
-          email: 'thien.dang@ncc.asia',
+          email: `${findUser[0].username}@ncc.asia`,
         };
         if (payload.reason === '') {
           await this.client.sendDMChannelMessage(
@@ -1783,7 +1781,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const jsonPayload = {
           id: this.taskId,
           dynamicActionData: payload.dynamicActionData,
-          email: 'thien.dang@ncc.asia',
+          email: `${findUser[0].username}@ncc.asia`,
         };
         console.log(jsonPayload);
 
@@ -1854,7 +1852,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const jsonPayload = {
           id: this.taskId,
           dynamicActionData: payload.dynamicActionData,
-          email: 'thien.dang@ncc.asia',
+          email: `${findUser[0].username}@ncc.asia`,
         };
         const response = await axios.post(
           `${process.env.W2_REQUEST_API_BASE_URL}/approve-w2task`,
@@ -1873,8 +1871,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           );
         }
       } catch (error) {
-        console.log(error.response.data);
-
         if (error.response.data.error.code === '409') {
           await this.client.sendDMChannelMessage(
             data.channel_id,

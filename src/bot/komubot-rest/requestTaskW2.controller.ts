@@ -27,14 +27,10 @@ export class RequestTaskW2Controller {
     private readonly komuService: KomuService,
   ) {}
   @Post()
-  @ApiResponse({ status: 200, description: 'Message sent successfully.' })
-  @ApiResponse({ status: 400, description: 'Error while sending message.' })
   async sendWFHRequest(
     @Body() userRequestDto,
     @Headers('x-secret-key') secretKey: string,
   ) {
-    console.log('userRequestDto', userRequestDto);
-
     let data = [];
     switch (userRequestDto.task.Tasks.Name) {
       case EPMTaskW2Type.CHANGEOFFICE:
@@ -227,7 +223,7 @@ export class RequestTaskW2Controller {
     }
 
     const findUser = await this.userRepository.findOne({
-      where: { username: 'huy.nguyenanh', user_type: EUserType.MEZON },
+      where: { username: userRequestDto.username, user_type: EUserType.MEZON },
     });
 
     const requestFields = data.map((req) => ({
@@ -332,7 +328,6 @@ export class RequestTaskW2Controller {
       );
     } catch (error) {
       console.error(
-        `${findUser.userId}`,
         error,
       );
     }
