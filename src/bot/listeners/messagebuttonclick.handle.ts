@@ -140,11 +140,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'w2request':
         this.handleEventRequestW2(data);
         break;
-      case EPMButtonTaskW2.APPROVETASK:
-      case EPMButtonTaskW2.REJECTTASK:
-      case EPMButtonTaskW2.SUBMITREJECTTASK:
-      case EPMButtonTaskW2.CONFIRMPROBATIONARY:
-      case EPMButtonTaskW2.COMFIRMREGISNATION:
+      case EPMButtonTaskW2.APPROVE_TASK:
+      case EPMButtonTaskW2.REJECT_TASK:
+      case EPMButtonTaskW2.SUBMIT_REJECT_TASK:
+      case EPMButtonTaskW2.CONFIRM_PROBATIONARY:
+      case EPMButtonTaskW2.COMFIRM_REGISNATION:
         this.handleTaskW2Request(data);
         break;
       case 'PMRequestDay':
@@ -1315,7 +1315,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
     const additionalData = {
       workflowDefinitionId: findW2requestData.workflowId,
-      email: `thien.dang@ncc.asia`,
+      email: `${findW2requestData.email}@ncc.asia`,
     };
 
     const completeData = {
@@ -1434,8 +1434,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const agent = new https.Agent({
         rejectUnauthorized: false,
       });
-      console.log(completeData);
-
       await axios.post(`${baseUrl}/new-instance`, completeData, {
         headers: {
           'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
@@ -1470,7 +1468,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     if (args[3]) {
       this.taskId = args[3];
     }
-    if (data.button_id.split('_')[0] === EPMButtonTaskW2.APPROVETASK) {
+    if (data.button_id.split('_')[0] === EPMButtonTaskW2.APPROVE_TASK) {
       if (buttonConfirmType === EPMTaskW2Type.RESIGNATION) {
         const embed: EmbedProps[] = [
           {
@@ -1534,7 +1532,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           messOptions: { embed, components },
         };
         this.messageQueue.addMessage(messageToUser);
-      } else if (buttonConfirmType === EPMTaskW2Type.PROBATIONARYCONFIRMATION) {
+      } else if (buttonConfirmType === EPMTaskW2Type.PROBATIONARY_CONFIRMATION) {
         const embed: EmbedProps[] = [
           {
             color: getRandomColor(),
@@ -1640,7 +1638,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           }
         }
       }
-    } else if (data.button_id.split('_')[0] === EPMButtonTaskW2.REJECTTASK) {
+    } else if (data.button_id.split('_')[0] === EPMButtonTaskW2.REJECT_TASK) {
       {
         const embed: EmbedProps[] = [
           {
@@ -1696,7 +1694,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         this.messageQueue.addMessage(messageToUser);
       }
     }
-    if (data.button_id === EPMButtonTaskW2.SUBMITREJECTTASK) {
+    if (data.button_id === EPMButtonTaskW2.SUBMIT_REJECT_TASK) {
       if (!data.extra_data) {
         await this.client.sendDMChannelMessage(
           data.channel_id,
@@ -1751,7 +1749,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       }
     }
-    if (data.button_id === EPMButtonTaskW2.CONFIRMPROBATIONARY) {
+    if (data.button_id === EPMButtonTaskW2.CONFIRM_PROBATIONARY) {
       if (!data.extra_data) {
         await this.client.sendDMChannelMessage(data.channel_id, 'Missing Data');
         return;
@@ -1818,7 +1816,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       }
     }
-    if (data.button_id === EPMButtonTaskW2.COMFIRMREGISNATION) {
+    if (data.button_id === EPMButtonTaskW2.COMFIRM_REGISNATION) {
       if (!data.extra_data) {
         await this.client.sendDMChannelMessage(
           data.channel_id,

@@ -33,7 +33,7 @@ export class RequestTaskW2Controller {
   ) {
     let data = [];
     switch (userRequestDto.task.Tasks.Name) {
-      case EPMTaskW2Type.CHANGEOFFICE:
+      case EPMTaskW2Type.CHANGE_OFFICE:
         data = [
           {
             name: 'Current Office',
@@ -62,7 +62,7 @@ export class RequestTaskW2Controller {
           },
         ];
         break;
-      case EPMTaskW2Type.ADVANCEPAYMENT:
+      case EPMTaskW2Type.ADVANCE_PAYMENT:
         data = [
           {
             name: 'Amount Of Money',
@@ -81,7 +81,7 @@ export class RequestTaskW2Controller {
           },
         ];
         break;
-      case EPMTaskW2Type.OFFICEEQUIPMENT:
+      case EPMTaskW2Type.OFFICE_EQUIPMENT:
         data = [
           {
             name: 'Current Office',
@@ -124,7 +124,7 @@ export class RequestTaskW2Controller {
           },
         ];
         break;
-      case EPMTaskW2Type.PROBATIONARYCONFIRMATION:
+      case EPMTaskW2Type.PROBATIONARY_CONFIRMATION:
         data = [
           {
             name: 'Staff',
@@ -172,7 +172,7 @@ export class RequestTaskW2Controller {
           },
         ];
         break;
-      case EPMTaskW2Type.UNLOCKTIMESHEET:
+      case EPMTaskW2Type.UNLOCK_TIMESHEET:
         data = [
           {
             name: 'Time Unlock',

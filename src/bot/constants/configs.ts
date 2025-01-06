@@ -189,19 +189,19 @@ export enum EPMRequestAbsenceDay {
   REJECT = 'REJECT',
 }
 export enum EPMTaskW2Type {
-    ADVANCEPAYMENT = 'Advance Payment Request',
-    CHANGEOFFICE = 'Change Office Request',
+    ADVANCE_PAYMENT = 'Advance Payment Request',
+    CHANGE_OFFICE = 'Change Office Request',
     DEVICE = 'Device Request',
-    OFFICEEQUIPMENT = 'Office Equipment Request',
-    PROBATIONARYCONFIRMATION = 'Probationary Confirmation Request',
+    OFFICE_EQUIPMENT = 'Office Equipment Request',
+    PROBATIONARY_CONFIRMATION = 'Probationary Confirmation Request',
     WFH = 'WFH Request',
     RESIGNATION = 'Resignation Request',
-    UNLOCKTIMESHEET = 'Unlock Timesheet Request',
+    UNLOCK_TIMESHEET = 'Unlock Timesheet Request',
   }
 export enum EPMButtonTaskW2 {
-    APPROVETASK = 'Approve',
-    REJECTTASK = 'Reject',
-    SUBMITREJECTTASK = 'submitRejectTask',
-    CONFIRMPROBATIONARY = 'ConfirmProbationaryConfirmationRequest',
-    COMFIRMREGISNATION = 'ConfirmResignationRequest',
+    APPROVE_TASK = 'Approve',
+    REJECT_TASK = 'Reject',
+    SUBMIT_REJECT_TASK = 'submitRejectTask',
+    CONFIRM_PROBATIONARY = 'ConfirmProbationaryConfirmationRequest',
+    COMFIRM_REGISNATION = 'ConfirmResignationRequest',
 }
