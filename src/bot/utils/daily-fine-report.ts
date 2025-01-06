@@ -48,11 +48,19 @@ export function handleTrackerFine(tracker, excelProcessor: ExcelProcessor) {
     'linh.vutai',
     'hoang.nguyenanh',
     'phuong.dangdanh',
-    'phuc.duong',
     'ha.nguyenthi',
     'hang.buithidiem',
     'thai.buiminh',
     'trang.tranthu',
+    'quan.nguyenhuu',
+    'van.takhanh',
+    'trang.vuhoai',
+    'duc.tomanh',
+    'hoang.dohuy',
+    'tung.nguyen',
+    'trung.dotrong',
+    'phuc.duong',
+    'bao.vuduc',
   ];
 
   let secondsMorning = 4 * 3600 * 0.85;
