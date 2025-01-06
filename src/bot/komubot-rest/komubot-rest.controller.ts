@@ -38,6 +38,7 @@ import { ReportDailyService } from '../asterisk-commands/commands/report/reportD
 import { ReportWFHService } from '../utils/report-wfh.serivce';
 import { ReportDailyDTO } from '../dto/reportDaily';
 import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
+import { PayoutApplication } from '../dto/payoutApplication';
 
 @ApiTags('Komu')
 @Controller()
@@ -129,6 +130,16 @@ export class KomubotrestController {
   @Get('/reportDaily')
   async reportDaily(@Query() query: ReportDailyDTO) {
     return await this.komubotrestService.getReportUserDaily(query);
+  }
+
+  @Get('/getAllNcc8Playlist')
+  async getAllNcc8Playlist() {
+    return await this.komubotrestService.getAllNcc8Playlist();
+  }
+
+  @Get('/getLatestNcc8Episode')
+  async getMaxNcc8Episode() {
+    return await this.komubotrestService.getLatestNcc8Episode();
   }
 
   @Post('/uploadFile')
@@ -314,5 +325,20 @@ export class KomubotrestController {
       console.error('getNcc8Episode error', error);
       res.status(500).send({ message: 'Server error' });
     }
+  }
+
+  @Post('/payoutApplication')
+  async handlePayoutApplication(
+    @Body() payoutApplication: PayoutApplication,
+    @Headers('apiKey') apiKey,
+    @Headers('appId') appId,
+    @Res() res: Response,
+  ) {
+    return this.komubotrestService.handlePayoutApplication(
+      payoutApplication,
+      apiKey,
+      appId,
+      res,
+    );
   }
 }

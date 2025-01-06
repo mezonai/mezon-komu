@@ -8,8 +8,10 @@ import { FFmpegService } from 'src/bot/services/ffmpeg.service';
 import { Uploadfile } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FileType } from 'src/bot/constants/configs';
+import { EmbedProps, FileType } from 'src/bot/constants/configs';
 import { FFmpegImagePath } from 'src/bot/constants/configs';
+import { getRandomColor } from 'src/bot/utils/helper';
+import path from 'path';
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -146,6 +148,69 @@ export class Ncc8Command extends CommandMessage {
           );
         });
       }
+    }
+
+    if (args[0] === 'summary') {
+      try {
+        const res = await this.axiosClientService.get(
+          `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
+        );
+        if (!res || !res?.data?.url) {
+          const messageContent = '```NCC8 not found```';
+          return this.replyMessageGenerate(
+            {
+              messageContent: messageContent,
+              mk: [{ type: 't', s: 0, e: messageContent.length }],
+            },
+            message,
+          );
+        }
+        const messageWatting = '```Summarizing...```'
+        const dataSendWatting = this.replyMessageGenerate(
+          {
+            messageContent: messageWatting,
+            mk: [{ type: 't', s: 0, e: messageWatting.length }],
+          },
+          message,
+        );
+        this.clientService.sendMessage(dataSendWatting)
+        const fileName = path.basename(res?.data?.url);
+        const { data } = await this.axiosClientService.post(
+          process.env.NCC8_SUMARY_API,
+          {
+            file_name: fileName,
+          },
+        );
+        const embed: EmbedProps[] = [
+          {
+            color: getRandomColor(),
+            title: `NCC8 SUMARY SỐ ${args[1]}`,
+            description: '```' + `${data?.response}` + '```',
+            timestamp: new Date().toISOString(),
+            footer: {
+              text: 'Powered by Mezon',
+              icon_url:
+                'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+            },
+          },
+        ];
+        return this.replyMessageGenerate(
+          {
+            embed,
+          },
+          message,
+        );
+      } catch (error) {
+        const messageContent = '```Ncc8 not found or getting error when trying summary!```';
+          return this.replyMessageGenerate(
+            {
+              messageContent: messageContent,
+              mk: [{ type: 't', s: 0, e: messageContent.length }],
+            },
+            message,
+          );
+      }
+      
     }
 
     // TODO: stop stream

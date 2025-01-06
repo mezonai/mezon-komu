@@ -1,5 +1,6 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsOptional} from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
+import { ChannelMessageContent } from 'mezon-sdk';
 
 export class SendMessageToChannelDTO {
   @ApiPropertyOptional()
@@ -11,10 +12,10 @@ export class SendMessageToChannelDTO {
   fileUrl?: string;
 
   @ApiProperty({ required: true })
-  channelid: string = "";
+  channelid: string = '';
 
   @ApiProperty({ required: true })
-  message: string = "";
+  message: string = '';
 
   @ApiProperty({ required: true })
   @IsOptional()
@@ -22,15 +23,15 @@ export class SendMessageToChannelDTO {
 
   @ApiProperty({ required: true })
   @IsOptional()
-  machleo_userid?: string = "";
+  machleo_userid?: string = '';
 
   @ApiProperty({ required: true })
   @IsOptional()
-  wfhid?: string = "";
+  wfhid?: string = '';
 
   @ApiProperty({ required: true })
   @IsOptional()
-  username?: string = "";
+  username?: string = '';
 
   @ApiProperty({ required: true })
   @IsOptional()
@@ -39,4 +40,8 @@ export class SendMessageToChannelDTO {
   @ApiProperty({ required: true, default: false })
   @IsOptional()
   timesheet?: boolean;
+
+  @ApiProperty()
+  @IsOptional()
+  options?: ChannelMessageContent;
 }
