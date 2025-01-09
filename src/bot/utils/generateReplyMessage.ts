@@ -17,6 +17,7 @@ export function replyMessageGenerate(
     'channel_id',
     'mode',
     'is_public',
+    'topic_id',
     ...Object.keys(defaultValue),
   ].forEach(
     (field) =>

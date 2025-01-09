@@ -41,6 +41,11 @@ export class MezonClientService {
         replyMessage.mentions,
         replyMessage.attachments,
         replyMessage.ref,
+        replyMessage.anonymous_message,
+        replyMessage.mention_everyone,
+        replyMessage.avatar,
+        replyMessage.code,
+        replyMessage.topic_id,
       );
     } catch (error) {
       throw error;

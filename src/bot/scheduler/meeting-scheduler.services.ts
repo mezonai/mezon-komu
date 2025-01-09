@@ -214,6 +214,7 @@ export class MeetingSchedulerService {
         ],
       },
       mentions: [{ user_id: this.configClient.hereUserId, s: 0, e: 5 }],
+      mention_everyone: true
     };
     this.messageQueue.addMessage(replyMessage);
   }

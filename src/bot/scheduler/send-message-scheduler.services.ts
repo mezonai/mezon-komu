@@ -97,7 +97,7 @@ export class SendMessageSchedulerService {
 
           const checkUser = await this.userRepository
             .createQueryBuilder()
-            .where(`"email" = :email`, { email: email })
+            .where(`"clan_nick" = :email`, { email: email })
             .andWhere(`"deactive" IS NOT TRUE`)
             .andWhere('"user_type" = :userType', { userType: EUserType.MEZON })
             .select()
@@ -137,7 +137,7 @@ export class SendMessageSchedulerService {
       data.result.map(async (item) => {
         const birthday = await this.userRepository
           .createQueryBuilder()
-          .where('"email" = :email', {
+          .where('"clan_nick" = :email', {
             email: item.email.slice(0, -9),
           })
           .andWhere('"deactive" IS NOT TRUE')
@@ -209,14 +209,13 @@ export class SendMessageSchedulerService {
         listsUser.data.map(async (user) => {
           const query = this.userRepository
             .createQueryBuilder()
-            .where('"email" = :email OR "username" = :username', {
-              email: user.komuUserName,
+            .where('"clan_nick" = :username', {
               username: user.komuUserName,
             })
             .andWhere('"deactive" IS NOT TRUE')
             .andWhere('"user_type" = :userType', { userType: EUserType.MEZON });
           if (userOffFullday && userOffFullday?.length > 0) {
-            query.andWhere('"email" NOT IN (:...userOffFullday)', {
+            query.andWhere('"clan_nick" NOT IN (:...userOffFullday)', {
               userOffFullday: userOffFullday,
             });
           }
@@ -269,7 +268,7 @@ export class SendMessageSchedulerService {
           const query = this.userRepository
             .createQueryBuilder('user')
             .where(
-              'user.email = :komuUserName OR user.username = :komuUserName',
+              'user.clan_nick = :komuUserName',
               {
                 komuUserName: user.komuUserName,
               },
@@ -279,7 +278,7 @@ export class SendMessageSchedulerService {
             })
             .andWhere('user.deactive IS NOT TRUE');
           if (userOffFullday && userOffFullday?.length > 0) {
-            query.andWhere('user.email NOT IN (:...userOffFullday)', {
+            query.andWhere('user.clan_nick NOT IN (:...userOffFullday)', {
               userOffFullday,
             });
           }
@@ -319,7 +318,7 @@ export class SendMessageSchedulerService {
             const userdb = await this.userRepository
               .createQueryBuilder('user')
               .where(
-                '(user.email = :username OR user.username = :username) AND user.deactive IS NOT TRUE AND user.user_type = :userType',
+                '(user.clan_nick = :username) AND user.deactive IS NOT TRUE AND user.user_type = :userType',
                 {
                   username,
                   userType: EUserType.MEZON,

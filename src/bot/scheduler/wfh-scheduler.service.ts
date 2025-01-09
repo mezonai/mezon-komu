@@ -71,7 +71,7 @@ export class WFHSchedulerService {
       if (username.size > 0) {
         const userIds = await this.userRepository
           .createQueryBuilder()
-          .where('clan_nick IN (:...names)', {
+          .where('"clan_nick" IN (:...names)', {
             names: Array.from(username),
           })
           .getMany();
@@ -88,7 +88,7 @@ export class WFHSchedulerService {
         )
         .where(
           userOff && userOff.length > 0
-            ? 'user.username NOT IN (:...userOff)'
+            ? 'user.clan_nick NOT IN (:...userOff)'
             : 'true',
           {
             userOff: userOff,
@@ -113,7 +113,7 @@ export class WFHSchedulerService {
             thirtyMinutesAgo: thirtyMinutesAgo,
           },
         )
-        .select('DISTINCT user.userId, user.username')
+        .select('DISTINCT user.userId, user.clan_nick')
         .execute();
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
@@ -131,7 +131,7 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.email IN (:...wfhUserEmail)'
+            ? 'user.clan_nick IN (:...wfhUserEmail)'
             : 'true',
           {
             wfhUserEmail: wfhUserEmail,
@@ -176,7 +176,7 @@ export class WFHSchedulerService {
         )
         .where(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.email IN (:...wfhUserEmail)'
+            ? 'user.clan_nick IN (:...wfhUserEmail)'
             : 'true',
           {
             wfhUserEmail: wfhUserEmail,
@@ -206,7 +206,7 @@ export class WFHSchedulerService {
             { botPing: false },
           );
 
-          const content = `@${user?.username} không trả lời tin nhắn WFH lúc ${moment(
+          const content = `@${user?.clan_nick} không trả lời tin nhắn WFH lúc ${moment(
             parseInt(user.createAt.toString()),
           )
             .utcOffset(420)
@@ -265,19 +265,19 @@ export class WFHSchedulerService {
         '',
         ChannelType.CHANNEL_TYPE_VOICE,
       );
-      const displayNames = new Set();
+      const username = new Set();
       if ('voice_channel_users' in userClans) {
         userClans.voice_channel_users.forEach((user) =>
-          displayNames.add(user.participant),
+          username.add(convertName(user.participant)),
         );
       }
 
       let useridJoining = [];
-      if (displayNames.size > 0) {
+      if (username.size > 0) {
         const userIds = await this.userRepository
           .createQueryBuilder()
-          .where('display_name IN (:...names)', {
-            names: Array.from(displayNames),
+          .where('"clan_nick" IN (:...names)', {
+            names: Array.from(username),
           })
           .getMany();
         useridJoining = userIds.map((user) => user?.userId);
@@ -293,7 +293,7 @@ export class WFHSchedulerService {
         )
         .where(
           userOff && userOff.length > 0
-            ? 'user.username NOT IN (:...userOff)'
+            ? 'user.clan_nick NOT IN (:...userOff)'
             : 'true',
           {
             userOff: userOff,
@@ -336,7 +336,7 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.email NOT IN (:...wfhUserEmail)'
+            ? 'user.clan_nick NOT IN (:...wfhUserEmail)'
             : 'true',
           {
             wfhUserEmail: wfhUserEmail,
