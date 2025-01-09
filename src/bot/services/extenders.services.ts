@@ -32,7 +32,7 @@ export class ExtendersService {
       findUser.system = false;
       findUser.email = message.username;
       findUser.display_name = message.display_name ?? '';
-      findUser.clan_nick = message.clan_nick ?? '';
+      findUser.clan_nick = message.clan_nick ? message.clan_nick : findUser.clan_nick;
       findUser.user_type = EUserType.MEZON;
       findUser.flags = 0;
       findUser.last_message_id = message.message_id;

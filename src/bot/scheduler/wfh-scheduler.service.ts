@@ -236,7 +236,7 @@ export class WFHSchedulerService {
               {
                 user_id: user?.userId,
                 s: 0,
-                e: user.username.length + 1,
+                e: user.clan_nick.length + 1,
               },
             ],
           };
@@ -318,7 +318,7 @@ export class WFHSchedulerService {
             thirtyMinutesAgo: thirtyMinutesAgo,
           },
         )
-        .select('DISTINCT user.userId, user.username')
+        .select('DISTINCT user.userId, user.clan_nick')
         .execute();
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
