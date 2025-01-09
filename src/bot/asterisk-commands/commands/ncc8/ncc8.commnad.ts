@@ -17,7 +17,7 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-@Command('ncc8')
+// @Command('ncc8')
 export class Ncc8Command extends CommandMessage {
   private client: MezonClient;
   constructor(

@@ -24,6 +24,11 @@ export interface ReplyMezonMessage {
   };
   refs?: Array<ApiMessageRef>; // user for send message to user
   sender_id?: string;
+  anonymous_message?: boolean;
+  mention_everyone?: boolean;
+  avatar?: string;
+  code?: number;
+  topic_id?: string;
 }
 
 export interface ReactMessageChannel {
