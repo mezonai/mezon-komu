@@ -163,11 +163,16 @@ export async function generateQRCode(text: string): Promise<string> {
 }
 
 export function extractText(content, keyword) {
+  const formatedText = content
+    .replace(/(?<=\btoday:.*?)\n\s*/gis, ' ')
+    .replace(/(?<=\byesterday:.*?)\n\s*/gis, ' ')
+    .replace(/(?<=\bblock:.*?)\n\s*/gis, ' ');
+
   const regex = new RegExp(
     `${keyword}:\\s*(.*?)\\s*(?=\\b(?:Yesterday|Today|Block|Working Time|Type Of Work):|$)`,
     'i',
   );
-  const match = content.match(regex);
+  const match = formatedText.match(regex);
   return match ? match[1].trim() : '';
 }
 export function createReplyMessage(
