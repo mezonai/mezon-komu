@@ -439,6 +439,7 @@ export class KomubotrestService {
       where: {
         senderId: process.env.BOT_KOMU_ID,
         sessionId: payoutApplication.sessionId,
+        appId
       },
     });
     if (checkPayoutSession) {
