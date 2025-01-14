@@ -142,6 +142,12 @@ export class ClientConfigService {
         'IMS_API',
       )}services/app/QuickNews/Create`,
     };
+
+    this.voucherApi = {
+      getTotalVoucherByEmail: `${configService.get<string>('VOUCHER_API')}users/get-user-by-email`,
+      buyVoucher: `${configService.get<string>('VOUCHER_API')}invoices/buy-voucher`
+    };
+
     this.categories = {
       configuration: {
         enabled: true,
@@ -628,4 +634,9 @@ export class ClientConfigService {
   welcomeChannelId: string;
 
   newsChannelId: string;
+
+  voucherApi: {
+    getTotalVoucherByEmail: string,
+    buyVoucher: string
+  }
 }

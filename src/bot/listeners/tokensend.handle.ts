@@ -209,27 +209,9 @@ export class EventTokenSend extends BaseHandleEvent {
           throw 'Unlock fail!';
         }
       } catch (error) {
-        const embedUnlockSuccess: EmbedProps[] = [
-          {
-            color: '#ED4245',
-            title: `❌Unlock timesheet failed. Please contact ADMIN for support!\n\tKOMU sent token back to you!`,
-          },
-        ];
-        const messageToUser: ReplyMezonMessage = {
-          userId: findUnlockTs.userId,
-          textContent: '',
-          messOptions: { embed: embedUnlockSuccess },
-        };
-        this.messageQueue.addMessage(messageToUser);
-
-        // send back money to user when api get error
-        const dataSendToken = {
-          sender_id: process.env.BOT_KOMU_ID,
-          sender_name: 'KOMU',
-          receiver_id: findUnlockTs.userId,
-          amount: +data.amount,
-        };
-        await this.client.sendToken(dataSendToken);
+        const title =
+          'Unlock timesheet failed. Please contact ADMIN for support!\n\tKOMU sent token back to you!';
+        this.handleCallApiError(findUnlockTs.userId, +data.amount, title);
       }
     } catch (error) {
       console.log('handleUnlockTimesheet');
@@ -238,30 +220,105 @@ export class EventTokenSend extends BaseHandleEvent {
 
   @OnEvent(Events.TokenSend)
   async handlePayoutApplication(data) {
-    if (!data?.extra_attribute) return;
     try {
-      const extraAttribute = JSON.parse(data.extra_attribute);
-      if (!extraAttribute?.appId || !extraAttribute?.sessionId) return;
+      const extraAttribute = JSON.parse(
+        data?.extra_attribute || JSON.stringify({}),
+      );
 
       const findApp = await this.applicationRepository.findOne({
         where: { id: extraAttribute?.appId },
       });
-      if (!findApp) return;
+      const appIdWhiteList = ['buy_voucher'];
+      const checkBuyingVoucher =
+        (appIdWhiteList.includes(extraAttribute?.appId) ||
+          data?.note === '[Voucher Buying]') &&
+        data.receiver_id === process.env.BOT_KOMU_ID;
+      if (findApp || checkBuyingVoucher) {
+        const appId = extraAttribute?.appId ?? `unknown-${Date.now()}`;
+        const sessionId = extraAttribute?.sessionId ?? `unknown-${Date.now()}`;
+        const transactionDataInsert = new Transaction();
+        transactionDataInsert.id =
+          data?.transaction_id || sessionId + data.sender_name;
+        transactionDataInsert.appId = appId;
+        transactionDataInsert.sessionId = sessionId;
+        transactionDataInsert.username = data.sender_name;
+        transactionDataInsert.senderId = data.sender_id;
+        transactionDataInsert.receiverId = data.receiver_id;
+        transactionDataInsert.amount = data.amount;
+        transactionDataInsert.createdAt = Date.now();
+        await this.transactionRepository.save(transactionDataInsert);
+      }
 
-      const appId = extraAttribute.appId;
-      const sessionId = extraAttribute.sessionId;
-      const transactionDataInsert = new Transaction();
-      transactionDataInsert.id = data?.transaction_id || sessionId+data.sender_name;
-      transactionDataInsert.appId = appId;
-      transactionDataInsert.sessionId = sessionId;
-      transactionDataInsert.username = data.sender_name;
-      transactionDataInsert.senderId = data.sender_id;
-      transactionDataInsert.receiverId = data.receiver_id;
-      transactionDataInsert.amount = data.amount;
-      transactionDataInsert.createdAt = Date.now();
-      await this.transactionRepository.save(transactionDataInsert);
+      if (checkBuyingVoucher) {
+        this.handleBuyVoucher(data);
+      }
     } catch (error) {
       console.log('ERROR handlePayoutApplication', error);
     }
+  }
+
+  async handleBuyVoucher(data) {
+    const findUser = await this.userRepository.findOne({
+      where: { userId: data.sender_id },
+    });
+    if (!findUser) return;
+    try {
+      const response = await this.axiosClientService.post(
+        `${this.clientConfigService.voucherApi.buyVoucher}`,
+        {
+          value: data.amount,
+          gmail: `${findUser.clan_nick}@ncc.asia`,
+        },
+        {
+          headers: {
+            'X-Secret-Key': process.env.VOUCHER_X_SECRET_KEY,
+          },
+        },
+      );
+      if (response?.data?.message) {
+        const embedUnlockSuccess: EmbedProps[] = [
+          {
+            color: '#57F287',
+            title: `✅Exchange voucher successful!`,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: data.sender_id,
+          textContent: '',
+          messOptions: { embed: embedUnlockSuccess },
+        };
+        this.messageQueue.addMessage(messageToUser);
+      }
+    } catch (error) {
+      let messageContent = error?.response?.data?.message ?? 'Error';
+      if (error?.response?.data?.statusCode === 404) {
+        messageContent = `User not found! Please go https://voucher.nccsoft.vn/ to create an account. KOMU sent ${data.amount ?? ''} token back to you!`;
+      }
+      this.handleCallApiError(data.sender_id, data.amount, messageContent);
+    }
+  }
+
+  async handleCallApiError(userId: string, amount: number, title: string) {
+    const embedUnlockSuccess: EmbedProps[] = [
+      {
+        color: '#ED4245',
+        title: `❌${title}`,
+      },
+    ];
+    const messageToUser: ReplyMezonMessage = {
+      userId: userId,
+      textContent: '',
+      messOptions: { embed: embedUnlockSuccess },
+    };
+    this.messageQueue.addMessage(messageToUser);
+
+    // send back money to user when api get error
+    const dataSendToken = {
+      sender_id: process.env.BOT_KOMU_ID,
+      sender_name: 'KOMU',
+      receiver_id: userId,
+      amount: +amount,
+    };
+    await this.client.sendToken(dataSendToken);
   }
 }
