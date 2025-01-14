@@ -154,6 +154,7 @@ import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absenceda
 import { LogTimeSheetCommand } from './asterisk-commands/commands/logtimesheet/logtimesheet.command';
 import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Request.command';
 import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller';
+import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -313,6 +314,7 @@ import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller
     DailyCommand,
     LogTimeSheetCommand,
     W2RequestCommand,
+    VoucherCommand
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })
