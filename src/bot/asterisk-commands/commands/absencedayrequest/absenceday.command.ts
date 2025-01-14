@@ -84,7 +84,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   id: `dateType`,
                   type: EMessageComponentType.SELECT,
                   component: {
-                    max_options: 1,
                     options: [
                       {
                         label: 'Full Day',
@@ -150,7 +149,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   id: 'dateType',
                   type: EMessageComponentType.SELECT,
                   component: {
-                    max_options: 1,
                     options: [
                       {
                         label: 'Full Day',
@@ -221,7 +219,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   id: 'dateType',
                   type: EMessageComponentType.SELECT,
                   component: {
-                    max_options: 1,
                     options: [
                       {
                         label: 'Full Day',
@@ -246,7 +243,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   id: 'absenceType',
                   type: EMessageComponentType.SELECT,
                   component: {
-                    max_options: 1,
                     options: optionsAbsenceType,
                   },
                 },
@@ -299,7 +295,6 @@ export class RequestAbsenceDayCommand extends CommandMessage {
                   id: 'absenceTime',
                   type: EMessageComponentType.SELECT,
                   component: {
-                    max_options: 1,
                     options: [
                       {
                         label: 'Đi muộn',
