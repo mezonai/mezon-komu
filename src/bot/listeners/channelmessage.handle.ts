@@ -84,7 +84,7 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
-      if (this.isWebhookUser) return;
+      if (await this.isWebhookUser(message)) return;
       const client = await this.userRepository
         .createQueryBuilder('user')
         .where(':role = ANY(user.roles)', { role: '1832750986804858880' })
@@ -131,9 +131,8 @@ export class EventListenerChannelMessage {
         return;
 
       const checkCategoriesId: string[] = [
-        '1828296911740735488', // MEZON
         '1779484504386179072', // PROJECTS
-        '1828297325110366208', // PRODUCTS
+        '1833102872493953024', // PRODUCTS
         '1832960022313701376', // LOREN
         '1833343309028790272', // HRM&IT
         '1780077650828595200', // MANAGEMENT
