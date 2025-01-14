@@ -150,6 +150,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'PMRequestDay':
         this.handlePMRequestAbsenceDay(data);
         break;
+      case 'dailyPm':
+        this.handleSubmitDailyPm(data);
+        break;
       default:
         break;
     }
@@ -374,7 +377,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
       const dataParse = JSON.parse(data.extra_data);
-      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
+      const value = dataParse?.RADIO[0].split('_')[1]; // (pm or staff)
       //init reply message
 
       // only process with no status (not confirm or cancel request yet)
@@ -1992,6 +1995,203 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (e) {
       console.error('handleRequestAbsence', e);
+    }
+  }
+
+  async handleSubmitDailyPm(data) {
+    const senderId = data.user_id;
+    const botId = data.sender_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const messid = splitButtonId[1];
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const codeMessValue = splitButtonId[4];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const ownerSenderDaily = splitButtonId[6];
+    const dateValue = splitButtonId[7];
+    const buttonType = splitButtonId[8];
+    const missingField =
+      '```Missing project, yesterday, today, block or task field```';
+
+    const isOwner = ownerSenderDaily === senderId;
+    if (!isOwner) return;
+    //init reply message
+    const getBotInformation = await this.userRepository.findOne({
+      where: { userId: botId },
+    });
+
+    const msg: ChannelMessage = {
+      message_id: data.message_id,
+      id: '',
+      channel_id: channelId,
+      channel_label: '',
+      code: codeMessValue,
+      create_time: '',
+      sender_id: botId,
+      username: getBotInformation.username,
+      avatar: getBotInformation.avatar,
+      content: { t: '' },
+      attachments: [{}],
+    };
+
+    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
+    try {
+      if (!data.extra_data) {
+        if (
+          (!isOwner && (isCancel || isSubmit)) ||
+          (isOwner && (isCancel || isSubmit))
+        ) {
+          return;
+        }
+      }
+      switch (buttonType) {
+        case EUnlockTimeSheet.SUBMIT.toLowerCase():
+          let parsedExtraData;
+          try {
+            parsedExtraData = JSON.parse(data.extra_data);
+          } catch (error) {
+            throw new Error('Invalid JSON in extra_data');
+          }
+
+          const projectKey = `daily-${messid}-project`;
+          const yesterdayKey = `daily-${messid}-yesterday-ip`;
+          const todayKey = `daily-${messid}-today-ip`;
+          const blockKey = `daily-${messid}-block-ip`;
+          const workingTimeKey = `daily-${messid}-working-time`;
+          const typeOfWorkKey = `daily-${messid}-type-of-work`;
+          const taskKey = `daily-${messid}-task`;
+
+          const projectCodes = parsedExtraData[projectKey];
+          const yesterdayValue = parsedExtraData[yesterdayKey];
+          const todayValue = parsedExtraData[todayKey];
+          const blockValue = parsedExtraData[blockKey];
+          const workingTimeValue = parsedExtraData[workingTimeKey];
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
+          const taskValue = parsedExtraData[taskKey]?.[0];
+
+          const isMissingField =
+            !projectCodes || !yesterdayValue || !todayValue || !blockValue || !taskValue;
+          const contentGenerated = `*daily ${projectCodes} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
+
+          if (!isOwner) {
+            return;
+          }
+          if (isMissingField) {
+            const replyMessageMissingField = createReplyMessage(
+              missingField,
+              clanIdValue,
+              channelId,
+              isPublicValue,
+              modeValue,
+              msg,
+            );
+            return this.messageQueue.addMessage(replyMessageMissingField);
+          }
+          const findUser = await this.userRepository
+            .createQueryBuilder()
+            .where(`"userId" = :userId`, { userId: senderId })
+            .andWhere(`"deactive" IS NOT true`)
+            .select('*')
+            .getRawOne();
+
+          if (!findUser) return;
+
+          const authorUsername = findUser.email;
+          const emailAddress = generateEmail(authorUsername);
+
+          const wfhResult = await this.timeSheetService.findWFHUser();
+          const wfhUserEmail = wfhResult.map((item) =>
+            getUserNameByEmail(item.emailAddress),
+          );
+
+          await this.saveDaily(
+            senderId,
+            channelId,
+            contentGenerated as string,
+            authorUsername,
+          );
+
+          for (let projectCode of projectCodes) {
+            await this.timeSheetService.logTimeSheetForTask(
+              todayValue,
+              emailAddress,
+              projectCode,
+              typeOfWorkValue,
+              taskValue,
+              workingTimeValue,
+            );
+          }
+          const isValidTimeFrame = checkTimeSheet();
+          const isValidWFH = checkTimeNotWFH();
+          const baseMessage = '✅ Daily saved.';
+          const errorMessageWFH =
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
+          const errorMessageNotWFH =
+            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
+
+          const messageContent = wfhUserEmail.includes(authorUsername)
+            ? isValidTimeFrame
+              ? baseMessage
+              : errorMessageWFH
+            : isValidWFH
+              ? baseMessage
+              : errorMessageNotWFH;
+
+          const textDailySuccess =
+            '```' +
+            messageContent +
+            '\n' +
+            `Date: ${dateValue}` +
+            '\n' +
+            `Yesterday: ${yesterdayValue}` +
+            '\n' +
+            `Today: ${todayValue}` +
+            '\n' +
+            `Block: ${blockValue}` +
+            '\n' +
+            `Working time: ${workingTimeValue}h` +
+            '```';
+          const msgDailySuccess = {
+            t: textDailySuccess,
+            mk: [{ type: 't', s: 0, e: textDailySuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgDailySuccess,
+            [],
+            [],
+            true,
+          );
+          break;
+        case EUnlockTimeSheet.CANCEL.toLowerCase():
+          const textDailyCancelSuccess = '```The daily has been cancelled```';
+          const msgDailyCancelSuccess = {
+            t: textDailyCancelSuccess,
+            mk: [{ type: 't', s: 0, e: textDailyCancelSuccess.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgDailyCancelSuccess,
+            [],
+            [],
+            true,
+          );
+          return;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Error in handleSubmitDailyPm:', error.message);
     }
   }
 }
