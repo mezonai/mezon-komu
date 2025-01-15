@@ -122,7 +122,7 @@ export class VoucherCommand extends CommandMessage {
               },
               {
                 name: `Total Voucher`,
-                value: `Available: ${response?.data?.totalAvailable} đ`,
+                value: `Available: ${response?.data?.totalAvailable} đ\nUsed: ${response?.data?.totalUsed} đ`,
               },
             ],
             author: {
