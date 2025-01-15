@@ -46,7 +46,7 @@ export class VoucherCommand extends CommandMessage {
           color: getRandomColor(),
           fields: [
             {
-              name: 'Scan this QR code for UNLOCK TIMESHEET!',
+              name: 'Scan this QR code for EXCHANGE VOUCHER!',
               value: '',
             },
           ],
