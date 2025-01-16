@@ -112,13 +112,20 @@ export class DailyPmCommand extends CommandMessage {
       },
     });
     const taskMetaData = responseTasks?.data?.result;
-    const getTaskByProjectCode = taskMetaData?.find(
-      (p) => p?.projectCode === getProjectFromProjectOpt?.value,
-    );
-    const optionsTask = getTaskByProjectCode?.tasks?.map((task) => ({
+
+    const allTasks = taskMetaData.flatMap(project => project.tasks);
+
+    const optionsTask = allTasks?.map((task) => ({
       label: task.taskName,
       value: task.taskName,
     }));
+
+    const taskDefault = {
+      label: 'Project Management',
+      value: 'Project Management',
+    }
+
+    const defaultValueToday = "note: pm";
 
     const optionTypeOfWork = [
       {
@@ -180,7 +187,7 @@ export class DailyPmCommand extends CommandMessage {
                 placeholder: 'Ex. Write something',
                 required: true,
                 textarea: true,
-                defaultValue: todayText,
+                defaultValue: defaultValueToday,
               },
             },
           },
@@ -224,7 +231,7 @@ export class DailyPmCommand extends CommandMessage {
               component: {
                 options: optionsTask,
                 required: true,
-                valueSelected: optionsTask[0],
+                valueSelected: taskDefault,
               },
             },
           },
