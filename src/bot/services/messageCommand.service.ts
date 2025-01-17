@@ -75,7 +75,7 @@ export class MessageCommand {
                 this.messageQueue.addMessage(message);
                 break;
               default:
-                console.log('error send', error);
+                console.log('error send', message, error);
                 break;
             }
           }

@@ -267,7 +267,7 @@ export class EventTokenSend extends BaseHandleEvent {
         `${this.clientConfigService.voucherApi.buyVoucher}`,
         {
           value: data.amount,
-          gmail: `${findUser.clan_nick}@ncc.asia`,
+          gmail: `${findUser?.clan_nick || findUser.username}@ncc.asia`,
         },
         {
           headers: {

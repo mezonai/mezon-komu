@@ -214,7 +214,7 @@ export class EventListenerChannelMessage {
     if (msg.channel_id === this.clientConfigService.machleoChannelId) return;
     try {
       const mentions = Array.isArray(msg.mentions) ? msg.mentions : [];
-      const message = msg.content.t.replace('@KOMU', 'bạn');
+      const message = msg?.content?.t?.replace('@KOMU', 'bạn');
       const refs = Array.isArray(msg.references) ? msg.references : [];
       if (
         (msg.mode === ChannelStreamMode.STREAM_MODE_DM ||

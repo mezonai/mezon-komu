@@ -182,12 +182,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         .getRawOne();
       let mess = '';
       const messOptions = {};
-      if (userQuiz['answer']) {
+      if (userQuiz?.['answer']) {
         mess = `Bạn đã trả lời câu hỏi này rồi`;
       } else {
         const question = await this.quizRepository
           .createQueryBuilder()
-          .where('id = :quizId', { quizId: userQuiz['quizId'] })
+          .where('id = :quizId', { quizId: userQuiz?.['quizId'] })
           .select('*')
           .getRawOne();
         if (question) {

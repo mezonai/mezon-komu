@@ -87,10 +87,14 @@ export class VoucherCommand extends CommandMessage {
             user_type: EUserType.MEZON,
           },
         });
-        userEmail = findUser?.clan_nick ?? 'null';
+        userEmail = findUser?.clan_nick || findUser.username;
       }
       const user = await this.userRepository.findOne({
-        where: { clan_nick: userEmail },
+        where: [
+          { clan_nick: userEmail },
+          { username: userEmail },
+        ],
+        order: { clan_nick: 'DESC' },
       });
       if (!user) {
         return this.replyMessageGenerate(
@@ -103,7 +107,7 @@ export class VoucherCommand extends CommandMessage {
       }
       try {
         const response = await this.axiosClientService.get(
-          `${this.clientConfigService.voucherApi.getTotalVoucherByEmail}/${user.clan_nick}@ncc.asia`,
+          `${this.clientConfigService.voucherApi.getTotalVoucherByEmail}/${user?.clan_nick || user.username}@ncc.asia`,
           {
             headers: {
               'X-Secret-Key': process.env.VOUCHER_X_SECRET_KEY,
