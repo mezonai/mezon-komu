@@ -35,65 +35,6 @@ export class FineReportSchedulerService {
     private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
-  async dailyReportScheduler() {
-    const data = await this.calculateAndUpdateSheet();
-
-    const messageContent = `
-    @STAFF @INTERN 
-    Hi mn, link saodo ngày ${data.reportDate.format('DD/MM/YYYY')}. Mọi người lưu ý check kĩ các lỗi mình mắc phải, nếu cần complain thì gửi khiếu nại vào sheet saodo để được giải quyết nếu có lý do chính đáng.
-
-    Link: ${data.sheetUrl}
-    `
-      .split('\n')
-      .map((line) => line.trim())
-      .join('\n')
-      .trim();
-
-    const roleTitles = ['STAFF', 'INTERN'];
-    const roles = await this.roleMezonRepository.find({
-      where: {
-        clan_id: this.clientConfigService.clandNccId,
-        title: In(roleTitles),
-      },
-    });
-    const staffRole = roles.find((role) => role.title === 'STAFF');
-    const internRole = roles.find((role) => role.title === 'INTERN');
-
-    const replyMessage = {
-      clan_id: this.clientConfigService.clandNccId,
-      channel_id: this.clientConfigService.mezonNhaCuaChungChannelId,
-      is_public: false,
-      is_parent_public: true,
-      parent_id: '0',
-      mode: EMessageMode.CHANNEL_MESSAGE,
-      msg: {
-        t: messageContent,
-        lk: [
-          {
-            s: messageContent.length - data.sheetUrl.length,
-            e: messageContent.length,
-          },
-        ],
-      },
-      mentions: [
-        {
-          role_id: staffRole?.id,
-          s: 0,
-          e: '@STAFF'.length,
-        },
-        {
-          role_id: internRole?.id,
-          s: '@STAFF'.length + 1,
-          e: '@STAFF'.length + 1 + '@INTERN'.length,
-        },
-      ],
-    };
-    this.messageQueue.addMessage(replyMessage);
-  }
-
   private async calculateAndUpdateSheet(
     reportDate?: moment.Moment,
     sheetId?: string,
