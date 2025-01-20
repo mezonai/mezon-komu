@@ -90,7 +90,8 @@ export class MeetingSchedulerService {
           where: { channel_id: dataMeeing.channelId },
         });
         const isThread =
-          findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
+          findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+          (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
         const replyMessage = {
           clan_id: this.clientConfig.clandNccId,
           channel_id: dataMeeing.channelId,
@@ -192,7 +193,8 @@ export class MeetingSchedulerService {
       where: { channel_id: data.channelId },
     });
     const isThread =
-      findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
+      findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+      (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
     const replyMessage = {
       clan_id: this.clientConfig.clandNccId,
       channel_id: data.channelId,
@@ -214,7 +216,7 @@ export class MeetingSchedulerService {
         ],
       },
       mentions: [{ user_id: this.configClient.hereUserId, s: 0, e: 5 }],
-      mention_everyone: true
+      mention_everyone: true,
     };
     this.messageQueue.addMessage(replyMessage);
   }

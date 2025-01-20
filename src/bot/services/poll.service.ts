@@ -117,7 +117,8 @@ export class PollService {
         },
       });
       const isThread =
-        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
       const findUser = await this.userRepository.findOne({
         where: { userId: findMessagePoll.userId, user_type: EUserType.MEZON },
       });

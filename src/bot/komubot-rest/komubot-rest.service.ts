@@ -254,7 +254,8 @@ export class KomubotrestService {
         return;
       }
       const isThread =
-        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD;
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
       const replyMessage = {
         clan_id: this.clientConfig.clandNccId,
         channel_id: channelId,
@@ -423,86 +424,92 @@ export class KomubotrestService {
     appId: string,
     res,
   ) {
-    if (!apiKey || !appId || !payoutApplication.sessionId) {
-      res.status(400).send({ message: 'Missing apiKey, appId or sessionId!' });
-      return;
-    }
-    const app = await this.applicationRepository.findOne({
-      where: { id: appId },
-    });
-    if (!app || app?.apiKey !== apiKey) {
-      res.status(400).send({ message: 'Wrong apiKey or appId!' });
-      return;
-    }
-
-    const checkPayoutSession = await this.transactionRepository.findOne({
-      where: {
-        senderId: process.env.BOT_KOMU_ID,
-        sessionId: payoutApplication.sessionId,
-        appId
-      },
-    });
-    if (checkPayoutSession) {
-      res.status(400).send({ message: 'This session had been payout!' });
-      return;
-    }
-
-    const totalAmountBySessionId = await this.getTotalAmountBySessionIdAndAppId(
-      payoutApplication.sessionId,
-      appId,
-    );
-    if (!totalAmountBySessionId) {
-      res
-        .status(400)
-        .send({ message: 'Not found transaction for this sessionId!' });
-      return;
-    }
-    const totalAmountReward = payoutApplication.userRewardedList.reduce(
-      (sum, item) => sum + item.amount,
-      0,
-    );
-    if (totalAmountReward > totalAmountBySessionId) {
-      res.status(400).send({
-        message:
-          'Total amount reward bigger than total amount in this session!',
+    try {
+      if (!apiKey || !appId || !payoutApplication.sessionId) {
+        res
+          .status(400)
+          .send({ message: 'Missing apiKey, appId or sessionId!' });
+        return;
+      }
+      const app = await this.applicationRepository.findOne({
+        where: { id: appId },
       });
-      return;
+      if (!app || app?.apiKey !== apiKey) {
+        res.status(400).send({ message: 'Wrong apiKey or appId!' });
+        return;
+      }
+
+      const checkPayoutSession = await this.transactionRepository.findOne({
+        where: {
+          senderId: process.env.BOT_KOMU_ID,
+          sessionId: payoutApplication.sessionId,
+          appId,
+        },
+      });
+      if (checkPayoutSession) {
+        res.status(400).send({ message: 'This session had been payout!' });
+        return;
+      }
+
+      const totalAmountBySessionId =
+        await this.getTotalAmountBySessionIdAndAppId(
+          payoutApplication.sessionId,
+          appId,
+        );
+      if (!totalAmountBySessionId) {
+        res
+          .status(400)
+          .send({ message: 'Not found transaction for this sessionId!' });
+        return;
+      }
+      const totalAmountReward = payoutApplication.userRewardedList.reduce(
+        (sum, item) => sum + item.amount,
+        0,
+      );
+      if (totalAmountReward > totalAmountBySessionId) {
+        res.status(400).send({
+          message:
+            'Total amount reward bigger than total amount in this session!',
+        });
+        return;
+      }
+
+      const senderIdWhiteList = (
+        await this.transactionRepository.find({
+          select: ['senderId'],
+          where: { sessionId: payoutApplication.sessionId },
+        })
+      ).map((transaction) => transaction.senderId);
+
+      const sendSuccessList = [];
+      const sendFailList = [];
+      await Promise.all(
+        payoutApplication.userRewardedList.map(async (item) => {
+          if (!senderIdWhiteList.includes(item.userId)) {
+            sendFailList.push(item.userId);
+            return;
+          }
+
+          const dataSendToken = {
+            sender_id: process.env.BOT_KOMU_ID,
+            sender_name: 'KOMU',
+            receiver_id: item.userId,
+            amount: +item.amount,
+            extra_attribute: JSON.stringify({
+              appId,
+              sessionId: payoutApplication.sessionId,
+            }),
+          };
+          sendSuccessList.push(item.userId);
+          return this.client.sendToken(dataSendToken);
+        }),
+      );
+
+      res
+        .status(200)
+        .send({ message: 'Successfully!', sendSuccessList, sendFailList });
+    } catch (error) {
+      console.log('handlePayoutApplication api error', error);
     }
-
-    const senderIdWhiteList = (
-      await this.transactionRepository.find({
-        select: ['senderId'],
-        where: { sessionId: payoutApplication.sessionId },
-      })
-    ).map((transaction) => transaction.senderId);
-
-    const sendSuccessList = [];
-    const sendFailList = [];
-    await Promise.all(
-      payoutApplication.userRewardedList.map(async (item) => {
-        if (!senderIdWhiteList.includes(item.userId)) {
-          sendFailList.push(item.userId);
-          return;
-        }
-
-        const dataSendToken = {
-          sender_id: process.env.BOT_KOMU_ID,
-          sender_name: 'KOMU',
-          receiver_id: item.userId,
-          amount: +item.amount,
-          extra_attribute: JSON.stringify({
-            appId,
-            sessionId: payoutApplication.sessionId,
-          }),
-        };
-
-        sendSuccessList.push(item.userId);
-        return this.client.sendToken(dataSendToken);
-      }),
-    );
-
-    res
-      .status(200)
-      .send({ message: 'Successfully!', sendSuccessList, sendFailList });
   }
 }

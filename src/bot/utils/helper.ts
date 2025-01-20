@@ -211,7 +211,10 @@ export function findProjectByLabel(optionsProject, projectText) {
 
   return (
     optionsProject.find((option) => {
-      const value = option?.value;
+      let value = option?.value;
+      if (value?.toString()?.includes(' ')) {
+        value = option?.value?.split(' ')?.[0] ?? ''
+      }
       if (typeof value === 'string') {
         return value.trim().toLowerCase() === normalizedText;
       }
