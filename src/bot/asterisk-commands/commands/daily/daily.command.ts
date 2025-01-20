@@ -226,7 +226,7 @@ export class DailyCommand extends CommandMessage {
               component: {
                 options: optionsTask,
                 required: true,
-                valueSelected: optionsTask[0],
+                valueSelected: optionsTask?.[0],
               },
             },
           },
