@@ -21,6 +21,7 @@ import {
 } from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
+import { MezonClientService } from '../../../../mezon/services/client.service';
 
 export enum EMessageSelectType {
   TEXT = 1,
@@ -38,6 +39,7 @@ export class DailyPmCommand extends CommandMessage {
     @InjectRepository(Daily) private dailyRepository: Repository<Daily>,
     private readonly clientConfigService: ClientConfigService,
     private readonly axiosClientService: AxiosClientService,
+    private clientService: MezonClientService,
   ) {
     super();
   }
@@ -70,9 +72,12 @@ export class DailyPmCommand extends CommandMessage {
     const ownerSenderDailyEmail = (message.clan_nick || message.username) + '@ncc.asia';
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
-        ? message.content.t.trim() === '*dailyPm'
+        ? message.content.t.startsWith('*dailyPm') || message.content.t.startsWith('*dailypm')
         : false;
-    if (messageValidate && !onlyDailySyntax)
+    const countDaily = message.content.t.split(' ')[1];
+    const validCountDaily = /^[0-9]+$/.test(countDaily);
+
+    if (messageValidate && !onlyDailySyntax && !validCountDaily)
       return this.replyMessageGenerate(
         {
           messageContent: messageValidate,
@@ -115,10 +120,22 @@ export class DailyPmCommand extends CommandMessage {
     const getTaskByProjectCode = taskMetaData?.find(
       (p) => p?.projectCode === getProjectFromProjectOpt?.value,
     );
+
     const optionsTask = getTaskByProjectCode?.tasks?.map((task) => ({
       label: task.taskName,
       value: task.taskName,
     }));
+
+    const taskDefault = {
+      label: 'Project Management',
+      value: 'Project Management',
+    };
+
+    if (!optionsTask.some((task) => task.value === taskDefault.value)) {
+      optionsTask.push(taskDefault);
+    }
+
+    const defaultValueToday = 'note: pm';
 
     const optionTypeOfWork = [
       {
@@ -147,7 +164,6 @@ export class DailyPmCommand extends CommandMessage {
               id: `daily-${messageid}-project`,
               type: EMessageComponentType.SELECT,
               component: {
-                max_options: 20,
                 options: optionsProject,
                 required: true,
                 valueSelected: getProjectFromProjectOpt,
@@ -180,7 +196,7 @@ export class DailyPmCommand extends CommandMessage {
                 placeholder: 'Ex. Write something',
                 required: true,
                 textarea: true,
-                defaultValue: todayText,
+                defaultValue: defaultValueToday,
               },
             },
           },
@@ -224,7 +240,7 @@ export class DailyPmCommand extends CommandMessage {
               component: {
                 options: optionsTask,
                 required: true,
-                valueSelected: optionsTask[0],
+                valueSelected: taskDefault,
               },
             },
           },
@@ -269,13 +285,18 @@ export class DailyPmCommand extends CommandMessage {
         ],
       },
     ];
-    if (onlyDailySyntax || !messageValidate)
-      return this.replyMessageGenerate(
-        {
-          embed,
-          components,
-        },
-        message,
-      );
+    for (let i = 0; i < Number(countDaily); i++) {
+      if (onlyDailySyntax || !messageValidate) {
+        const dataSend = this.replyMessageGenerate(
+          {
+            embed,
+            components,
+          },
+          message,
+        );
+        await this.clientService.sendMessage(dataSend);
+      }
+    }
+    return null;
   }
 }

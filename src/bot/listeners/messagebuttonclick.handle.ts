@@ -739,7 +739,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         ERequestAbsenceDayType[
           typeRequest as keyof typeof ERequestAbsenceDayType
         ];
-      if (!data?.extra_data) return;
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
         where: { messageId: data.message_id, channelId: data.channel_id },
@@ -749,7 +748,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // Check user authorization
       if (findAbsenceData.userId !== data.user_id) return;
 
-      const dataParse = JSON.parse(data.extra_data);
+      const dataParse = data.extra_data ? JSON.parse(data.extra_data) : {};
 
       // Initialize reply message
       const replyMessage: ReplyMezonMessage = {
