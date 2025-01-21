@@ -90,6 +90,14 @@ export class ClientConfigService {
       api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/RejectRequestDay`,
     };
 
+    this.getAllTimeSheetOfUser = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/GetAllTimeSheetOfUser`,
+    }
+
+    this.submitTsWeek = {
+      api_url: `${configService.get<string>('TIMESHEET_API')}Mezon/SubmitTsToPending`,
+    }
+
     this.checkout = {
       api_url: `${configService.get<string>(
         'KOMUBOTREST_CHECK_IN_URL',
@@ -539,6 +547,14 @@ export class ClientConfigService {
   PMRejectRequestDay: {
     api_url: string;
   };
+
+  getAllTimeSheetOfUser: {
+    api_url: string;
+  };
+
+  submitTsWeek: {
+    api_url: string;
+  }
 
   wiki: {
     api_url: string;

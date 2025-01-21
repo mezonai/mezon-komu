@@ -156,6 +156,7 @@ import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Requ
 import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller';
 import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.command';
 import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command";
+import { SubmitWeekTsCommand } from './asterisk-commands/commands/submitweekts/submitweekts.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -317,6 +318,7 @@ import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command
     W2RequestCommand,
     VoucherCommand,
     DailyPmCommand,
+    SubmitWeekTsCommand,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })
