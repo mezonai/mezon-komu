@@ -130,6 +130,7 @@ export class QuizService {
   }
 
   generateQuestion(question, channelDmId) {
+    const color = getRandomColor();
     const title = question.topic
       ? `[${question.topic.toUpperCase()}] ${question.title}`
       : question.title;
@@ -138,7 +139,7 @@ export class QuizService {
       .map((otp, index) => {
         buttons.push({
           type: EMessageComponentType.BUTTON,
-          id: `question_${index + 1}_${channelDmId}`,
+          id: `question_${index + 1}_${channelDmId}_${color}`,
           component: {
             label: `${index + 1}`,
             style: EButtonMessageStyle.PRIMARY,
@@ -155,16 +156,15 @@ export class QuizService {
     ];
     const embed = [
       {
-        color: getRandomColor(),
+        color: color,
         title: `${title}`,
         description:
-          '```' +
+          '```' + '\n'+
           `${question.options
             .map((otp, index) => {
               return `${index + 1} - ${otp}`;
             })
             .join('\n')}` +
-          '' +
           '```' +
           '\n(Chọn đáp án đúng tương ứng phía bên dưới!)',
       },

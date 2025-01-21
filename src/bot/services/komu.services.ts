@@ -67,7 +67,6 @@ export class KomuService {
           newMessage = {
             textContent: '',
             messOptions: {
-              mk: [{ type: 't', s: 0, e: msg.length + 6 }],
               components,
               embed,
             },
@@ -78,7 +77,6 @@ export class KomuService {
           newMessage = {
             textContent: '',
             messOptions: {
-              mk: [{ type: 't', s: 0, e: msg.length + 6 }],
               components,
               embed,
             },

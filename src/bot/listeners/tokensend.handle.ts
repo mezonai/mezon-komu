@@ -235,7 +235,9 @@ export class EventTokenSend extends BaseHandleEvent {
         data.receiver_id === process.env.BOT_KOMU_ID;
       if (findApp || checkBuyingVoucher) {
         const appId = extraAttribute?.appId ?? `unknown-${Date.now()}`;
-        const sessionId = extraAttribute?.sessionId ?? `unknown-${Date.now()}`;
+        const sessionId = checkBuyingVoucher
+          ? `buy_voucher-${data.sender_id}-${Date.now()}`
+          : (extraAttribute?.sessionId ?? `unknown-${Date.now()}`);
         const transactionDataInsert = new Transaction();
         transactionDataInsert.id =
           data?.transaction_id || sessionId + data.sender_name;

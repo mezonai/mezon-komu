@@ -90,10 +90,7 @@ export class VoucherCommand extends CommandMessage {
         userEmail = findUser?.clan_nick || findUser.username;
       }
       const user = await this.userRepository.findOne({
-        where: [
-          { clan_nick: userEmail },
-          { username: userEmail },
-        ],
+        where: [{ clan_nick: userEmail }, { username: userEmail }],
         order: { clan_nick: 'DESC' },
       });
       if (!user) {
