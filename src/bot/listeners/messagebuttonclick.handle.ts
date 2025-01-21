@@ -164,6 +164,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (args[0] !== 'question') return;
       const answer = args[1];
       const channelDmId = args[2];
+      const color = args[3] || '#57F287';
       await this.userRepository.update(
         { userId: data.user_id },
         {
@@ -181,15 +182,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         .select('*')
         .getRawOne();
       let mess = '';
+      const question = await this.quizRepository
+        .createQueryBuilder()
+        .where('id = :quizId', { quizId: userQuiz?.['quizId'] })
+        .select('*')
+        .getRawOne();
       const messOptions = {};
       if (userQuiz?.['answer']) {
         mess = `Bạn đã trả lời câu hỏi này rồi`;
       } else {
-        const question = await this.quizRepository
-          .createQueryBuilder()
-          .where('id = :quizId', { quizId: userQuiz?.['quizId'] })
-          .select('*')
-          .getRawOne();
         if (question) {
           if (!checkAnswerFormat(answer, question['options'].length)) {
             mess = `Bạn vui lòng trả lời đúng số thứ tự các đáp án câu hỏi`;
@@ -253,6 +254,36 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         attachments: [],
         refs: refGenerate(msg),
       };
+      const title = question.topic
+      ? `[${question.topic.toUpperCase()}] ${question.title}`
+      : question.title;
+      const embed = [
+        {
+          color: color,
+          title: `${title}`,
+          description:
+            '```' +
+            `${question.options
+              .map((otp, index) => {
+                return `${index + 1} - ${otp}`;
+              })
+              .join('\n')}` +
+            '' +
+            '```' +
+            '\n(Câu hỏi đã được trả lời)',
+        },
+      ];
+      await this.client.updateChatMessage(
+        '0',
+        channelDmId,
+        EMessageMode.DM_MESSAGE,
+        false,
+        data.message_id,
+        {embed},
+        [],
+        [],
+        true,
+      );
       this.messageQueue.addMessage(messageToUser);
     } catch (error) {
       console.log('handleMessageButtonClicked', error);
@@ -552,7 +583,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const taskValue = parsedExtraData[taskKey]?.[0];
 
           const isMissingField =
-            !projectCode || !yesterdayValue || !todayValue || !blockValue || !taskValue;
+            !projectCode ||
+            !yesterdayValue ||
+            !todayValue ||
+            !blockValue ||
+            !taskValue;
           const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
           const contentLength =
             yesterdayValue?.length + todayValue?.length + blockValue?.length;
@@ -1534,7 +1569,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           messOptions: { embed, components },
         };
         this.messageQueue.addMessage(messageToUser);
-      } else if (buttonConfirmType === EPMTaskW2Type.PROBATIONARY_CONFIRMATION) {
+      } else if (
+        buttonConfirmType === EPMTaskW2Type.PROBATIONARY_CONFIRMATION
+      ) {
         const embed: EmbedProps[] = [
           {
             color: getRandomColor(),
@@ -2071,7 +2108,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const taskValue = parsedExtraData[taskKey]?.[0];
 
           const isMissingField =
-            !projectCodes || !yesterdayValue || !todayValue || !blockValue || !taskValue;
+            !projectCodes ||
+            !yesterdayValue ||
+            !todayValue ||
+            !blockValue ||
+            !taskValue;
           const contentGenerated = `*daily ${projectCodes} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
 
           if (!isOwner) {
