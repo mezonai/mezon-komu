@@ -41,6 +41,7 @@ import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
 import { PayoutApplication } from '../dto/payoutApplication';
 import moment from 'moment';
 import { ReportTrackerService } from '../services/reportTracker.sevicer';
+import { SendTokenToUser } from '../dto/sendTokenToUser';
 
 @ApiTags('Komu')
 @Controller()
@@ -347,6 +348,19 @@ export class KomubotrestController {
       payoutApplication,
       apiKey,
       appId,
+      res,
+    );
+  }
+
+  @Post('/sendTokenToUser')
+  async handlesendTokenToUser(
+    @Body() sendTokenToUser: SendTokenToUser,
+    @Headers('X-Secret-Key') apiKey,
+    @Res() res: Response,
+  ) {
+    return this.komubotrestService.handleSendTokenToUser(
+      sendTokenToUser,
+      apiKey,
       res,
     );
   }
