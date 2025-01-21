@@ -24,6 +24,7 @@ import { GetUserIdByEmailDTO } from '../dto/getUserIdByEmail';
 import { ChannelType, MezonClient } from 'mezon-sdk';
 import { PayoutApplication } from '../dto/payoutApplication';
 import { MezonClientService } from 'src/mezon/services/client.service';
+import { SendTokenToUser } from '../dto/sendTokenToUser';
 
 @Injectable()
 export class KomubotrestService {
@@ -510,6 +511,42 @@ export class KomubotrestService {
         .send({ message: 'Successfully!', sendSuccessList, sendFailList });
     } catch (error) {
       console.log('handlePayoutApplication api error', error);
+    }
+  }
+
+  async handleSendTokenToUser(
+    sendTokenToUser: SendTokenToUser,
+    apiKey: string,
+    res,
+  ) {
+    try {
+      if (apiKey !== process.env.SEND_TOKEN_X_SECRET_KEY) {
+        res
+          .status(400)
+          .send({ message: 'Wrong api key!' });
+        return;
+      }
+      await Promise.all(
+        sendTokenToUser.userReceiverList.map(async (item) => {
+          const dataSendToken = {
+            sender_id: process.env.BOT_KOMU_ID,
+            sender_name: 'KOMU',
+            receiver_id: item.userId,
+            amount: +item.amount,
+            extra_attribute: JSON.stringify({
+              appId: 'send_by_api',
+              sessionId: 'send_by_api',
+            }),
+          };
+          return this.client.sendToken(dataSendToken);
+        }),
+      );
+
+      res
+        .status(200)
+        .send({ message: 'Sent token successfully!' });
+    } catch (error) {
+      console.log('handleSendTokenToUser api error', error);
     }
   }
 }

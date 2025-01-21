@@ -220,6 +220,7 @@ export class EventTokenSend extends BaseHandleEvent {
 
   @OnEvent(Events.TokenSend)
   async handlePayoutApplication(data) {
+    const appIdWhiteList = ['buy_voucher', 'send_by_api'];
     try {
       const extraAttribute = JSON.parse(
         data?.extra_attribute || JSON.stringify({}),
@@ -228,15 +229,13 @@ export class EventTokenSend extends BaseHandleEvent {
       const findApp = await this.applicationRepository.findOne({
         where: { id: extraAttribute?.appId },
       });
-      const appIdWhiteList = ['buy_voucher'];
-      const checkBuyingVoucher =
-        (appIdWhiteList.includes(extraAttribute?.appId) ||
-          data?.note === '[Voucher Buying]') &&
-        data.receiver_id === process.env.BOT_KOMU_ID;
-      if (findApp || checkBuyingVoucher) {
+
+      const checkWhiteList = appIdWhiteList.includes(extraAttribute?.appId);
+
+      if (findApp || checkWhiteList) {
         const appId = extraAttribute?.appId ?? `unknown-${Date.now()}`;
-        const sessionId = checkBuyingVoucher
-          ? `buy_voucher-${data.sender_id}-${Date.now()}`
+        const sessionId = checkWhiteList
+          ? `${extraAttribute?.sessionId}-${data.sender_id}-${Date.now()}`
           : (extraAttribute?.sessionId ?? `unknown-${Date.now()}`);
         const transactionDataInsert = new Transaction();
         transactionDataInsert.id =
@@ -251,8 +250,9 @@ export class EventTokenSend extends BaseHandleEvent {
         await this.transactionRepository.save(transactionDataInsert);
       }
 
-      if (checkBuyingVoucher) {
-        this.handleBuyVoucher(data);
+      if (checkWhiteList) {
+        if (extraAttribute?.appId === 'buy_voucher')
+          this.handleBuyVoucher(data);
       }
     } catch (error) {
       console.log('ERROR handlePayoutApplication', error);
