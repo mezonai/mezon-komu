@@ -150,13 +150,12 @@ import { StreamingEvent } from './listeners/streamingevent.handle';
 import { UnlockTimeSheetCommand } from './asterisk-commands/commands/unlocktimesheet/unlockts.command';
 import { MusicCommand } from './asterisk-commands/commands/music/music.command';
 import { MusicService } from './services/music.services';
-import { RequestAbsenceDayCommand } from './asterisk-commands/commands/absencedayrequest/absenceday.command';
+import { TimeSheetCommand } from './asterisk-commands/commands/timesheet/timesheet.command';
 import { LogTimeSheetCommand } from './asterisk-commands/commands/logtimesheet/logtimesheet.command';
 import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Request.command';
 import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller';
 import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.command';
 import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command";
-import { SubmitWeekTsCommand } from './asterisk-commands/commands/submitweekts/submitweekts.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -312,13 +311,12 @@ import { SubmitWeekTsCommand } from './asterisk-commands/commands/submitweekts/s
     MessageButtonClickedEvent,
     StreamingEvent,
     UnlockTimeSheetCommand,
-    RequestAbsenceDayCommand,
+    TimeSheetCommand,
     DailyCommand,
     LogTimeSheetCommand,
     W2RequestCommand,
     VoucherCommand,
     DailyPmCommand,
-    SubmitWeekTsCommand,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })
