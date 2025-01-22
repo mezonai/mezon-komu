@@ -153,6 +153,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'dailyPm':
         this.handleSubmitDailyPm(data);
         break;
+      case 'submitWeekTs':
+        this.handleSubmitWeekTs(data);
+        break;
       default:
         break;
     }
@@ -2232,6 +2235,90 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (error) {
       console.error('Error in handleSubmitDailyPm:', error.message);
+    }
+  }
+
+  async handleSubmitWeekTs(data) {
+    const senderId = data.user_id;
+    const channelId = data.channel_id;
+    const splitButtonId = data.button_id.split('_');
+    const clanIdValue = splitButtonId[2];
+    const modeValue = splitButtonId[3];
+    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+    const ownerSenderDaily = splitButtonId[6];
+    const startDate = splitButtonId[7];
+    const endDate = splitButtonId[8];
+    const typeButtonRes = splitButtonId[9]; // (confirm or cancel)
+
+    const isOwner = ownerSenderDaily === senderId;
+    if (!isOwner) return;
+
+    try {
+      // find emailAddress by senderId
+      const findUser = await this.userRepository
+        .createQueryBuilder()
+        .where(`"userId" = :userId`, { userId: senderId})
+        .andWhere(`"deactive" IS NOT true`)
+        .select('*')
+        .getRawOne();
+      if (!findUser) return;
+      const authorUsername = findUser.email;
+      const emailAddress = generateEmail(authorUsername);
+
+      // Process only requests without status
+      switch (typeButtonRes) {
+        case ERequestAbsenceDayStatus.CONFIRM:
+          try {
+            const res = await this.timeSheetService.submitTsWeek(emailAddress, startDate, endDate);
+            const result = res.data.result;
+            const textSuccess = `\`\`\`✅ ${result}\`\`\``;
+            const msgSuccess = {
+              t: textSuccess,
+              mk: [{ type: 't', s: 0, e: textSuccess.length }],
+            };
+            await this.client.updateChatMessage(
+              clanIdValue,
+              channelId,
+              modeValue,
+              isPublicValue,
+              data.message_id,
+              msgSuccess,
+            );
+          } catch (error) {
+            const textError = `\`\`\`❌ ${error.response.data.error.message || 'Submit timesheet failed.'}\`\`\``;
+            const msgError = {
+              t: textError,
+              mk: [{ type: 't', s: 0, e: textError.length }],
+            };
+            await this.client.updateChatMessage(
+              clanIdValue,
+              channelId,
+              modeValue,
+              isPublicValue,
+              data.message_id,
+              msgError,
+            );
+            return;
+          }
+          break;
+        default:
+          const textCancel = `\`\`\`Cancel submit timesheet successful! \`\`\``;
+          const msgCancel = {
+            t: textCancel,
+            mk: [{ type: 't', s: 0, e: textCancel.length }],
+          };
+          await this.client.updateChatMessage(
+            clanIdValue,
+            channelId,
+            modeValue,
+            isPublicValue,
+            data.message_id,
+            msgCancel,
+          );
+          break;
+      }
+    } catch (e) {
+      console.error('handleSubmitTs', e);
     }
   }
 }

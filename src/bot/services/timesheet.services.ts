@@ -517,4 +517,37 @@ export class TimeSheetService {
       },
     );
   };
+
+  getAllTimeSheetOfUser = async (startDate, endDate, emailAddress) => {
+    try {
+      const url = `${this.clientConfigService.getAllTimeSheetOfUser.api_url}?startDate=${startDate}&endDate=${endDate}&emailAddress=${emailAddress}`;
+
+      const response = await this.axiosClientService.get(url, {
+        httpsAgent: this.clientConfigService.https,
+        headers: {
+          securityCode: this.clientConfigService.imsKeySecret,
+        },
+      });
+
+      return response.data.result;
+
+    } catch (error) {
+      throw new Error('Failed to fetch timesheet data. Please try again later.');
+    }
+  }
+
+  submitTsWeek = async (emailAddress, startDate, endDate) => {
+    const url = `${this.clientConfigService.submitTsWeek.api_url}?emailAddress=${emailAddress}`;
+    const body = {
+      startDate,
+      endDate,
+    };
+    const response = await this.axiosClientService.post(url, body, {
+      httpsAgent: this.clientConfigService.https,
+      headers: {
+        securityCode: this.clientConfigService.imsKeySecret,
+      },
+    });
+    return response;
+  }
 }

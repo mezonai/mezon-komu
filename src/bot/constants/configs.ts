@@ -205,3 +205,10 @@ export enum EPMButtonTaskW2 {
     CONFIRM_PROBATIONARY = 'ConfirmProbationaryConfirmationRequest',
     COMFIRM_REGISNATION = 'ConfirmResignationRequest',
 }
+
+export enum StatusTimeSheet {
+  PENDING = 1,
+  APPROVED = 2,
+  REJECTED = 3,
+  NEW = 0,
+}
