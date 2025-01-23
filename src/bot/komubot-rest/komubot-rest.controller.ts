@@ -344,6 +344,10 @@ export class KomubotrestController {
     @Headers('appId') appId,
     @Res() res: Response,
   ) {
+    console.log('--------------------------------')
+    console.log('payoutApplication', payoutApplication)
+    console.log('apiKey', apiKey)
+    console.log('appId', appId)
     return this.komubotrestService.handlePayoutApplication(
       payoutApplication,
       apiKey,

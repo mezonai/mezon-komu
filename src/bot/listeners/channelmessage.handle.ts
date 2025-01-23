@@ -87,8 +87,11 @@ export class EventListenerChannelMessage {
       if (await this.isWebhookUser(message)) return;
       const client = await this.userRepository
         .createQueryBuilder('user')
-        .where(':role = ANY(user.roles)', { role: '1832750986804858880' })
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .where('(:role = ANY(user.roles) AND user.user_type = :userType)', {
+          role: '1832750986804858880',
+          userType: EUserType.MEZON,
+        })
+        .orWhere('user.deactive IS TRUE')
         .getMany();
       const clientId = client.map((item) => item.userId);
       const findChannel = await this.channelRepository.findOne({
@@ -236,8 +239,7 @@ export class EventListenerChannelMessage {
           } else {
             throw Error('swtich AI API');
           }
-        } catch (e) {
-        }
+        } catch (e) {}
 
         const replyMessage = replyMessageGenerate(
           { messageContent: AIReplyMessage, mentions: [] },

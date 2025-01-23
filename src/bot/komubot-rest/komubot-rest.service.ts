@@ -490,7 +490,7 @@ export class KomubotrestService {
             sendFailList.push(item.userId);
             return;
           }
-
+          console.log('send token user: ', item.userId, +item.amount)
           const dataSendToken = {
             sender_id: process.env.BOT_KOMU_ID,
             sender_name: 'KOMU',
@@ -498,7 +498,7 @@ export class KomubotrestService {
             amount: +item.amount,
             extra_attribute: JSON.stringify({
               appId,
-              sessionId: payoutApplication.sessionId,
+              sessionId: `${payoutApplication.sessionId}-${item.userId}`,
             }),
           };
           sendSuccessList.push(item.userId);
@@ -520,6 +520,7 @@ export class KomubotrestService {
     res,
   ) {
     try {
+      console.log('sendTokenToUser', sendTokenToUser, apiKey)
       if (apiKey !== process.env.SEND_TOKEN_X_SECRET_KEY) {
         res
           .status(400)
