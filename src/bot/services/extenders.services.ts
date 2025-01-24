@@ -27,7 +27,7 @@ export class ExtendersService {
       findUser.userId = message.sender_id;
       findUser.username = message.username;
       findUser.discriminator = '0';
-      findUser.avatar = message.avatar;
+      findUser.avatar = message.clan_avatar || message.avatar;
       findUser.bot = false;
       findUser.system = false;
       findUser.email = message.username;
@@ -49,7 +49,7 @@ export class ExtendersService {
       userId: message.sender_id,
       username: message.username,
       discriminator: '0',
-      avatar: message.avatar,
+      avatar: message.clan_avatar || message.avatar,
       bot: false,
       system: false,
       email: message.username,

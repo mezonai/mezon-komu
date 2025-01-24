@@ -145,16 +145,22 @@ export class EventListenerChannelMessage {
         '1833335458617102336', // prj-apac
       ];
 
-      const validCategory: boolean = checkCategoriesId.includes(
-        findChannel?.category_id,
-      );
-
       if (!checkTimeMention(new Date())) return;
-      if (
-        Array.isArray(message.mentions) &&
-        message.mentions.length &&
-        validCategory
-      ) {
+      if (Array.isArray(message.mentions) && message.mentions.length) {
+        let validCategory: boolean = checkCategoriesId.includes(
+          findChannel?.category_id,
+        );
+        if (!findChannel.category_id) {
+          const findChannelParent = await this.channelRepository.findOne({
+            where: { channel_id: findChannel.parrent_id },
+          });
+          validCategory = checkCategoriesId.includes(
+            findChannelParent?.category_id,
+          );
+        }
+
+        if (!validCategory) return;
+
         message.mentions.forEach(async (user) => {
           if (
             user?.user_id === this.clientConfigService.botKomuId ||
