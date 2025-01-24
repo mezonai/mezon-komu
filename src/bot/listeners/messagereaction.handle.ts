@@ -33,21 +33,22 @@ export class EventListenerMessageReaction extends BaseHandleEvent {
     super(clientService);
   }
 
-  @OnEvent(Events.MessageReaction)
-  async handleReactMessageMention(messageReaction: ApiMessageReaction) {
-    await this.mentionedRepository
-      .createQueryBuilder()
-      .update(Mentioned)
-      .set({ confirm: true, reactionTimestamp: Date.now() })
-      .where(`"messageId" = :messageId`, {
-        messageId: messageReaction.message_id,
-      })
-      .andWhere(`"mentionUserId" = :mentionUserId`, {
-        mentionUserId: messageReaction.sender_id,
-      })
-      .andWhere(`"reactionTimestamp" IS NULL`)
-      .execute();
-  }
+  /*  Remove reaction machleo **/
+  // @OnEvent(Events.MessageReaction)
+  // async handleReactMessageMention(messageReaction: ApiMessageReaction) {
+  //   await this.mentionedRepository
+  //     .createQueryBuilder()
+  //     .update(Mentioned)
+  //     .set({ confirm: true, reactionTimestamp: Date.now() })
+  //     .where(`"messageId" = :messageId`, {
+  //       messageId: messageReaction.message_id,
+  //     })
+  //     .andWhere(`"mentionUserId" = :mentionUserId`, {
+  //       mentionUserId: messageReaction.sender_id,
+  //     })
+  //     .andWhere(`"reactionTimestamp" IS NULL`)
+  //     .execute();
+  // }
 
 
   @OnEvent(Events.MessageReaction)

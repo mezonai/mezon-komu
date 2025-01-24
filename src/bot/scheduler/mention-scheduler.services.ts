@@ -10,7 +10,7 @@ import { User } from 'src/bot/models/user.entity';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { UtilsService } from 'src/bot/services/utils.services';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { EMarkdownType, MezonClient } from 'mezon-sdk';
+import { ChannelType, EMarkdownType, MezonClient } from 'mezon-sdk';
 import { EMessageMode, EUserType } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
@@ -71,13 +71,15 @@ export class MentionSchedulerService {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: user.channelId },
       });
-      const threadNoti = false;
+      const isThread =
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
       const textContent = `Hãy trả lời ${authorName} tại ${
-        threadNoti ? 'thread' : 'channel'
-      } ${findChannel?.channel_label || ''}`;
+        isThread ? 'thread' : 'channel'
+      } `;
       const messageToUser: ReplyMezonMessage = {
         userId: user.mentionUserId,
-        textContent: textContent + `#` + ` nhé!`, // '#' at message is channel, auto fill at FE,
+        textContent: textContent + `# (${findChannel?.channel_label || ''})` + ` nhé!`, // '#' at message is channel, auto fill at FE,
         messOptions: {
           hg: [
             {
@@ -147,7 +149,7 @@ export class MentionSchedulerService {
     }
   }
 
-  async createWFHWarning(user, thread) {
+  async createWFHWarning(user) {
     try {
       const { userData, userName } = await this.getUserData(user.mentionUserId);
       const authorName = (await this.getUserData(user.authorId)).userName;
@@ -155,8 +157,13 @@ export class MentionSchedulerService {
       const timestamp = moment(parseInt(user.createdTimestamp.toString()))
         .utcOffset(420)
         .format('YYYY-MM-DD HH:mm:ss');
-
-      const content = `@${userName} không trả lời tin nhắn mention của @${authorName} lúc ${timestamp} tại ${thread ? 'thread' : 'channel'} `;
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: user.channelId },
+      });
+      const isThread =
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+      const content = `@${userName} không trả lời tin nhắn mention của @${authorName} lúc ${timestamp} tại ${isThread ? 'thread' : 'channel'} `;
       // const textConfirm = '`React ❌ to Complain or ✅ to Accept`';
 
       const messageReply = {
@@ -222,8 +229,7 @@ export class MentionSchedulerService {
     try {
       await Promise.all(
         mentionedUsers.map(async (user) => {
-          let thread = false;
-          await this.createWFHWarning(user, thread);
+          await this.createWFHWarning(user);
         }),
       );
     } catch (error) {
