@@ -33,22 +33,11 @@ import { checkAnswerFormat } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { MessageQueue } from '../services/messageQueue.service';
 import { UtilsService } from '../services/utils.services';
+import { invalidCharacter, messagesBusy } from '../constants/text';
 
 @Injectable()
 export class EventListenerChannelMessage {
   private client: MezonClient;
-  private readonly messages: string[] = [
-    'Hôm nay bận muốn xỉu, deadline dí như ma đuổi. Nghỉ xíu rồi quay lại nha!',
-    'Công việc ngập mặt, tôi giờ chỉ muốn làm cục bột ngủ đông. Chờ tôi tí nha!',
-    'Hôm nay nhiều việc quá, não tôi đang chạy chậm như Windows XP. Đợi tôi nghỉ tí cho hồi pin rồi quay lại với bạn sau!',
-    'Ai cứu với! Công việc bủa vây như sóng thần. BRB chút!',
-    'Mệt quá trời, deadline dí mà cảm giác như mình đang chơi trốn tìm. Nghỉ chút rồi lại chiến!',
-    'Hôm nay làm nhiều mà lương thì... để tính sau. Nghỉ nạp năng lượng xíu nha!',
-    'Công việc: 100. Năng lượng: 0. Cần một chút thời gian để hồi sinh!',
-    'Não tôi giờ quay như chong chóng vì việc. Để thở tí rồi quay lại nha!',
-    'Deadline vẫy gọi, nhưng giấc ngủ cũng vẫy tay chào. Đợi tôi xử lý xong rồi tính tiếp!',
-    'Làm việc nhiều quá mà cứ tưởng đang tập gym cho ngón tay. Tạm nghỉ chút cho tỉnh táo rồi tôi quay lại sau nha!',
-  ];
   constructor(
     private clientService: MezonClientService,
     private asteriskCommand: Asterisk,
@@ -71,8 +60,8 @@ export class EventListenerChannelMessage {
   }
 
   getRandomMessage(): string {
-    const randomIndex = Math.floor(Math.random() * this.messages.length);
-    return this.messages[randomIndex];
+    const randomIndex = Math.floor(Math.random() * messagesBusy.length);
+    return messagesBusy[randomIndex];
   }
 
   async isWebhookUser(message: ChannelMessage) {
@@ -107,9 +96,11 @@ export class EventListenerChannelMessage {
       if (
         message.sender_id === this.clientConfigService.botKomuId ||
         message.sender_id === '0' ||
-        !findChannel
+        !findChannel ||
+        invalidCharacter.includes(message?.content?.t)
       )
         return;
+
       await Promise.all([
         this.userRepository
           .createQueryBuilder()
