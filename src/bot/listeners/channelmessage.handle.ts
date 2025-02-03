@@ -32,6 +32,7 @@ import { ClientConfigService } from '../config/client-config.service';
 import { checkAnswerFormat } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { MessageQueue } from '../services/messageQueue.service';
+import { UtilsService } from '../services/utils.services';
 
 @Injectable()
 export class EventListenerChannelMessage {
@@ -64,6 +65,7 @@ export class EventListenerChannelMessage {
     private clientConfigService: ClientConfigService,
     private quizService: QuizService,
     private messageQueue: MessageQueue,
+    private utilsService: UtilsService,
   ) {
     this.client = clientService.getClient();
   }
@@ -84,7 +86,11 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
-      if (await this.isWebhookUser(message)) return;
+      if (
+        (await this.isWebhookUser(message)) ||
+        (await this.utilsService.checkHoliday())
+      )
+        return;
       const client = await this.userRepository
         .createQueryBuilder('user')
         .where('(:role = ANY(user.roles) AND user.user_type = :userType)', {

@@ -440,13 +440,16 @@ export class KomubotrestService {
         return;
       }
 
-      const checkPayoutSession = await this.transactionRepository.findOne({
-        where: {
+      const checkPayoutSession = await this.transactionRepository
+        .createQueryBuilder('transaction')
+        .where('transaction.senderId = :senderId', {
           senderId: process.env.BOT_KOMU_ID,
-          sessionId: payoutApplication.sessionId,
-          appId,
-        },
-      });
+        })
+        .andWhere('transaction.sessionId LIKE :sessionId', {
+          sessionId: `${payoutApplication.sessionId}%`,
+        })
+        .andWhere('transaction.appId = :appId', { appId })
+        .getOne();
       if (checkPayoutSession) {
         res.status(400).send({ message: 'This session had been payout!' });
         return;
@@ -490,7 +493,7 @@ export class KomubotrestService {
             sendFailList.push(item.userId);
             return;
           }
-          console.log('send token user: ', item.userId, +item.amount)
+          console.log('send token user: ', item.userId, +item.amount);
           const dataSendToken = {
             sender_id: process.env.BOT_KOMU_ID,
             sender_name: 'KOMU',
@@ -520,11 +523,9 @@ export class KomubotrestService {
     res,
   ) {
     try {
-      console.log('sendTokenToUser', sendTokenToUser, apiKey)
+      console.log('sendTokenToUser', sendTokenToUser, apiKey);
       if (apiKey !== process.env.SEND_TOKEN_X_SECRET_KEY) {
-        res
-          .status(400)
-          .send({ message: 'Wrong api key!' });
+        res.status(400).send({ message: 'Wrong api key!' });
         return;
       }
       await Promise.all(
@@ -543,9 +544,7 @@ export class KomubotrestService {
         }),
       );
 
-      res
-        .status(200)
-        .send({ message: 'Sent token successfully!' });
+      res.status(200).send({ message: 'Sent token successfully!' });
     } catch (error) {
       console.log('handleSendTokenToUser api error', error);
     }
