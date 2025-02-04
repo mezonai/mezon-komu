@@ -400,10 +400,10 @@ export class MeetingSchedulerService {
     }
   }
 
-  @Cron('*/2 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('*/5 * * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async updateReminderMeeting() {
     this.logger.warn(
-      `time ${'*/2 * * * *'} for job updateReminderMeeting to run!`,
+      `time ${'*/5 * * * *'} for job updateReminderMeeting to run!`,
     );
     if (await this.utilsService.checkHoliday()) return;
     const repeatMeet = await this.meetingRepository.find({
