@@ -213,7 +213,7 @@ export function findProjectByLabel(optionsProject, projectText) {
     optionsProject.find((option) => {
       let value = option?.value;
       if (value?.toString()?.includes(' ')) {
-        value = option?.value?.split(' ')?.[0] ?? ''
+        value = option?.value?.split(' ')?.[0] ?? '';
       }
       if (typeof value === 'string') {
         return value.trim().toLowerCase() === normalizedText;
@@ -240,4 +240,17 @@ export function getWeekDays(dateString) {
   }
 
   return weekDays;
+}
+
+export function parseBoldText(str) {
+  const regex = /\*\*(.*?)\*\*/g;
+  let matches = [];
+  let cleanText = str.replace(regex, (match, p1, offset) => {
+    let start = offset - matches.length * 4;
+    let end = start + p1.length;
+    matches.push({ type: 'b', s: start, e: end });
+    return p1;
+  });
+
+  return { t: cleanText, mk: matches };
 }

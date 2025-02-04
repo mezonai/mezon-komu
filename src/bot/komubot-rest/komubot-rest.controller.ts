@@ -124,8 +124,11 @@ export class KomubotrestController {
 
   @Get('/getDailyReport')
   async getDailyReport(@Query() query: { date: string }) {
-    const parsedDate = moment(query.date, 'DD/MM/YYYY').startOf('day').toDate();
-    const formatedDate = query.date;
+    console.log('getDailyReport', query);
+    const parsedDate = moment(query?.date, 'DD/MM/YYYY')
+      .startOf('day')
+      .toDate();
+    const formatedDate = query?.date;
 
     const [daily, mention, wfh, tracker] = await Promise.all([
       this.reportDailyService.getUserNotDaily(parsedDate),
@@ -134,7 +137,7 @@ export class KomubotrestController {
       this.reportTrackerService.reportTrackerNot([, formatedDate], false),
     ]);
 
-    return { daily: daily.notDaily, mention, wfh, tracker };
+    return { daily: daily?.notDaily, mention, wfh, tracker };
   }
 
   @Get('/reportDaily')
@@ -344,10 +347,10 @@ export class KomubotrestController {
     @Headers('appId') appId,
     @Res() res: Response,
   ) {
-    console.log('--------------------------------')
-    console.log('payoutApplication', payoutApplication)
-    console.log('apiKey', apiKey)
-    console.log('appId', appId)
+    console.log('--------------------------------');
+    console.log('payoutApplication', payoutApplication);
+    console.log('apiKey', apiKey);
+    console.log('appId', appId);
     return this.komubotrestService.handlePayoutApplication(
       payoutApplication,
       apiKey,

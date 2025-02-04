@@ -25,6 +25,7 @@ import { ChannelType, MezonClient } from 'mezon-sdk';
 import { PayoutApplication } from '../dto/payoutApplication';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
+import { parseBoldText } from '../utils/helper';
 
 @Injectable()
 export class KomubotrestService {
@@ -167,8 +168,20 @@ export class KomubotrestService {
       return;
     }
     const username = sendMessageToUserDTO.username;
-    const message = sendMessageToUserDTO.message;
-    const options = sendMessageToUserDTO.options;
+    let message = sendMessageToUserDTO.message;
+    const options = sendMessageToUserDTO.options ?? {};
+    const newMessage = parseBoldText(message);
+    message = newMessage?.t ?? '';
+    options.mk = newMessage.mk;
+
+    const regexHttp = /http[s]?:\/\/[^\s]+/g;
+    const matches = Array.from(message.matchAll(regexHttp));
+
+    options.lk =
+      matches.map((match) => ({
+        s: match.index || 0,
+        e: (match.index || 0) + match[0].length,
+      })) || [];
 
     try {
       const findUser = await this.userRepository.findOne({
@@ -218,7 +231,10 @@ export class KomubotrestService {
     }
     let message = sendMessageToChannelDTO.message;
     const channelId = sendMessageToChannelDTO.channelid;
-    const options = sendMessageToChannelDTO.options;
+    const options = sendMessageToChannelDTO.options ?? {};
+    const newMessage = parseBoldText(message);
+    message = newMessage?.t ?? '';
+    options.mk = newMessage.mk;
 
     // get mentions in text
     const mentions = await Promise.all(
