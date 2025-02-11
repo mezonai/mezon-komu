@@ -32,7 +32,7 @@ export class StreamingEvent extends BaseHandleEvent {
     const minutes = minutesUTC;
     if (
       hours < 11 ||
-      (hours === 11 && minutes < 29) ||
+      (hours === 11 && minutes < 25) ||
       (hours === 12 && minutes > 0) ||
       hours > 12
     ) {
@@ -47,7 +47,7 @@ export class StreamingEvent extends BaseHandleEvent {
       const dateNow = Date.now();
 
       if (this.isOutsideTimeRangeNcc8(dateNow)) return; //check time ncc8
-
+      console.log('handleJoinNCC8', data)
       const wfhResult = await this.timeSheetService.findWFHUser();
       const wfhUserEmail = wfhResult
         .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
@@ -55,10 +55,17 @@ export class StreamingEvent extends BaseHandleEvent {
           return getUserNameByEmail(item.emailAddress);
         });
 
-      const findUserWfh = await this.userRepository.find({
-        where: { username: In(wfhUserEmail), user_type: EUserType.MEZON },
-      });
-
+      const findUserWfh = await this.userRepository
+        .createQueryBuilder('user')
+        .where(
+          '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))',
+        )
+        .andWhere('user.user_type = :userType')
+        .setParameters({
+          wfhUserEmail,
+          userType: EUserType.MEZON,
+        })
+        .getMany();
       const userIdList = findUserWfh.map((user) => user.userId);
 
       if (!userIdList.includes(data.user_id)) return; // check user wfh

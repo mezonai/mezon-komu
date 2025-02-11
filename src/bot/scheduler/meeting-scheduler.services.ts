@@ -229,6 +229,11 @@ export class MeetingSchedulerService {
     if (createdTimestamp) {
       updateData.createdTimestamp = createdTimestamp;
     }
+
+    if (data.repeat === 'once') {
+      updateData.cancel = true;
+    }
+
     try {
       await this.meetingRepository
         .createQueryBuilder()
