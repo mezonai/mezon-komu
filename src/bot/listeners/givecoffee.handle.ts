@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Events } from 'mezon-sdk';
+import { ChannelType, Events } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MentionSchedulerService } from '../scheduler/mention-scheduler.services';
 import { ClientConfigService } from '../config/client-config.service';
 import { EMessageMode } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ChannelMezon } from '../models';
 
 @Injectable()
 export class EventGiveCoffee extends BaseHandleEvent {
@@ -15,6 +18,8 @@ export class EventGiveCoffee extends BaseHandleEvent {
     private mentionSchedulerService: MentionSchedulerService,
     private clientConfig: ClientConfigService,
     private messageQueue: MessageQueue,
+    @InjectRepository(ChannelMezon)
+    private channelRepository: Repository<ChannelMezon>,
   ) {
     super(clientService);
   }
@@ -30,9 +35,16 @@ export class EventGiveCoffee extends BaseHandleEvent {
       )?.userName;
 
       if (!userName || !authorName) return;
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: data?.channel_id },
+      });
+      const isThread =
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
 
       const firstText = `@${authorName} just sent a coffee to `;
-      const messageContent = firstText + `@${userName}`;
+      const messageContent = firstText + `@${userName} at ${isThread? 'thread' : 'channel'} #!`; // '#' at message is channel, auto fill at FE
+
       const replyMessage = {
         clan_id: data.clan_id,
         channel_id: this.clientConfig.welcomeChannelId,
@@ -42,6 +54,13 @@ export class EventGiveCoffee extends BaseHandleEvent {
         mode: EMessageMode.CHANNEL_MESSAGE,
         msg: {
           t: messageContent,
+          hg: [
+            {
+              channelid: data.channel_id,
+              s: messageContent.length - 2, // replace to '#' in text
+              e: messageContent.length - 1, // replace to '#' in text
+            },
+          ],
         },
         mentions: [
           { user_id: data.sender_id, s: 0, e: authorName.length + 1 },

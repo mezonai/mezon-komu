@@ -44,6 +44,7 @@ export class VoucherCommand extends CommandMessage {
       const embed: EmbedProps[] = [
         {
           color: getRandomColor(),
+          title: 'VOUCHER EXCHANGE!',
           fields: [
             {
               name: 'Scan this QR code for EXCHANGE VOUCHER!',
