@@ -25,8 +25,6 @@ export class ReportDailyService {
   }
   async reportDaily(date) {
     const { notDaily, userNotDaily } = await this.getUserNotDaily(date);
-    console.log('notDaily', notDaily)
-    console.log('userNotDaily', userNotDaily)
     let mess;
     const dateString = (date && date.toDateString()) || '';
     const dailyString = date
@@ -122,7 +120,7 @@ export class ReportDailyService {
       .createQueryBuilder('user')
       .where(
         userOff && userOff.length
-          ? 'LOWER("email") NOT IN (:...userOff)'
+          ? 'LOWER("clan_nick") NOT IN (:...userOff)'
           : 'true',
         {
           userOff: userOff,
@@ -138,8 +136,8 @@ export class ReportDailyService {
       .andWhere(`"deactive" IS NOT TRUE`)
       .select('*')
       .execute();
-
-    const userEmail = userNotWFH.map((item) => item.email);
+      const userEmail = userNotWFH.map((item) => item.clan_nick);
+      console.log('userNotWFH', userNotWFH, userEmail)
 
     const [dailyEmailMorning, dailyEmailAfternoon, dailyEmailFullday] =
       await Promise.all(
@@ -235,11 +233,8 @@ export class ReportDailyService {
       notDaily.map((user) =>
         this.userRepository
           .createQueryBuilder('user')
-          .where(`LOWER("email") = :email`, {
+          .where(`LOWER("clan_nick") = :email`, {
             email: user.email.toLowerCase(),
-          })
-          .orWhere(`LOWER("username") = :username`, {
-            username: user.email.toLowerCase(),
           })
           .andWhere('("createdAt" < :today OR "createdAt" is NULL)', {
             today: Date.now() - dayToMilliseconds,
