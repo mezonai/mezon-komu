@@ -25,7 +25,8 @@ export class ReportDailyService {
   }
   async reportDaily(date) {
     const { notDaily, userNotDaily } = await this.getUserNotDaily(date);
-
+    console.log('notDaily', notDaily)
+    console.log('userNotDaily', userNotDaily)
     let mess;
     const dateString = (date && date.toDateString()) || '';
     const dailyString = date
@@ -86,6 +87,7 @@ export class ReportDailyService {
         securitycode: this.configService.get<string>('WFH_API_KEY_SECRET'),
       },
     });
+    console.log('wfhGetApi', wfhGetApi)
     if (
       wfhGetApi.status != 200 ||
       !wfhGetApi.data?.result ||
@@ -108,6 +110,7 @@ export class ReportDailyService {
         .map((item) => getUserNameByEmail(item.emailAddress)),
     );
 
+    console.log('wfhUserEmail', wfhUserEmail)
     // if no wfh
     if (wfhUserEmail.length === 0) {
       return;
