@@ -30,8 +30,9 @@ export class ReportDailyService {
     const dailyString = date
       ? 'Những Người Chưa Daily'
       : 'Những Người Chưa Daily Hôm Nay';
-
+    console.log('userNotDailyuserNotDailyuserNotDaily', userNotDaily)
     if (!userNotDaily) {
+      console.log('return')
       return;
     } else if (Array.isArray(userNotDaily) && userNotDaily.length === 0) {
       mess = [dateString + 'Tất Cả Đều Đã Daily'];
@@ -46,14 +47,14 @@ export class ReportDailyService {
           .filter((user) => user.username)
           .map((user) => {
             if (user.userId) {
-              return `${user.email.toLowerCase()} (${this.findCountNotDaily(
+              return `${(user.clan_nick || user.username).toLowerCase()} (${this.findCountNotDaily(
                 notDaily,
-                user.username,
+                user.clan_nick || user.username,
               )})`;
             } else {
-              return `${user.email.toLowerCase()} (${this.findCountNotDaily(
+              return `${(user.clan_nick || user.username).toLowerCase()} (${this.findCountNotDaily(
                 notDaily,
-                user.username,
+                user.clan_nick || user.username,
               )})`;
             }
           })
@@ -85,7 +86,7 @@ export class ReportDailyService {
         securitycode: this.configService.get<string>('WFH_API_KEY_SECRET'),
       },
     });
-    console.log('wfhGetApi', wfhGetApi)
+    console.log('wfhGetApi', wfhGetApi);
     if (
       wfhGetApi.status != 200 ||
       !wfhGetApi.data?.result ||
@@ -108,7 +109,7 @@ export class ReportDailyService {
         .map((item) => getUserNameByEmail(item.emailAddress)),
     );
 
-    console.log('wfhUserEmail', wfhUserEmail)
+    console.log('wfhUserEmail', wfhUserEmail);
     // if no wfh
     if (wfhUserEmail.length === 0) {
       return;
@@ -136,8 +137,10 @@ export class ReportDailyService {
       .andWhere(`"deactive" IS NOT TRUE`)
       .select('*')
       .execute();
-      const userEmail = userNotWFH.map((item) => item.clan_nick);
-      console.log('userNotWFH', userNotWFH, userEmail)
+    const userEmail = userNotWFH
+      .map((item) => item.clan_nick || item.username)
+      .filter(Boolean);
+    console.log('userNotWFH', userEmail);
 
     const [dailyEmailMorning, dailyEmailAfternoon, dailyEmailFullday] =
       await Promise.all(
@@ -209,6 +212,7 @@ export class ReportDailyService {
       ...notDailyAfternoon,
       ...notDailyFullday,
     ];
+    console.log('spreadNotDaily', spreadNotDaily);
     // => notDaily : {email : "", count : }
     const notDaily = spreadNotDaily.reduce((acc, cur) => {
       if (Array.isArray(acc) && acc.length === 0) {
