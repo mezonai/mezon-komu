@@ -179,9 +179,9 @@ export class EventTokenSend extends BaseHandleEvent {
           `${
             findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT
               ? this.clientConfigService.unlockTsPMApi.api_url +
-                `?emailAddress=${generateEmail(findUser.username)}&client=MEZON`
+                `?emailAddress=${generateEmail(findUser.clan_nick || findUser.username)}&client=MEZON`
               : this.clientConfigService.unlockTsStaffApi.api_url +
-                `?emailAddress=${generateEmail(findUser.username)}&client=MEZON`
+                `?emailAddress=${generateEmail(findUser.clan_nick || findUser.username)}&client=MEZON`
           }`,
           {},
           {
