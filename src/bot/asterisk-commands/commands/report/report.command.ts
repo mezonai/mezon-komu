@@ -64,6 +64,7 @@ export class ReportCommand extends CommandMessage {
           }
         } else {
           const mess = await this.reportDailyService.reportDaily(null);
+          console.log('messssssssssss', mess)
           if (mess) {
             return mess.map((m) => {
               return this.replyMessageGenerate(
