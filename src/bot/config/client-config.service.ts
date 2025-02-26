@@ -67,7 +67,7 @@ export class ClientConfigService {
     };
 
     this.unlockTsPMApi = {
-      api_url: `${configService.get<string>('TIMESHEET_API')}Info/Info/UnlockToApproveTimesheet`,
+      api_url: `${configService.get<string>('TIMESHEET_API')}Info/UnlockToApproveTimesheet`,
     };
 
     this.absenceDayRequestApi = {

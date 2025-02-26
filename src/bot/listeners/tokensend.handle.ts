@@ -175,6 +175,7 @@ export class EventTokenSend extends BaseHandleEvent {
       });
 
       try {
+        console.log('findUnlockTs.amount', findUnlockTs.amount, generateEmail(findUser.clan_nick || findUser.username))
         const resUnlockTs = await this.axiosClientService.post(
           `${
             findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT
@@ -209,6 +210,7 @@ export class EventTokenSend extends BaseHandleEvent {
           throw 'Unlock fail!';
         }
       } catch (error) {
+        console.log('handleCallApiError', error)
         const title =
           'Unlock timesheet failed. Please contact ADMIN for support!\n\tKOMU sent token back to you!';
         this.handleCallApiError(findUnlockTs.userId, +data.amount, title);
