@@ -25,7 +25,14 @@ export class EventService {
       .select(`event.*`)
       .execute();
   }
-  async checkEvent(title, users, createdTimestamp, channel_id, attachment) {
+  async checkEvent(
+    title,
+    users,
+    createdTimestamp,
+    channel_id,
+    attachment,
+    note,
+  ) {
     return await this.eventRepository.findOne({
       where: {
         title,
@@ -34,17 +41,26 @@ export class EventService {
         channelId: channel_id,
         attachment,
         cancel: false,
+        note,
       },
     });
   }
 
-  async saveEvent(title, createdTimestamp, users, channel_id, attachment) {
+  async saveEvent(
+    title,
+    createdTimestamp,
+    users,
+    channel_id,
+    attachment,
+    note,
+  ) {
     const checkEvent = await this.checkEvent(
       title,
       users,
       createdTimestamp,
       channel_id,
       attachment,
+      note,
     );
     if (!checkEvent) {
       return await this.eventRepository.insert({
@@ -53,6 +69,7 @@ export class EventService {
         users,
         channelId: channel_id,
         attachment,
+        note,
       });
     }
   }
@@ -94,6 +111,7 @@ export class EventService {
     checkTime,
     attachment,
     title,
+    note,
   ) {
     const textAttachment = `${attachment ?? ''}`;
     userMentions.map(async (item) => {
@@ -102,7 +120,7 @@ export class EventService {
         .filter((user) => !usernameFilter.includes(user.username))
         .map((user) => `@${user.username}`)
         .join(', ');
-      const textContent = `You have an event "${title}" with @${message.username}, ${usernameList} on ${checkDate} in ${checkTime}\n`;
+      const textContent = `You have an event "${title}" with @${message.username}, ${usernameList} on ${checkDate} in ${checkTime}\n${note && `Note: ${note}\n`}`;
 
       const messageToUser: ReplyMezonMessage = {
         userId: item.userId,
@@ -125,7 +143,7 @@ export class EventService {
       .filter((user) => user.username !== message.username)
       .map((user) => `@${user.username}`)
       .join(', ');
-    const textContent = `You have an event "${title}" with ${usernameList} on ${checkDate} in ${checkTime}\n`;
+    const textContent = `You have an event "${title}" with ${usernameList} on ${checkDate} in ${checkTime}\n${note && `Note: ${note}\n`}`;
     const messageToUser: ReplyMezonMessage = {
       userId: message.sender_id,
       textContent: textContent + (attachment ? textAttachment : ''),

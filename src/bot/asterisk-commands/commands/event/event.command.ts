@@ -11,7 +11,7 @@ const messHelp =
   '\n' +
   '*event help' +
   '\n' +
-  '*event dd/MM/YYYY HH:mm title [users]' +
+  '*event dd/MM/YYYY HH:mm title [users] Note: some text note' +
   '\n' +
   '*event cancel' +
   '```';
@@ -123,15 +123,21 @@ export class EventCommand extends CommandMessage {
         );
       } else {
         const title = args[2];
-        const usersMention = args.slice(3, args.length - 1);
+        const listUseAndNote = args.slice(3, args.length);
+        const indexNote =
+          listUseAndNote.indexOf('Note:') || listUseAndNote.indexOf('note:');
+        const usersMention =
+          indexNote !== -1 ? listUseAndNote.slice(0, indexNote) : listUseAndNote;
+        const note = (
+          indexNote !== -1 ? listUseAndNote.slice(indexNote + 1) : []
+        ).join(' ');
         let attachment;
         if (
-          args[args.length - 1].startsWith('http://') ||
-          args[args.length - 1].startsWith('https://')
+          usersMention[usersMention.length - 1].startsWith('http://') ||
+          usersMention[usersMention.length - 1].startsWith('https://')
         ) {
-          attachment = args[args.length - 1];
-        } else {
-          usersMention.push(args[args.length - 1]);
+          attachment = usersMention[usersMention.length - 1];
+          usersMention.pop();
         }
         const datetime = args.slice(0, 2).join(' ');
         const checkDate = args.slice(0, 1).join(' ');
@@ -201,6 +207,7 @@ export class EventCommand extends CommandMessage {
           insertUser,
           message.channel_id,
           attachment,
+          note
         );
         if (!createEvent) {
           const messageContent = '```This event already exists!```';
@@ -219,6 +226,7 @@ export class EventCommand extends CommandMessage {
           checkTime,
           attachment,
           title,
+          note
         );
         const messageContent = '```✅ Event saved.```';
         return this.replyMessageGenerate(
