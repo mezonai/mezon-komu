@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { EMarkdownType, Events } from 'mezon-sdk';
+import { EMarkdownType, Events, TokenSentEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MessageQueue } from '../services/messageQueue.service';
@@ -12,6 +12,7 @@ import {
   Transaction,
   UnlockTimeSheet,
   User,
+  VoucherEntiTy,
 } from '../models';
 import {
   EmbedProps,
@@ -39,6 +40,8 @@ export class EventTokenSend extends BaseHandleEvent {
     private transactionRepository: Repository<Transaction>,
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
+    @InjectRepository(VoucherEntiTy)
+    private voucherRepository: Repository<VoucherEntiTy>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
   ) {
@@ -175,7 +178,6 @@ export class EventTokenSend extends BaseHandleEvent {
       });
 
       try {
-        console.log('findUnlockTs.amount', findUnlockTs.amount, generateEmail(findUser.clan_nick || findUser.username))
         const resUnlockTs = await this.axiosClientService.post(
           `${
             findUnlockTs.amount === EUnlockTimeSheetPayment.PM_PAYMENT
@@ -210,10 +212,14 @@ export class EventTokenSend extends BaseHandleEvent {
           throw 'Unlock fail!';
         }
       } catch (error) {
-        console.log('handleCallApiError', error)
+        console.log('handleCallApiError', error);
         const title =
           'Unlock timesheet failed. Please contact ADMIN for support!\n\tKOMU sent token back to you!';
-        this.handleCallApiError(findUnlockTs.userId, +data.amount, title);
+        this.handleSendBackTokenToUser(
+          findUnlockTs.userId,
+          +data.amount,
+          title,
+        );
       }
     } catch (error) {
       console.log('handleUnlockTimesheet');
@@ -222,12 +228,15 @@ export class EventTokenSend extends BaseHandleEvent {
 
   @OnEvent(Events.TokenSend)
   async handlePayoutApplication(data) {
-    const appIdWhiteList = ['buy_voucher', 'send_by_api'];
+    const appIdWhiteList = [
+      'buy_NccSoft_voucher',
+      'buy_Market_voucher',
+      'send_by_api',
+    ];
     try {
       const extraAttribute = JSON.parse(
         data?.extra_attribute || JSON.stringify({}),
       );
-
       const findApp = await this.applicationRepository.findOne({
         where: { id: extraAttribute?.appId },
       });
@@ -249,19 +258,24 @@ export class EventTokenSend extends BaseHandleEvent {
         transactionDataInsert.receiverId = data.receiver_id;
         transactionDataInsert.amount = data.amount;
         transactionDataInsert.createdAt = Date.now();
-        await this.transactionRepository.save(transactionDataInsert);
-      }
-
-      if (checkWhiteList) {
-        if (extraAttribute?.appId === 'buy_voucher')
-          this.handleBuyVoucher(data);
+        const dataSave = await this.transactionRepository.save(
+          transactionDataInsert,
+        );
+        if (dataSave?.id && checkWhiteList) {
+          if (extraAttribute?.appId === 'buy_NccSoft_voucher') {
+            this.handleBuyNccSoftVoucher(data);
+          }
+          if (extraAttribute?.appId === 'buy_Market_voucher') {
+            this.handleBuyMarketVoucher(data);
+          }
+        }
       }
     } catch (error) {
       console.log('ERROR handlePayoutApplication', error);
     }
   }
 
-  async handleBuyVoucher(data) {
+  async handleBuyNccSoftVoucher(data) {
     const findUser = await this.userRepository.findOne({
       where: { userId: data.sender_id },
     });
@@ -283,7 +297,7 @@ export class EventTokenSend extends BaseHandleEvent {
         const embedUnlockSuccess: EmbedProps[] = [
           {
             color: '#57F287',
-            title: `✅Exchange voucher successful!`,
+            title: `✅Exchange NCCSoft voucher successful!`,
           },
         ];
         const messageToUser: ReplyMezonMessage = {
@@ -298,11 +312,69 @@ export class EventTokenSend extends BaseHandleEvent {
       if (error?.response?.data?.statusCode === 404) {
         messageContent = `User not found! Please go https://voucher.nccsoft.vn/ to create an account. KOMU sent ${data.amount ?? ''} token back to you!`;
       }
-      this.handleCallApiError(data.sender_id, data.amount, messageContent);
+      this.handleSendBackTokenToUser(
+        data.sender_id,
+        data.amount,
+        messageContent,
+      );
     }
   }
 
-  async handleCallApiError(userId: string, amount: number, title: string) {
+  async handleBuyMarketVoucher(data: TokenSentEvent) {
+    if (data.amount !== 100000) {
+      const messageContent = `Amount received is different from amount requested\n(Requested 100.000 token). KOMU sent ${data.amount ?? ''} token back to you!`;
+      this.handleSendBackTokenToUser(
+        data.sender_id,
+        data.amount,
+        messageContent,
+      );
+      return;
+    }
+    const voucherActiveList = await this.voucherRepository.find({
+      where: { active: true },
+    });
+    if (!voucherActiveList.length) {
+      const messageContent = `No vouchers were found left. Contact admin for help!\n KOMU sent ${data.amount ?? ''} token back to you!`;
+      this.handleSendBackTokenToUser(
+        data.sender_id,
+        data.amount,
+        messageContent,
+      );
+      return;
+    }
+    const listVoucherAvailable = voucherActiveList.map(
+      (voucher) => voucher.value,
+    );
+    const voucherAvailable =
+      listVoucherAvailable[
+        Math.floor(Math.random() * listVoucherAvailable.length)
+      ];
+    if (voucherAvailable) {
+      await this.voucherRepository.update(
+        { value: voucherAvailable },
+        { active: false, userId: data.sender_id, buyAt: Date.now() },
+      );
+      const embedUnlockSuccess: EmbedProps[] = [
+        {
+          color: '#57F287',
+          title: `✅Exchange Market voucher successful!\nYour voucher is:`,
+          description: '```' + voucherAvailable + '```',
+        },
+      ];
+      const messageToUser: ReplyMezonMessage = {
+        userId: data.sender_id,
+        textContent: '',
+        messOptions: { embed: embedUnlockSuccess },
+      };
+      this.messageQueue.addMessage(messageToUser);
+    }
+  }
+
+  async handleSendBackTokenToUser(
+    userId: string,
+    amount: number,
+    title: string,
+  ) {
     const embedUnlockSuccess: EmbedProps[] = [
       {
         color: '#ED4245',

@@ -11,6 +11,7 @@ import {
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
+  Embeb_Button_Type,
   EmbedProps,
   EMessageComponentType,
   EMessageMode,
@@ -28,6 +29,7 @@ import {
   FFmpegImagePath,
   FileType,
   MEZON_EMBED_FOOTER,
+  Voucher_Exchange_Type,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import {
@@ -119,9 +121,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       case 'question':
         this.handleAnswerQuestionWFH(data);
         break;
-      case 'music':
-        this.handleMusicEvent(data);
-        break;
       case 'unlockTs':
         this.handleUnlockTimesheet(data);
         break;
@@ -152,6 +151,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'dailyPm':
         this.handleSubmitDailyPm(data);
+        break;
+      case 'voucher':
+        this.handleSelectVoucher(data);
         break;
       default:
         break;
@@ -255,8 +257,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         refs: refGenerate(msg),
       };
       const title = question.topic
-      ? `[${question.topic.toUpperCase()}] ${question.title}`
-      : question.title;
+        ? `[${question.topic.toUpperCase()}] ${question.title}`
+        : question.title;
       const embed = [
         {
           color: color,
@@ -279,7 +281,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         EMessageMode.DM_MESSAGE,
         false,
         data.message_id,
-        {embed},
+        { embed },
         [],
         [],
         true,
@@ -290,69 +292,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
   }
 
-  async handleMusicEvent(data) {
-    const args = data.button_id.split('_');
-    if (args[0] != 'music') {
-      return;
-    }
-
-    if (args[1] == 'search') {
-      const KOMU = await this.userRepository.findOne({
-        where: { userId: data.sender_id },
-      });
-      const msg: ChannelMessage = {
-        message_id: data.message_id,
-        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-        mode: +args[6],
-        is_public: Boolean(+args[5]),
-        id: '',
-        channel_id: data.channel_id,
-        channel_label: '',
-        code: EMessageMode.CHANNEL_MESSAGE,
-        create_time: '',
-        sender_id: data.sender_id,
-        username: KOMU?.username || 'KOMU',
-        avatar: KOMU?.avatar,
-        content: { t: '' },
-        attachments: [{}],
-      };
-      const replyMessage = await this.musicService.getMusicListMessage(
-        msg,
-        args[2],
-        args[3],
-        args[4],
-      );
-
-      if (replyMessage) {
-        const replyMessageArray = Array.isArray(replyMessage)
-          ? replyMessage
-          : [replyMessage];
-        for (const mess of replyMessageArray) {
-          this.messageQueue.addMessage({ ...mess, sender_id: msg.sender_id }); // add to queue, send every 0.2s
-        }
-      }
-    } else if (args[1] == 'play') {
-      const mp3Link = await this.musicService.getMp3Link(args[2]);
-      this.ffmpegService.killCurrentStream(FileType.MUSIC);
-      await sleep(1000);
-      const channel = await this.client.registerStreamingChannel({
-        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-        channel_id: process.env.MEZON_MUSIC_CHANNEL_ID,
-      });
-      if (!channel) return;
-      if (channel?.streaming_url !== '') {
-        this.ffmpegService
-          .transcodeMp3ToRtmp(
-            FFmpegImagePath.NCC8,
-            mp3Link,
-            channel?.streaming_url,
-            FileType.MUSIC,
-          )
-          .catch((error) => console.log('error mp3', error));
-      }
-    }
-  }
-
   async handleUnlockTimesheet(data) {
     try {
       const args = data.button_id.split('_');
@@ -360,7 +299,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const findUnlockTsData = await this.unlockTimeSheetRepository.findOne({
         where: { messageId: data.message_id, channelId: data.channel_id },
       });
-      if (findUnlockTsData.userId !== data.user_id) return; // check auth
+      if (findUnlockTsData?.userId !== data.user_id) return; // check auth
       const replyMessage: ReplyMezonMessage = {
         clan_id: findUnlockTsData.clanId,
         channel_id: findUnlockTsData.channelId,
@@ -2232,6 +2171,92 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
     } catch (error) {
       console.error('Error in handleSubmitDailyPm:', error.message);
+    }
+  }
+
+  async handleSelectVoucher(data) {
+    try {
+      const [_, typeButtonRes, authId, clanId, mode, isPublic] =
+        data.button_id.split('_');
+      const dataParse = JSON.parse(data.extra_data || '{}');
+      const value = dataParse?.VOUCHER?.[0].split('_')?.[1];
+      if (data.user_id !== authId) return;
+
+      if (typeButtonRes === Embeb_Button_Type.CANCEL) {
+        const textCancel = '```Cancel request successful!```';
+        const msgCancel = {
+          t: textCancel,
+          mk: [{ type: 't', s: 0, e: textCancel.length }],
+        };
+        await this.client.updateChatMessage(
+          clanId,
+          data.channel_id,
+          mode,
+          isPublic === 'true' ? true : false,
+          data.message_id,
+          msgCancel,
+          [],
+          [],
+          true,
+        );
+      }
+      if (!value) return;
+      if (typeButtonRes === Embeb_Button_Type.CONFIRM) {
+        const textConfirm =
+          '```Transaction is pending. KOMU sent you a message, please check!```';
+        const msgCancel = {
+          t: textConfirm,
+          mk: [{ type: 't', s: 0, e: textConfirm.length }],
+        };
+        await this.client.updateChatMessage(
+          clanId,
+          data.channel_id,
+          mode,
+          isPublic === 'true' ? true : false,
+          data.message_id,
+          msgCancel,
+          [],
+          [],
+          true,
+        );
+        
+        const sendTokenData = {
+          sender_id: authId,
+          receiver_id: process.env.BOT_KOMU_ID,
+          note: `[${value} Voucher Buying]`,
+          extra_attribute: JSON.stringify({
+            sessionId: `buy_${value}_voucher`,
+            appId: `buy_${value}_voucher`
+          }),
+          ...(value === Voucher_Exchange_Type.Market && { amount: 100000 }),
+        };
+        const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));
+        const embed: EmbedProps[] = [
+          {
+            color: getRandomColor(),
+            title: `VOUCHER EXCHANGE ${value.toUpperCase()}!`,
+            fields: [
+              {
+                name: `Scan this QR code for EXCHANGE VOUCHER ${value.toUpperCase()}!`,
+                value: '',
+              },
+            ],
+            image: {
+              url: qrCodeImage + '',
+            },
+            timestamp: new Date().toISOString(),
+            footer: MEZON_EMBED_FOOTER,
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: authId,
+          textContent: '',
+          messOptions: { embed },
+        };
+        this.messageQueue.addMessage(messageToUser);
+      }
+    } catch (error) {
+      console.log('handleSelectVoucher Error', error);
     }
   }
 }
