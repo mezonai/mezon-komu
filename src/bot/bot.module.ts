@@ -59,6 +59,7 @@ import {
   W2Request,
   Transaction,
   Application,
+  VoucherEntiTy,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -222,7 +223,8 @@ import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command
       AbsenceDayRequest,
       W2Request,
       Transaction,
-      Application
+      Application,
+      VoucherEntiTy
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
