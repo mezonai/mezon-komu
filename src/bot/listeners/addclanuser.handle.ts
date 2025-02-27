@@ -64,6 +64,7 @@ export class EventAddClanUser extends BaseHandleEvent {
           findUser.display_name = data?.user?.display_name ?? '';
           findUser.user_type = EUserType.MEZON;
           findUser.last_message_time = Date.now();
+          findUser.roles = ['user']
           await this.userRepository.update(
             { userId: data?.user?.user_id },
             findUser,
@@ -89,6 +90,7 @@ export class EventAddClanUser extends BaseHandleEvent {
           botPing: false,
           scores_workout: 0,
           not_workout: 0,
+          roles: ['user'],
           user_type: EUserType.MEZON,
           createdAt: Date.now(),
         };

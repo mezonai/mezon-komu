@@ -20,6 +20,7 @@ export class EventRole extends BaseHandleEvent {
 
   @OnEvent(Events.RoleEvent)
   async handleRoleEvent(data) {
+    console.log('handleRoleEvent', data)
     try {
       if (!data?.role?.id) return;
       const findRole = await this.roleMezonRepository.findOne({

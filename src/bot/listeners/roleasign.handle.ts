@@ -21,6 +21,7 @@ export class EventRoleAsign extends BaseHandleEvent {
 
   @OnEvent(Events.RoleAssign)
   async handleRoleAsignEvent(data) {
+    console.log('handleRoleAsignEvent', data)
     try {
       if (data.ClanId !== process.env.KOMUBOTREST_CLAN_NCC_ID) return;
       if (data.user_ids_assigned.length) {
