@@ -330,10 +330,12 @@ export class EventTokenSend extends BaseHandleEvent {
       );
       return;
     }
-    const voucherActiveList = await this.voucherRepository.find({
-      where: { active: true },
-    });
-    if (!voucherActiveList.length) {
+    const voucherActiveList = await this.voucherRepository
+      .createQueryBuilder('voucher')
+      .where('voucher.active = :active', { active: true })
+      .andWhere('CAST(voucher.expiredDate AS DATE) > CURRENT_DATE')
+      .getMany();
+    if (!voucherActiveList?.length) {
       const messageContent = `No vouchers were found left. Contact admin for help!\n KOMU sent ${data.amount ?? ''} token back to you!`;
       this.handleSendBackTokenToUser(
         data.sender_id,
@@ -343,7 +345,7 @@ export class EventTokenSend extends BaseHandleEvent {
       return;
     }
     const listVoucherAvailable = voucherActiveList.map(
-      (voucher) => voucher.value,
+      (voucher) => voucher.link,
     );
     const voucherAvailable =
       listVoucherAvailable[
@@ -351,7 +353,7 @@ export class EventTokenSend extends BaseHandleEvent {
       ];
     if (voucherAvailable) {
       await this.voucherRepository.update(
-        { value: voucherAvailable },
+        { link: voucherAvailable },
         { active: false, userId: data.sender_id, buyAt: Date.now() },
       );
       const embedUnlockSuccess: EmbedProps[] = [
