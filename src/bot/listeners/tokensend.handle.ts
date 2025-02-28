@@ -5,7 +5,7 @@ import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MessageQueue } from '../services/messageQueue.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import {
   Application,
   BetEventMezon,
@@ -44,6 +44,7 @@ export class EventTokenSend extends BaseHandleEvent {
     private voucherRepository: Repository<VoucherEntiTy>,
     private axiosClientService: AxiosClientService,
     private clientConfigService: ClientConfigService,
+    private readonly dataSource: DataSource,
   ) {
     super(clientService);
   }
@@ -321,54 +322,73 @@ export class EventTokenSend extends BaseHandleEvent {
   }
 
   async handleBuyMarketVoucher(data: TokenSentEvent) {
-    if (data.amount !== 100000) {
-      const messageContent = `Amount received is different from amount requested\n(Requested 100.000 token). KOMU sent ${data.amount ?? ''} token back to you!`;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      if (data.amount !== 100000) {
+        const messageContent = `Amount received is different from amount requested\n(Requested 100.000 token). KOMU sent ${data.amount ?? ''} token back to you!`;
+        this.handleSendBackTokenToUser(
+          data.sender_id,
+          data.amount,
+          messageContent,
+        );
+        return;
+      }
+      const voucherActiveList = await queryRunner.manager
+        .createQueryBuilder('komu_voucher', 'voucher')
+        .setLock('pessimistic_write')
+        .where('voucher.active = :active', { active: true })
+        .andWhere('CAST(voucher.expiredDate AS DATE) > CURRENT_DATE')
+        .getMany();
+      if (!voucherActiveList?.length) {
+        const messageContent = `No vouchers were found left. Contact admin for help!\n KOMU sent ${data.amount ?? ''} token back to you!`;
+        this.handleSendBackTokenToUser(
+          data.sender_id,
+          data.amount,
+          messageContent,
+        );
+        await queryRunner.rollbackTransaction();
+        return;
+      }
+      const listVoucherAvailable = voucherActiveList.map(
+        (voucher) => voucher.link,
+      );
+      const voucherAvailable =
+        listVoucherAvailable[
+          Math.floor(Math.random() * listVoucherAvailable.length)
+        ];
+      if (voucherAvailable) {
+        const embedUnlockSuccess: EmbedProps[] = [
+          {
+            color: '#57F287',
+            title: `✅Exchange Market voucher successful!\nYour voucher is:`,
+            description: '```' + voucherAvailable + '```',
+          },
+        ];
+        const messageToUser: ReplyMezonMessage = {
+          userId: data.sender_id,
+          textContent: '',
+          messOptions: { embed: embedUnlockSuccess },
+        };
+        this.messageQueue.addMessage(messageToUser);
+        await queryRunner.manager.update(
+          'komu_voucher',
+          { link: voucherAvailable },
+          { active: false, userId: data.sender_id, buyAt: Date.now() },
+        );
+        await queryRunner.commitTransaction();
+      }
+    } catch (error) {
+      const messageContent = `Exchange voucher error!\n KOMU sent ${data.amount ?? ''} token back to you!`;
       this.handleSendBackTokenToUser(
         data.sender_id,
         data.amount,
         messageContent,
       );
-      return;
-    }
-    const voucherActiveList = await this.voucherRepository
-      .createQueryBuilder('voucher')
-      .where('voucher.active = :active', { active: true })
-      .andWhere('CAST(voucher.expiredDate AS DATE) > CURRENT_DATE')
-      .getMany();
-    if (!voucherActiveList?.length) {
-      const messageContent = `No vouchers were found left. Contact admin for help!\n KOMU sent ${data.amount ?? ''} token back to you!`;
-      this.handleSendBackTokenToUser(
-        data.sender_id,
-        data.amount,
-        messageContent,
-      );
-      return;
-    }
-    const listVoucherAvailable = voucherActiveList.map(
-      (voucher) => voucher.link,
-    );
-    const voucherAvailable =
-      listVoucherAvailable[
-        Math.floor(Math.random() * listVoucherAvailable.length)
-      ];
-    if (voucherAvailable) {
-      await this.voucherRepository.update(
-        { link: voucherAvailable },
-        { active: false, userId: data.sender_id, buyAt: Date.now() },
-      );
-      const embedUnlockSuccess: EmbedProps[] = [
-        {
-          color: '#57F287',
-          title: `✅Exchange Market voucher successful!\nYour voucher is:`,
-          description: '```' + voucherAvailable + '```',
-        },
-      ];
-      const messageToUser: ReplyMezonMessage = {
-        userId: data.sender_id,
-        textContent: '',
-        messOptions: { embed: embedUnlockSuccess },
-      };
-      this.messageQueue.addMessage(messageToUser);
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
     }
   }
 
