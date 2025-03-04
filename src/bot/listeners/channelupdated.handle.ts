@@ -25,6 +25,8 @@ export class EventListenerChannelUpdated extends BaseHandleEvent {
       where: { channel_id: channelId },
     });
     if (!channel) {
+      const channel = this.channelRepository.create(channelInput);
+      await this.channelRepository.save(channel);
       throw new NotFoundException(`Not found channel id ${channelId}`);
     }
     //TODO handle channel_private

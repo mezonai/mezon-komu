@@ -20,6 +20,11 @@ export class EventListenerChannelCreated extends BaseHandleEvent {
 
   @OnEvent(Events.ChannelCreated)
   async handleCreatedChannel(channelInput: ChannelCreatedEvent) {
+    const channelId = channelInput.channel_id;
+    const findChannel = await this.channelRepository.findOne({
+      where: { channel_id: channelId },
+    });
+    if (findChannel) return;
     const channel = this.channelRepository.create(channelInput);
     return await this.channelRepository.save(channel);
   }
