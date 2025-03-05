@@ -61,10 +61,7 @@ export class MessageCommand {
                 await this.clientService.sendMessageToUser(newMessage);
               }
             } else {
-              const messageSent = await this.clientService.sendMessage(message);
-              if (messageSent) {
-                this.pollService.handelReactPollMessage(message, messageSent);
-              }
+              await this.clientService.sendMessage(message);
             }
           } catch (error) {
             switch (error) {
