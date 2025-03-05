@@ -107,16 +107,25 @@ export class MeetingCommand extends CommandMessage {
       const randomIndexVoiceChannel = Math.floor(
         Math.random() * listVoiceChannelAvalable.length,
       );
+      const findChannel = listVoiceChannel.find(
+        (item) =>
+          item.channel_id ===
+          listVoiceChannelAvalable[randomIndexVoiceChannel].channel_id,
+      );
       const messageContent = `Our meeting room is `;
       return this.replyMessageGenerate(
         {
-          messageContent: messageContent + '#', // '#' at message is channel, auto fill at FE
+          messageContent:
+            messageContent + `#${findChannel?.channel_label || ''}`, // '#' at message is channel, auto fill at FE
           hg: [
             {
               channelid:
                 listVoiceChannelAvalable[randomIndexVoiceChannel].channel_id,
               s: messageContent.length, // replace to '#' in text
-              e: messageContent.length + 1, // replace to '#' in text
+              e:
+                messageContent.length +
+                1 +
+                (findChannel?.channel_label || '').length, // replace to '#' in text
             },
           ],
         },

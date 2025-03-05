@@ -62,6 +62,16 @@ export class DailyCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    if (message.username === 'Anonymous') {
+      const messageContent = "```Anonymous can't use this command!```";
+      return this.replyMessageGenerate(
+        {
+          messageContent: messageContent,
+          mk: [{ type: 't', s: 0, e: messageContent.length }],
+        },
+        message,
+      );
+    }
     const content = message.content.t;
     const messageid = message.message_id;
     const messageValidate = this.validateMessage(args);
@@ -70,7 +80,8 @@ export class DailyCommand extends CommandMessage {
     const modeMess = message.mode;
     const isPublic = message.is_public;
     const ownerSenderDaily = message.sender_id;
-    const ownerSenderDailyEmail = (message.clan_nick || message.username) + '@ncc.asia';
+    const ownerSenderDailyEmail =
+      (message.clan_nick || message.username) + '@ncc.asia';
     const onlyDailySyntax =
       message?.content?.t && typeof message.content.t === 'string'
         ? message.content.t.trim() === '*daily'

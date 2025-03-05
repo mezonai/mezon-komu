@@ -195,6 +195,12 @@ export class MeetingSchedulerService {
     const isThread =
       findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
       (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+    const voiceChannel = await this.channelRepository.findOne({
+      where: {
+        channel_id:
+          listVoiceChannelAvalable[randomIndexVoiceChannel]?.channel_id,
+      },
+    });
     const replyMessage = {
       clan_id: this.clientConfig.clandNccId,
       channel_id: data.channelId,
@@ -205,13 +211,18 @@ export class MeetingSchedulerService {
         ? EMessageMode.THREAD_MESSAGE
         : EMessageMode.CHANNEL_MESSAGE,
       msg: {
-        t: messageContent + `# (${data?.task ?? ''})`,
+        t:
+          messageContent +
+          `#${voiceChannel?.channel_label || ''} (${data?.task ?? ''})`,
         hg: [
           {
             channelid:
               listVoiceChannelAvalable[randomIndexVoiceChannel]?.channel_id,
             s: messageContent.length,
-            e: messageContent.length + 1,
+            e:
+              messageContent.length +
+              1 +
+              (voiceChannel?.channel_label || '').length,
           },
         ],
       },
