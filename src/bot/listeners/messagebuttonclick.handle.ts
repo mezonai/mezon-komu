@@ -2400,6 +2400,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
 
       if (typeButtonRes === Embeb_Button_Type.FINISH) {
+        if (data.user_id !== authId) return;
         this.blockEditedList.push(`${data.message_id}-${data.channel_id}`);
         await sleep(700);
         this.pollService.handleResultPoll(findMessagePoll);
