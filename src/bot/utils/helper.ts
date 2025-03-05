@@ -135,8 +135,6 @@ export function getRandomColor(): string {
     '#ED4245', // Red
     '#992D22', // DarkRed
     '#BCC0C0', // LightGrey
-    '#34495E', // Navy
-    '#2C3E50', // DarkNavy
     '#FFFF00', // Yellow
   ];
   const randomIndex = Math.floor(Math.random() * colors.length);

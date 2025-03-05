@@ -24,10 +24,12 @@ export class PollSchedulerService {
     const twelveHoursInMs = 12 * 60 * 60 * 1000;
     const timestampMinus12Hours = new Date(+currentTimestamp - twelveHoursInMs);
 
-    const findMessagePoll = await this.mezonBotMessageRepository.findOne({
+    const findMessagePolls = await this.mezonBotMessageRepository.find({
       where: { createAt: LessThan(+timestampMinus12Hours), deleted: false },
     });
-    if (!findMessagePoll) return;
-    this.pollService.handleResultPoll(findMessagePoll);
+    if (!findMessagePolls?.length) return;
+    findMessagePolls.map((findMessagePoll) => {
+      this.pollService.handleResultPoll(findMessagePoll);
+    });
   }
 }

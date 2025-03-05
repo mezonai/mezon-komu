@@ -209,6 +209,8 @@ export enum EPMButtonTaskW2 {
 export enum Embeb_Button_Type {
   CONFIRM = 'CONFIRM',
   CANCEL = 'CANCEL',
+  VOTE = 'VOTE',
+  FINISH = 'FINISH'
 }
 
 export enum Voucher_Exchange_Type {

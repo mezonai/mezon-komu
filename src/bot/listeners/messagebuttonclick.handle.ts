@@ -34,6 +34,7 @@ import {
 import { MessageQueue } from '../services/messageQueue.service';
 import {
   Daily,
+  MezonBotMessage,
   Quiz,
   UnlockTimeSheet,
   User,
@@ -79,6 +80,7 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 const https = require('https');
 import axios from 'axios';
+import { PollService } from '../services/poll.service';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -107,10 +109,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private clientConfigService: ClientConfigService,
     @InjectRepository(W2Request)
     private w2RequestsRepository: Repository<W2Request>,
+    @InjectRepository(MezonBotMessage)
+    private mezonBotMessageRepository: Repository<MezonBotMessage>,
+    private pollService: PollService,
     private clientServices: MezonClientService,
   ) {
     super(clientService);
   }
+  private blockEditedList: string[] = [];
 
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
@@ -154,6 +160,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'voucher':
         this.handleSelectVoucher(data);
+        break;
+      case 'poll':
+        this.handleSelectPoll(data);
         break;
       default:
         break;
@@ -2219,14 +2228,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           [],
           true,
         );
-        
+
         const sendTokenData = {
           sender_id: authId,
           receiver_id: process.env.BOT_KOMU_ID,
           note: `[${value} Voucher Buying]`,
           extra_attribute: JSON.stringify({
             sessionId: `buy_${value}_voucher`,
-            appId: `buy_${value}_voucher`
+            appId: `buy_${value}_voucher`,
           }),
           ...(value === Voucher_Exchange_Type.Market && { amount: 100000 }),
         };
@@ -2258,5 +2267,143 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     } catch (error) {
       console.log('handleSelectVoucher Error', error);
     }
+  }
+
+  async handleSelectPoll(data) {
+    try {
+      if (
+        this.blockEditedList.includes(`${data.message_id}-${data.channel_id}`)
+      )
+        return;
+      const [
+        _,
+        typeButtonRes,
+        authId,
+        clanId,
+        mode,
+        isPublic,
+        color,
+        authorName,
+      ] = data.button_id.split('_');
+      const isPublicBoolean = isPublic === 'true' ? true : false;
+      const findMessagePoll = await this.mezonBotMessageRepository.findOne({
+        where: {
+          messageId: data.message_id,
+          channelId: data.channel_id,
+          // deleted: false,
+        },
+      });
+      if (!findMessagePoll) return;
+
+      let userReactMessageId =
+        findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
+      const content = findMessagePoll.content.split('_');
+      const [title, ...options] = content;
+      const dataParse = JSON.parse(data.extra_data || '{}');
+      const value = dataParse?.POLL?.[0].split('_')?.[1];
+      if (typeButtonRes === Embeb_Button_Type.CANCEL) {
+        if (data.user_id !== authId) return;
+        const textCancel = '```Cancel poll successful!```';
+        const msgCancel = {
+          t: textCancel,
+          mk: [{ type: 't', s: 0, e: textCancel.length }],
+        };
+        await this.client.updateChatMessage(
+          clanId,
+          data.channel_id,
+          mode,
+          isPublicBoolean,
+          data.message_id,
+          msgCancel,
+          [],
+          [],
+          true,
+        );
+      }
+      if (typeButtonRes === Embeb_Button_Type.VOTE) {
+        const findUser = await this.userRepository.findOne({
+          where: { userId: data.user_id },
+        });
+        let checkExist = false;
+        if (userReactMessageId.length) {
+          userReactMessageId = userReactMessageId.map((user) => {
+            if (user.username === (findUser.clan_nick || findUser.username)) {
+              checkExist = true;
+              return { ...user, value }; // update new user option
+            }
+            return user;
+          });
+        }
+        if (!checkExist) {
+          userReactMessageId.push({
+            username: findUser.clan_nick || findUser.username,
+            value,
+          });
+        }
+
+        // group username by value
+        const groupedByValue: { [key: string]: any[] } =
+          userReactMessageId.reduce((acc: any, item) => {
+            const { value } = item;
+            if (!acc[value]) {
+              acc[value] = [];
+            }
+            acc[value].push(item.username);
+            return acc;
+          }, {});
+
+        // display user + value on embed
+        const embedCompoents = this.pollService.generateEmbedComponents(
+          options,
+          groupedByValue,
+        );
+
+        // embed poll
+        const embed: EmbedProps[] = this.pollService.generateEmbedMessage(
+          title,
+          authorName,
+          color,
+          embedCompoents,
+        );
+        const dataGenerateButtonComponents = {
+          sender_id: authId,
+          clan_id: clanId,
+          mode,
+          is_public: isPublicBoolean,
+          color,
+          username: authorName,
+        };
+
+        // button embed poll
+        const components = this.pollService.generateButtonComponents(
+          dataGenerateButtonComponents,
+        );
+
+        // update voted into db
+        await this.mezonBotMessageRepository.update(
+          { messageId: findMessagePoll.messageId },
+          { pollResult: userReactMessageId },
+        );
+
+        // update message
+        await this.client.updateChatMessage(
+          clanId,
+          data.channel_id,
+          mode,
+          isPublicBoolean,
+          data.message_id,
+          { embed, components },
+          [],
+          [],
+          true,
+        );
+      }
+
+      if (typeButtonRes === Embeb_Button_Type.FINISH) {
+        this.blockEditedList.push(`${data.message_id}-${data.channel_id}`);
+        await sleep(700);
+        this.pollService.handleResultPoll(findMessagePoll);
+      }
+    } catch (error) {}
   }
 }

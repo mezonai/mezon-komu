@@ -1,29 +1,30 @@
 import { ChannelMessage } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
+import { EmbedProps } from 'src/bot/constants/configs';
+import { getRandomColor } from 'src/bot/utils/helper';
+import { MezonClientService } from 'src/mezon/services/client.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MezonBotMessage } from 'src/bot/models';
+import { Repository } from 'typeorm';
+import { PollService } from 'src/bot/services/poll.service';
 
 @Command('poll')
 export class PollCommand extends CommandMessage {
-  constructor() {
+  constructor(
+    private clientService: MezonClientService,
+    @InjectRepository(MezonBotMessage)
+    private mezonBotMessageRepository: Repository<MezonBotMessage>,
+    private pollService: PollService,
+  ) {
     super();
   }
 
-  execute(args: string[], message: ChannelMessage) {
+  async execute(args: string[], message: ChannelMessage) {
     let messageContent = '';
     const cmds = args.join(' ').split('+');
     const options = cmds.slice(1).filter(Boolean);
-    const iconList = [
-      '1️⃣: ',
-      '2️⃣: ',
-      '3️⃣: ',
-      '4️⃣: ',
-      '5️⃣: ',
-      '6️⃣: ',
-      '7️⃣: ',
-      '8️⃣: ',
-      '9️⃣: ',
-      '🔟: ',
-    ];
+
     if (
       !cmds.length ||
       !options.length ||
@@ -55,35 +56,39 @@ export class PollCommand extends CommandMessage {
         message,
       );
     }
-    messageContent =
-      '```' +
-      `[Poll] - ${cmds[0]}` +
-      '\n' +
-      'To vote, react using the corresponding emoji.' +
-      '\n' +
-      'The voting will end in 12 hours.' +
-      '\n' +
-      'Poll creater can end the poll forcefully by reacting to ✅ emoji.';
-    options.forEach((option, index) => {
-      messageContent += '\n' + iconList[index] + option.trim();
+    const colorEmbed = getRandomColor();
+    const embedCompoents = this.pollService.generateEmbedComponents(options);
+    const embed: EmbedProps[] = this.pollService.generateEmbedMessage(
+      cmds[0],
+      message.clan_nick || message.username,
+      colorEmbed,
+      embedCompoents,
+    );
+    const components = this.pollService.generateButtonComponents({
+      ...message,
+      color: colorEmbed,
     });
-    const textCreated =
-      `\n(Only count by number of people and only 1 reaction is counted, if more, take the last one.` +
-      `\nIf the last choice is deleted, it will be considered as not participating in this poll.)` +
-      `\nPoll created by ${message.username}` +
-      '```';
-    return this.replyMessageGenerate(
+    const pollMessage = this.replyMessageGenerate(
       {
-        messageContent: messageContent + textCreated,
-        mk: [
-          {
-            type: 't',
-            s: 0,
-            e: messageContent.length + textCreated.length,
-          },
-        ],
+        embed,
+        components,
       },
       message,
     );
+    const pollMessageSent = await this.clientService.sendMessage(pollMessage);
+
+    const dataMezonBotMessage = {
+      messageId: pollMessageSent.message_id,
+      userId: message.sender_id,
+      clanId: message.clan_id,
+      isChannelPublic: message.is_public,
+      modeMessage: message.mode,
+      channelId: message.channel_id,
+      content: cmds[0] + '_' + options.join('_'),
+      createAt: Date.now(),
+      pollResult: [],
+    };
+    await this.mezonBotMessageRepository.insert(dataMezonBotMessage);
+    return null;
   }
 }
