@@ -2290,7 +2290,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         where: {
           messageId: data.message_id,
           channelId: data.channel_id,
-          // deleted: false,
+          deleted: false,
         },
       });
       if (!findMessagePoll) return;
@@ -2301,6 +2301,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const [title, ...options] = content;
       const dataParse = JSON.parse(data.extra_data || '{}');
       const value = dataParse?.POLL?.[0].split('_')?.[1];
+
       if (typeButtonRes === Embeb_Button_Type.CANCEL) {
         if (data.user_id !== authId) return;
         const textCancel = '```Cancel poll successful!```';
@@ -2308,6 +2309,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           t: textCancel,
           mk: [{ type: 't', s: 0, e: textCancel.length }],
         };
+        await this.mezonBotMessageRepository.update(
+          {
+            id: findMessagePoll.id,
+          },
+          { deleted: true },
+        );
         await this.client.updateChatMessage(
           clanId,
           data.channel_id,

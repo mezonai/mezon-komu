@@ -238,7 +238,7 @@ export class PollService {
 
       await this.mezonBotMessageRepository.update(
         {
-          messageId: findMessagePoll.messageId,
+          id: findMessagePoll.id,
         },
         { deleted: true },
       );
