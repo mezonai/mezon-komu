@@ -2295,7 +2295,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       });
       if (!findMessagePoll) return;
 
-      let userReactMessageId =
+      let userVoteMessageId =
         findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
       const content = findMessagePoll.content.split('_');
       const [title, ...options] = content;
@@ -2303,7 +2303,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const value = dataParse?.POLL?.[0].split('_')?.[1];
 
       if (typeButtonRes === Embeb_Button_Type.CANCEL) {
-        if (data.user_id !== authId) return;
+        if (data.user_id !== authId) {
+          const content =
+            '```' +
+            `[Poll] - ${title}\n❌You have no permission to cancel this poll!` +
+            '```';
+          const messageToUser: ReplyMezonMessage = {
+            userId: data.user_id,
+            textContent: content,
+            messOptions: {
+              mk: [{ type: 't', s: 0, e: content.length }],
+            },
+          };
+          this.messageQueue.addMessage(messageToUser);
+          return;
+        }
         const textCancel = '```Cancel poll successful!```';
         const msgCancel = {
           t: textCancel,
@@ -2331,9 +2345,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const findUser = await this.userRepository.findOne({
           where: { userId: data.user_id },
         });
+        const newUserVoteMessage = {
+          username: findUser.clan_nick || findUser.username,
+          value,
+        };
+        const exists = userVoteMessageId.some(
+          (item) =>
+            item.username === newUserVoteMessage.username &&
+            item.value === newUserVoteMessage.value,
+        );
+        if (exists) return;
         let checkExist = false;
-        if (userReactMessageId.length) {
-          userReactMessageId = userReactMessageId.map((user) => {
+        if (userVoteMessageId.length) {
+          userVoteMessageId = userVoteMessageId.map((user) => {
             if (user.username === (findUser.clan_nick || findUser.username)) {
               checkExist = true;
               return { ...user, value }; // update new user option
@@ -2342,15 +2366,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           });
         }
         if (!checkExist) {
-          userReactMessageId.push({
-            username: findUser.clan_nick || findUser.username,
-            value,
-          });
+          userVoteMessageId.push(newUserVoteMessage);
         }
 
         // group username by value
         const groupedByValue: { [key: string]: any[] } =
-          userReactMessageId.reduce((acc: any, item) => {
+          userVoteMessageId.reduce((acc: any, item) => {
             const { value } = item;
             if (!acc[value]) {
               acc[value] = [];
@@ -2388,8 +2409,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
         // update voted into db
         await this.mezonBotMessageRepository.update(
-          { messageId: findMessagePoll.messageId },
-          { pollResult: userReactMessageId },
+          {
+            messageId: findMessagePoll.messageId,
+            channelId: findMessagePoll.channelId,
+          },
+          { pollResult: userVoteMessageId },
         );
 
         // update message
@@ -2407,7 +2431,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       }
 
       if (typeButtonRes === Embeb_Button_Type.FINISH) {
-        if (data.user_id !== authId) return;
+        if (data.user_id !== authId) {
+          const content =
+            '```' +
+            `[Poll] - ${title}\n❌You have no permission to finish this poll!` +
+            '```';
+          const messageToUser: ReplyMezonMessage = {
+            userId: data.user_id,
+            textContent: content,
+            messOptions: {
+              mk: [{ type: 't', s: 0, e: content.length }],
+            },
+          };
+          this.messageQueue.addMessage(messageToUser);
+          return;
+        }
         this.blockEditedList.push(`${data.message_id}-${data.channel_id}`);
         await sleep(700);
         this.pollService.handleResultPoll(findMessagePoll);

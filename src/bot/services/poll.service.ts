@@ -207,7 +207,7 @@ export class PollService {
 
   async handleResultPoll(findMessagePoll: MezonBotMessage) {
     try {
-      let userReactMessageId =
+      let userVoteMessageId =
         findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
       const content = findMessagePoll.content.split('_');
       const [title, ...options] = content;
@@ -217,7 +217,7 @@ export class PollService {
       });
 
       const groupedByValue: { [key: string]: any[] } =
-        userReactMessageId.reduce((acc: any, item) => {
+        userVoteMessageId.reduce((acc: any, item) => {
           const { value } = item;
           if (!acc[value]) {
             acc[value] = [];
