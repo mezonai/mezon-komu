@@ -72,6 +72,12 @@ export class EventListenerChannelMessage {
     return webhookId.includes(message.sender_id);
   }
 
+  findUniqueElements(arr1, arr2) {
+    const uniqueInArr1 = arr1.filter((item) => !arr2.includes(item)) || [];
+    const uniqueInArr2 = arr2.filter((item) => !arr1.includes(item)) || [];
+    return { uniqueInArr1, uniqueInArr2 };
+  }
+
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
@@ -123,10 +129,11 @@ export class EventListenerChannelMessage {
       ]);
 
       if (
-        !message.content ||
-        typeof message.content.t !== 'string' ||
-        message.mode === 4 ||
-        message.content.t.split(' ').includes('@here')
+        (!message.content ||
+          typeof message.content.t !== 'string' ||
+          message.mode === 4 ||
+          message.content.t?.split(' ')?.includes('@here')) &&
+        message.code !== 2
       )
         return;
 
@@ -162,7 +169,8 @@ export class EventListenerChannelMessage {
           if (
             user?.user_id === this.clientConfigService.botKomuId ||
             clientId.includes(user?.user_id) ||
-            user?.role_id
+            user?.role_id ||
+            message.code
           )
             return;
           const data = {
@@ -178,6 +186,103 @@ export class EventListenerChannelMessage {
           };
           await this.mentionedRepository.insert(data);
         });
+      }
+
+      if (message.code) {
+        const listMentionByMessageId = await this.mentionedRepository.find({
+          where: {
+            messageId: message.message_id,
+            channelId: message.channel_id,
+            confirm: false,
+            reactionTimestamp: null,
+          },
+        });
+        const currentMentionUserIds = listMentionByMessageId.map(
+          (user) => user.mentionUserId,
+        );
+        const messageMentionUserIds = message.mentions.map(
+          (user) => user.user_id,
+        );
+        if (message.code === 1) {
+          const { uniqueInArr1: usersRemoved, uniqueInArr2: usersAdded } =
+            this.findUniqueElements(
+              currentMentionUserIds,
+              messageMentionUserIds,
+            );
+
+          usersRemoved.forEach(async (id) => {
+            await this.mentionedRepository.update(
+              {
+                channelId: message.channel_id,
+                messageId: message.message_id,
+                mentionUserId: id,
+              },
+              {
+                confirm: true,
+                reactionTimestamp: new Date(message.create_time).getTime(),
+              },
+            );
+          });
+
+          usersAdded.forEach(async (id) => {
+            const findMention = await this.mentionedRepository.find({
+              where: {
+                messageId: message.message_id,
+                mentionUserId: id,
+                channelId: message.channel_id,
+              },
+            });
+            if (findMention.length) {
+              const userIdsMention = findMention.map(
+                (user) => user.mentionUserId,
+              );
+              userIdsMention.forEach(async (id) => {
+                await this.mentionedRepository.update(
+                  {
+                    channelId: message.channel_id,
+                    messageId: message.message_id,
+                    mentionUserId: id,
+                  },
+                  {
+                    confirm: false,
+                    reactionTimestamp: null,
+                  },
+                );
+              });
+              return;
+            }
+            const data = {
+              messageId: message.message_id,
+              authorId: message.sender_id,
+              channelId: message.channel_id,
+              mentionUserId: id,
+              createdTimestamp: new Date(message.create_time).getTime(),
+              noti: false,
+              confirm: false,
+              punish: false,
+              reactionTimestamp: null,
+            };
+            await this.mentionedRepository.insert(data);
+          });
+          return;
+        }
+
+        if (message.code === 2) {
+          currentMentionUserIds.forEach(async (id) => {
+            await this.mentionedRepository.update(
+              {
+                channelId: message.channel_id,
+                messageId: message.message_id,
+                mentionUserId: id,
+              },
+              {
+                confirm: true,
+                reactionTimestamp: new Date(message.create_time).getTime(),
+              },
+            );
+          });
+          return;
+        }
       }
     } catch (error) {
       console.log(error);
@@ -217,7 +322,11 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleAIforbot(msg: ChannelMessage) {
-    if (msg.channel_id === this.clientConfigService.machleoChannelId) return;
+    if (
+      msg.channel_id === this.clientConfigService.machleoChannelId ||
+      msg.code
+    )
+      return;
     try {
       const mentions = Array.isArray(msg.mentions) ? msg.mentions : [];
       const message = msg?.content?.t?.replace('@KOMU', 'bạn');
@@ -257,6 +366,7 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleAnswerBotQuiz(msg: ChannelMessage) {
+    if (msg.code) return;
     try {
       if (msg.mode == EMessageMode.DM_MESSAGE && msg.sender_id !== BOT_ID) {
         await this.userRepository.update(
