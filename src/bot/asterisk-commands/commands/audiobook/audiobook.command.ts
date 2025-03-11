@@ -15,7 +15,7 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-@Command('audiobook')
+// @Command('audiobook')
 export class AudiobookCommand extends CommandMessage {
   private client: MezonClient;
   constructor(
@@ -62,57 +62,54 @@ export class AudiobookCommand extends CommandMessage {
 
       const textContent = `Go to `;
       const channel_id = this.clientConfigService.audiobookChannelId;
-      try {
-        // call api in sdk
-        const channel = await this.client.registerStreamingChannel({
-          clan_id: message.clan_id,
-          channel_id: channel_id,
-        });
+      // try {
+      //   // call api in sdk
+      //   const channel = {};
 
-        if (!channel) return;
+      //   if (!channel) return;
 
-        const res = await this.axiosClientService.get(
-          `${process.env.NCC8_API}/ncc8/audio-book/${args[1]}`,
-        );
-        if (!res) return;
+      //   const res = await this.axiosClientService.get(
+      //     `${process.env.NCC8_API}/ncc8/audio-book/${args[1]}`,
+      //   );
+      //   if (!res) return;
 
-        // check channel is not streaming
-        // ffmpeg mp3 to streaming url
-        if (channel?.streaming_url !== '') {
-          this.ffmpegService
-            .transcodeMp3ToRtmp(
-              FFmpegImagePath.AUDIOBOOK,
-              res?.data?.url,
-              channel?.streaming_url,
-              FileType.AUDIOBOOK,
-            )
-            .catch((error) => console.log('error mp3', error));
-        }
+      //   // check channel is not streaming
+      //   // ffmpeg mp3 to streaming url
+      //   if (channel?.streaming_url !== '') {
+      //     this.ffmpegService
+      //       .transcodeMp3ToRtmp(
+      //         FFmpegImagePath.AUDIOBOOK,
+      //         res?.data?.url,
+      //         channel?.streaming_url,
+      //         FileType.AUDIOBOOK,
+      //       )
+      //       .catch((error) => console.log('error mp3', error));
+      //   }
 
-        await sleep(1000);
+      //   await sleep(1000);
 
-        return this.replyMessageGenerate(
-          {
-            messageContent: textContent,
-            hg: [
-              {
-                channelid: channel_id,
-                s: textContent.length,
-                e: textContent.length + 1,
-              },
-            ],
-          },
-          message,
-        );
-      } catch (error) {
-        console.log('error', message.clan_id, channel_id, error);
-        return this.replyMessageGenerate(
-          {
-            messageContent: 'Audiobook not found',
-          },
-          message,
-        );
-      }
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: textContent,
+      //       hg: [
+      //         {
+      //           channelid: channel_id,
+      //           s: textContent.length,
+      //           e: textContent.length + 1,
+      //         },
+      //       ],
+      //     },
+      //     message,
+      //   );
+      // } catch (error) {
+      //   console.log('error', message.clan_id, channel_id, error);
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: 'Audiobook not found',
+      //     },
+      //     message,
+      //   );
+      // }
     }
 
     if (args[0] === 'playlist') {

@@ -37,7 +37,7 @@ export class Ncc8SchedulerService {
       .getOne();
   }
 
-  @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
     await sleep(42000);
     this.ffmpegService.killCurrentStream(FileType.NCC8);
@@ -46,32 +46,32 @@ export class Ncc8SchedulerService {
     const nccPath = join(__dirname, '../../../..', 'uploads/');
     const currentNcc8FilePath = join(nccPath + currentNcc8.fileName);
     console.log('currentNcc8FilePath', currentNcc8FilePath);
-    const channel = await this.client.registerStreamingChannel({
-      clan_id: this.clientConfigService.clandNccId,
-      channel_id: this.clientConfigService.ncc8ChannelId,
-    });
-    if (!channel) return;
-    if (channel?.streaming_url !== '') {
-      this.ffmpegService
-        .transcodeMp3ToRtmp(
-          FFmpegImagePath.NCC8,
-          currentNcc8FilePath,
-          channel?.streaming_url,
-          FileType.NCC8,
-        )
-        .catch(async (error) => {
-          console.log('error mp3', error);
-          await sleep(1000);
-          this.ffmpegService
-            .transcodeMp3ToRtmp(
-              FFmpegImagePath.NCC8,
-              currentNcc8FilePath,
-              channel?.streaming_url,
-              FileType.NCC8,
-            )
-            .catch((error) => console.log('error mp3 2', error));
-        });
-    }
+    // const channel = await this.client.registerStreamingChannel({
+    //   clan_id: this.clientConfigService.clandNccId,
+    //   channel_id: this.clientConfigService.ncc8ChannelId,
+    // });
+    // if (!channel) return;
+    // if (channel?.streaming_url !== '') {
+    //   this.ffmpegService
+    //     .transcodeMp3ToRtmp(
+    //       FFmpegImagePath.NCC8,
+    //       currentNcc8FilePath,
+    //       channel?.streaming_url,
+    //       FileType.NCC8,
+    //     )
+    //     .catch(async (error) => {
+    //       console.log('error mp3', error);
+    //       await sleep(1000);
+    //       this.ffmpegService
+    //         .transcodeMp3ToRtmp(
+    //           FFmpegImagePath.NCC8,
+    //           currentNcc8FilePath,
+    //           channel?.streaming_url,
+    //           FileType.NCC8,
+    //         )
+    //         .catch((error) => console.log('error mp3 2', error));
+    //     });
+    // }
   }
 
   @Cron('5 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })

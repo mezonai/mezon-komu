@@ -51,57 +51,57 @@ export class Ncc8Command extends CommandMessage {
 
       const textContent = `Go to `;
       const channel_id = this.clientConfigService.ncc8ChannelId;
-      try {
-        // call api in sdk
-        const channel = await this.client.registerStreamingChannel({
-          clan_id: message.clan_id,
-          channel_id: channel_id,
-        });
+      // try {
+      //   // call api in sdk
+      //   const channel = await this.client.registerStreamingChannel({
+      //     clan_id: message.clan_id,
+      //     channel_id: channel_id,
+      //   });
 
-        if (!channel) return;
+      //   if (!channel) return;
 
-        const res = await this.axiosClientService.get(
-          `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
-        );
-        if (!res) return;
+      //   const res = await this.axiosClientService.get(
+      //     `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
+      //   );
+      //   if (!res) return;
 
-        // check channel is not streaming
-        // ffmpeg mp3 to streaming url
-        if (channel?.streaming_url !== '') {
-          this.ffmpegService
-            .transcodeMp3ToRtmp(
-              FFmpegImagePath.NCC8,
-              res?.data?.url,
-              channel?.streaming_url,
-              FileType.NCC8,
-            )
-            .catch((error) => console.log('error mp3', error));
-        }
+      //   // check channel is not streaming
+      //   // ffmpeg mp3 to streaming url
+      //   if (channel?.streaming_url !== '') {
+      //     this.ffmpegService
+      //       .transcodeMp3ToRtmp(
+      //         FFmpegImagePath.NCC8,
+      //         res?.data?.url,
+      //         channel?.streaming_url,
+      //         FileType.NCC8,
+      //       )
+      //       .catch((error) => console.log('error mp3', error));
+      //   }
 
-        await sleep(1000);
+      //   await sleep(1000);
 
-        return this.replyMessageGenerate(
-          {
-            messageContent: textContent,
-            hg: [
-              {
-                channelid: channel_id,
-                s: textContent.length,
-                e: textContent.length + 1,
-              },
-            ],
-          },
-          message,
-        );
-      } catch (error) {
-        console.log('error', message.clan_id, channel_id, error);
-        return this.replyMessageGenerate(
-          {
-            messageContent: 'Ncc8 not found',
-          },
-          message,
-        );
-      }
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: textContent,
+      //       hg: [
+      //         {
+      //           channelid: channel_id,
+      //           s: textContent.length,
+      //           e: textContent.length + 1,
+      //         },
+      //       ],
+      //     },
+      //     message,
+      //   );
+      // } catch (error) {
+      //   console.log('error', message.clan_id, channel_id, error);
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: 'Ncc8 not found',
+      //     },
+      //     message,
+      //   );
+      // }
     }
 
     if (args[0] === 'playlist') {

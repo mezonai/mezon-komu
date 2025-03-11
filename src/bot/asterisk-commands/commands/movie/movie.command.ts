@@ -14,7 +14,7 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-@Command('movie')
+// @Command('movie')
 export class MovieCommand extends CommandMessage {
   private client: MezonClient;
   constructor(
@@ -61,56 +61,56 @@ export class MovieCommand extends CommandMessage {
 
       const textContent = `Go to `;
       const channel_id = this.clientConfigService.movieChannelId;
-      try {
-        // call api in sdk
-        const channel = await this.client.registerStreamingChannel({
-          clan_id: message.clan_id,
-          channel_id: channel_id,
-        });
+      // try {
+      //   // call api in sdk
+      //   const channel = await this.client.registerStreamingChannel({
+      //     clan_id: message.clan_id,
+      //     channel_id: channel_id,
+      //   });
 
-        if (!channel) return;
+      //   if (!channel) return;
 
-        const res = await this.axiosClientService.get(
-          `${process.env.NCC8_API}/ncc8/film/${args[1]}`,
-        );
-        if (!res) return;
+      //   const res = await this.axiosClientService.get(
+      //     `${process.env.NCC8_API}/ncc8/film/${args[1]}`,
+      //   );
+      //   if (!res) return;
 
-        // check channel is not streaming
-        // ffmpeg mp3 to streaming url
-        if (channel?.streaming_url !== '') {
-          this.ffmpegService
-            .transcodeVideoToRtmp(
-              res?.data?.url,
-              channel?.streaming_url,
-              this.generateFileSubtitlePath(res?.data?.url),
-            )
-            .catch((error) => console.log('error video', error));
-        }
+      //   // check channel is not streaming
+      //   // ffmpeg mp3 to streaming url
+      //   if (channel?.streaming_url !== '') {
+      //     this.ffmpegService
+      //       .transcodeVideoToRtmp(
+      //         res?.data?.url,
+      //         channel?.streaming_url,
+      //         this.generateFileSubtitlePath(res?.data?.url),
+      //       )
+      //       .catch((error) => console.log('error video', error));
+      //   }
 
-        await sleep(1000);
+      //   await sleep(1000);
 
-        return this.replyMessageGenerate(
-          {
-            messageContent: textContent,
-            hg: [
-              {
-                channelid: channel_id,
-                s: textContent.length,
-                e: textContent.length + 1,
-              },
-            ],
-          },
-          message,
-        );
-      } catch (error) {
-        console.log('error', message.clan_id, channel_id, error);
-        return this.replyMessageGenerate(
-          {
-            messageContent: 'Movie not found',
-          },
-          message,
-        );
-      }
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: textContent,
+      //       hg: [
+      //         {
+      //           channelid: channel_id,
+      //           s: textContent.length,
+      //           e: textContent.length + 1,
+      //         },
+      //       ],
+      //     },
+      //     message,
+      //   );
+      // } catch (error) {
+      //   console.log('error', message.clan_id, channel_id, error);
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: 'Movie not found',
+      //     },
+      //     message,
+      //   );
+      // }
     }
 
     if (args[0] === 'playlist') {
