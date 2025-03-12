@@ -7,7 +7,7 @@ export class MessageQueue {
     return this.queue;
   }
 
-  addMessage(message: ReplyMezonMessage) {
+  addMessage(message: ReplyMezonMessage | any) {
     this.queue.push(message);
   }
 
