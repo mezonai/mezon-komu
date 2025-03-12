@@ -60,5 +60,6 @@ export const TABLE = {
   W2_REQUEST: 'komu_w2Request',
   APPLICATION: 'komu_application',
   TRANSACTION: 'komu_transaction',
-  VOUCHER: 'komu_voucher'
+  VOUCHER: 'komu_voucher',
+  INTERVIEWER_REPLY: 'komu_interviewerReply',
 };

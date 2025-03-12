@@ -60,6 +60,7 @@ import {
   Transaction,
   Application,
   VoucherEntiTy,
+  InterviewerReply,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -156,7 +157,8 @@ import { LogTimeSheetCommand } from './asterisk-commands/commands/logtimesheet/l
 import { W2RequestCommand } from './asterisk-commands/commands/w2Requests/W2Request.command';
 import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller';
 import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.command';
-import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command";
+import { DailyPmCommand } from './asterisk-commands/commands/daily/dailypm.command';
+import { InterviewSchedulerService } from './scheduler/interview-scheduler.service';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -224,7 +226,8 @@ import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command
       W2Request,
       Transaction,
       Application,
-      VoucherEntiTy
+      VoucherEntiTy,
+      InterviewerReply,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -319,6 +322,7 @@ import {DailyPmCommand} from "./asterisk-commands/commands/daily/dailypm.command
     W2RequestCommand,
     VoucherCommand,
     DailyPmCommand,
+    InterviewSchedulerService,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })
