@@ -43,7 +43,9 @@ export class EventGiveCoffee extends BaseHandleEvent {
         (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
 
       const firstText = `@${authorName} just sent a coffee to `;
-      const messageContent = firstText + `@${userName} at ${isThread? 'thread' : 'channel'} #!`; // '#' at message is channel, auto fill at FE
+      const messageContent =
+        firstText +
+        `@${userName} at ${isThread ? 'thread' : 'channel'} #${findChannel?.channel_label || ''}!`; // '#' at message is channel, auto fill at FE
 
       const replyMessage = {
         clan_id: data.clan_id,
@@ -57,7 +59,9 @@ export class EventGiveCoffee extends BaseHandleEvent {
           hg: [
             {
               channelid: data.channel_id,
-              s: messageContent.length - 2, // replace to '#' in text
+              s:
+                messageContent.length -
+                (2 + (findChannel?.channel_label || '').length), // replace to '#' in text
               e: messageContent.length - 1, // replace to '#' in text
             },
           ],

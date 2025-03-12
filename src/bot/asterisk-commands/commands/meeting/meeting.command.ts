@@ -79,10 +79,15 @@ export class MeetingCommand extends CommandMessage {
             ? `${message.clan_nick || message.display_name || message.username} is in ${currentUserVoiceChannel.length} voice channels!\n`
             : '';
         const hg = currentUserVoiceChannel.map((item) => {
-          messageContent += `Everyone please join the voice channel #\n`; // '#' at message is channel, auto fill at FE
+          const findChannel = listVoiceChannel.find(
+            (channel) => channel.channel_id === item.channel_id,
+          );
+          messageContent += `Everyone please join the voice channel #${findChannel?.channel_label || ''}\n`; // '#' at message is channel, auto fill at FE
           return {
             channelid: item.channel_id,
-            s: messageContent.length - 2, // replace to '#' in text
+            s:
+              messageContent.length -
+              (2 + (findChannel?.channel_label || '').length), // replace to '#' in text
             e: messageContent.length - 1, // replace to '#' in text
           };
         });
