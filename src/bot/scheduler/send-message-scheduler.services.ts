@@ -76,6 +76,39 @@ export class SendMessageSchedulerService {
     this.addCronJob('remindDailyLastChance', '55 16 * * 1-5', () =>
       this.remindDaily('last'),
     );
+    this.addCronJob('sendMessagePMs', '30 13 * * 2', () => this.sendMessagePMs());
+  }
+
+  async sendMessagePMs() {
+    const messageContent =
+      'Đã đến giờ report, PMs hãy nhanh chóng hoàn thành report nhé. Lưu ý:\n' +
+      '- Các PM nộp báo cáo trên Project tool trước 15h00 thứ 3 hàng tuần (chú ý click btn Send mới được tính là nộp)\n' +
+      '- Nộp sau 15h00: 20k/PM\n' +
+      '- Nộp sau 17h00: 50k/PM\n' +
+      '- Không chấp nhận mọi lý do\n' +
+      '- Áp dụng từ 01/03/2023\n' +
+      `- Guideline: `;
+    const guideline =
+      'https://docs.google.com/document/d/15BpNpBsSNaT2UYg4qPQeHNbXCeHfB1oj/edit?usp=sharing&ouid=109739496225261626689&rtpof=true&sd=true';
+    const replyMessage = {
+      clan_id: this.clientConfigService.clandNccId,
+      channel_id: this.clientConfigService.pmsChannelId,
+      is_public: false,
+      is_parent_public: true,
+      parent_id: '0',
+      mode: EMessageMode.CHANNEL_MESSAGE,
+      msg: {
+        t: messageContent + guideline,
+        mk: [
+          {
+            type: 'lk',
+            s: messageContent.length,
+            e: messageContent.length + guideline.length,
+          },
+        ],
+      },
+    };
+    this.messageQueue.addMessage(replyMessage);
   }
 
   async sendSubmitTimesheet() {
@@ -88,7 +121,7 @@ export class SendMessageSchedulerService {
       if (!getListUserLogTimesheet) return;
 
       const results = getListUserLogTimesheet?.data?.result;
-      const usernameList = []
+      const usernameList = [];
       await Promise.all(
         results.map(async (item) => {
           const email = await this.utilsService.getUserNameByEmail(
@@ -112,7 +145,7 @@ export class SendMessageSchedulerService {
           this.messageQueue.addMessage(messageToUser);
         }),
       );
-      console.log('sendSubmitTimesheet', usernameList)
+      console.log('sendSubmitTimesheet', usernameList);
     } catch (error) {
       console.log(error);
     }
@@ -203,7 +236,8 @@ export class SendMessageSchedulerService {
           },
         },
       );
-      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
+      const { userOffFullday } =
+        await this.timeSheetService.getUserOffWork(null);
       const usernameList = [];
       await Promise.all(
         listsUser.data.map(async (user) => {
@@ -261,18 +295,16 @@ export class SendMessageSchedulerService {
       const userListNotCheckOut = listsUser.data.filter(
         (user) => user.checkout === null,
       );
-      const { userOffFullday } = await this.timeSheetService.getUserOffWork(null);
+      const { userOffFullday } =
+        await this.timeSheetService.getUserOffWork(null);
       const usernameList = [];
       await Promise.all(
         userListNotCheckOut.map(async (user) => {
           const query = this.userRepository
             .createQueryBuilder('user')
-            .where(
-              'user.clan_nick = :komuUserName',
-              {
-                komuUserName: user.komuUserName,
-              },
-            )
+            .where('user.clan_nick = :komuUserName', {
+              komuUserName: user.komuUserName,
+            })
             .andWhere('user.user_type = :userType', {
               userType: EUserType.MEZON,
             })
