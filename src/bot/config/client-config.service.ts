@@ -145,7 +145,7 @@ export class ClientConfigService {
 
     this.voucherApi = {
       getTotalVoucherByEmail: `${configService.get<string>('VOUCHER_API')}users/get-user-by-email`,
-      buyVoucher: `${configService.get<string>('VOUCHER_API')}invoices/buy-voucher`
+      buyVoucher: `${configService.get<string>('VOUCHER_API')}invoices/buy-voucher`,
     };
 
     this.categories = {
@@ -301,6 +301,8 @@ export class ClientConfigService {
     this.sheetRedirectURI = `${configService.get<string>(
       'SHEET_REDIRECT_URI',
     )}`;
+
+    this.talentURL = `${configService.get<string>('TALENT_API')}`;
 
     this.sheetFineId = `${configService.get<string>('SHEET_FINE_ID')}`;
 
@@ -479,6 +481,8 @@ export class ClientConfigService {
     api_url: string;
   };
 
+  talentURL: string;
+
   wfh: {
     api_url: string;
   };
@@ -514,11 +518,11 @@ export class ClientConfigService {
 
   unlockTsStaffApi: {
     api_url: string;
-  }
+  };
 
   unlockTsPMApi: {
     api_url: string;
-  }
+  };
 
   absenceDayRequestApi: {
     api_url: string;
@@ -636,7 +640,7 @@ export class ClientConfigService {
   newsChannelId: string;
 
   voucherApi: {
-    getTotalVoucherByEmail: string,
-    buyVoucher: string
-  }
+    getTotalVoucherByEmail: string;
+    buyVoucher: string;
+  };
 }

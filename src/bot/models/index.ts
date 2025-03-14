@@ -54,3 +54,4 @@ export { W2Request } from './requestW2.entity';
 export { Transaction } from './mezonTransaction.entity';
 export { Application } from './mezonApplication.entity';
 export { VoucherEntiTy } from './voucher.entity';
+export { InterviewerReply } from './interviewReply.entity';

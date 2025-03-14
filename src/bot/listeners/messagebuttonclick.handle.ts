@@ -34,6 +34,7 @@ import {
 import { MessageQueue } from '../services/messageQueue.service';
 import {
   Daily,
+  InterviewerReply,
   MezonBotMessage,
   Quiz,
   UnlockTimeSheet,
@@ -113,6 +114,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private mezonBotMessageRepository: Repository<MezonBotMessage>,
     private pollService: PollService,
     private clientServices: MezonClientService,
+    @InjectRepository(InterviewerReply)
+    private interviewRepository: Repository<InterviewerReply>,
   ) {
     super(clientService);
   }
@@ -163,6 +166,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'poll':
         this.handleSelectPoll(data);
+        break;
+      case 'interview':
+        this.sendAnswerOfInterviewerToHr(data);
         break;
       default:
         break;
@@ -1747,7 +1753,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           data.channel_id,
           'Sending Request...',
         );
-        let payload = {
+        const payload = {
           dynamicActionData: JSON.stringify([
             {
               name: 'StrengthPoints',
@@ -1817,7 +1823,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           data.channel_id,
           'Sending Request...',
         );
-        let payload = {
+        const payload = {
           dynamicActionData: JSON.stringify([
             {
               name: 'LastWorkingDay',
@@ -1874,7 +1880,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   async handlePMRequestAbsenceDay(data) {
     const splitButtonId = data.button_id.split('_');
-    let typeButtonRes = splitButtonId[1]; // (approve or reject)
+    const typeButtonRes = splitButtonId[1]; // (approve or reject)
     const requestIdButton = splitButtonId[2];
     const requestIds = [Number(requestIdButton)];
     const usernameEmployee = splitButtonId[3];
@@ -2101,7 +2107,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             authorUsername,
           );
 
-          for (let projectCode of projectCodes) {
+          for (const projectCode of projectCodes) {
             await this.timeSheetService.logTimeSheetForTask(
               todayValue,
               emailAddress,
@@ -2451,5 +2457,69 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         this.pollService.handleResultPoll(findMessagePoll);
       }
     } catch (error) {}
+  }
+
+  async sendAnswerOfInterviewerToHr(data) {
+    try {
+      const interviewId = data.button_id.split('_')[1];
+      const interviewerName = data.button_id.split('_')[2];
+      const hrEmail = data.button_id.split('_')[3];
+      const interviewTime = data.button_id.split('_')[4];
+      const isAccept = data.button_id.split('_')[5] === "btnAccept";
+
+      await this.interviewRepository
+        .createQueryBuilder()
+        .update(InterviewerReply)
+        .set({ isReply: true })
+        .where(`"id" = :id`, {
+          id: interviewId,
+        })
+        .execute();
+        
+        const embed = [
+          {
+            color: getRandomColor(),
+            title: '📢 Thông báo lịch phỏng vấn',
+            description:
+              '```' +
+              `\nBạn có lịch phỏng vấn lúc ${interviewTime} bạn có thể tham gia không?` +
+              '```' +
+              '\n(Câu hỏi đã được trả lời)',
+          },
+        ];
+        await this.client.updateChatMessage(
+          "",
+          data.channel_id,
+          EMessageMode.DM_MESSAGE,
+          true,
+          data.message_id,
+          { embed },
+          [],
+          [],
+          true,
+        );
+
+        const textContent = isAccept 
+          ? `${interviewerName} chấp nhận tham gia phỏng vấn` 
+          : `${interviewerName} từ chối tham gia phỏng vấn`;
+
+        const hrInformation = await this.userRepository.findOne({
+          where: {
+            username: hrEmail.split('@')[0],
+            user_type: EUserType.MEZON,
+          },
+        });
+        const userId = hrInformation.userId;
+        const messageToUser: ReplyMezonMessage = {
+          userId,
+          textContent,
+          messOptions: { 
+            mk: [{ type: 'b', s: 0, e: interviewerName.length }]
+          },
+        };
+         this.messageQueue.addMessage(messageToUser);
+    } catch (error) {
+      console.log('sendAnswerOfInterviewerToHr Error', error);
+    }
   }
 }
