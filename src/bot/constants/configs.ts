@@ -210,10 +210,15 @@ export enum Embeb_Button_Type {
   CONFIRM = 'CONFIRM',
   CANCEL = 'CANCEL',
   VOTE = 'VOTE',
-  FINISH = 'FINISH'
+  FINISH = 'FINISH',
 }
 
 export enum Voucher_Exchange_Type {
   NCCSoft = 'NccSoft',
   Market = 'Market',
+}
+
+export enum UserType {
+  Intern,
+  Staff,
 }

@@ -29,6 +29,7 @@ import {
   FFmpegImagePath,
   FileType,
   MEZON_EMBED_FOOTER,
+  UserType,
   Voucher_Exchange_Type,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
@@ -37,6 +38,7 @@ import {
   InterviewerReply,
   MezonBotMessage,
   Quiz,
+  RoleMezon,
   UnlockTimeSheet,
   User,
   UserQuiz,
@@ -116,6 +118,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private clientServices: MezonClientService,
     @InjectRepository(InterviewerReply)
     private interviewRepository: Repository<InterviewerReply>,
+    @InjectRepository(RoleMezon)
+    private roleMezonRepository: Repository<RoleMezon>,
   ) {
     super(clientService);
   }
@@ -2465,7 +2469,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const interviewerName = data.button_id.split('_')[2];
       const hrEmail = data.button_id.split('_')[3];
       const interviewTime = data.button_id.split('_')[4];
-      const isAccept = data.button_id.split('_')[5] === "btnAccept";
+      const candidateFulName = data.button_id.split('_')[5];
+      const branchName = data.button_id.split('_')[6];
+      const userType = data.button_id.split('_')[7];
+      const positionName = data.button_id.split('_')[8];
+      const isAccept = data.button_id.split('_')[9] === "btnAccept";
 
       await this.interviewRepository
         .createQueryBuilder()
@@ -2475,16 +2483,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           id: interviewId,
         })
         .execute();
-        
+      const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTime}`
         const embed = [
           {
             color: getRandomColor(),
             title: '📢 Thông báo lịch phỏng vấn',
-            description:
-              '```' +
-              `\nBạn có lịch phỏng vấn lúc ${interviewTime} bạn có thể tham gia không?` +
-              '```' +
-              '\n(Câu hỏi đã được trả lời)',
+              description:
+                '```' +
+                `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
+                'Bạn có thể tham gia buổi phỏng vấn này không?' +
+                '```' +
+                '\n(Bạn đã trả lời câu hỏi này)',
           },
         ];
         await this.client.updateChatMessage(
@@ -2499,25 +2508,28 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           true,
         );
 
-        const textContent = isAccept 
-          ? `${interviewerName} chấp nhận tham gia phỏng vấn` 
-          : `${interviewerName} từ chối tham gia phỏng vấn`;
-
-        const hrInformation = await this.userRepository.findOne({
-          where: {
-            username: hrEmail.split('@')[0],
-            user_type: EUserType.MEZON,
-          },
+        const textContent = `${interviewerName} ${isAccept ? "chấp nhận" : "từ chối"} tham gia phỏng vấn ${interviewDescription}.` 
+        const findHrRole = await this.roleMezonRepository.findOne({
+          where: { title: 'HR' },
         });
-        const userId = hrInformation.userId;
-        const messageToUser: ReplyMezonMessage = {
-          userId,
-          textContent,
-          messOptions: { 
-            mk: [{ type: 'b', s: 0, e: interviewerName.length }]
-          },
-        };
-         this.messageQueue.addMessage(messageToUser);
+        console.log('Find hr role:', findHrRole);
+        const hrUsers = await this.userRepository
+          .createQueryBuilder('user')
+          .where(':role = ANY(user.roles)', { role: findHrRole.id })
+          .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+          .getMany();
+
+        console.log('Find hr users by role:', hrUsers);
+        hrUsers.forEach((hr: User) => {
+          const messageToUser: ReplyMezonMessage = {
+            userId: hr.userId,
+            textContent,
+            messOptions: { 
+              mk: [{ type: 'b', s: 0, e: interviewerName.length }]
+            },
+          };
+           this.messageQueue.addMessage(messageToUser);
+        })
     } catch (error) {
       console.log('sendAnswerOfInterviewerToHr Error', error);
     }

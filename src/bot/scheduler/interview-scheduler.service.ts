@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EMessageComponentType, EUserType } from 'src/bot/constants/configs';
+import {
+  EMessageComponentType,
+  EUserType,
+  UserType,
+} from 'src/bot/constants/configs';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
-import { InterviewerReply, User } from 'src/bot/models';
-import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
+import { InterviewerReply, RoleMezon, User } from 'src/bot/models';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { KomuService } from 'src/bot/services/komu.services';
 import { EButtonMessageStyle } from 'mezon-sdk';
@@ -29,9 +33,11 @@ export class InterviewSchedulerService {
     @InjectRepository(InterviewerReply)
     private interviewRepository: Repository<InterviewerReply>,
     private clientConfigService: ClientConfigService,
+    @InjectRepository(RoleMezon)
+    private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE, {
+  @Cron('*/1 8-18 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async handleInterviewReply() {
@@ -40,40 +46,49 @@ export class InterviewSchedulerService {
         where: { isReply: false },
       });
 
+      const findHrRole = await this.roleMezonRepository.findOne({
+        where: { title: 'HR' },
+      });
+
+      console.log('Find hr role:', findHrRole);
+
+      const hrUsers = await this.userRepository
+        .createQueryBuilder('user')
+        .where(':role = ANY(user.roles)', { role: findHrRole.id })
+        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .getMany();
+
+      console.log('Find hr users by role:', hrUsers);
+
       interviewReplies.forEach(async (interviewReply) => {
         const now = moment().tz('Asia/Ho_Chi_Minh');
         const messageTime = moment(interviewReply.timeSendMessage).tz(
           'Asia/Ho_Chi_Minh',
         );
 
-        const interviewUser = await this.userRepository.findOne({
-          where: {
-            username: interviewReply.hrEmailProcess.split('@')[0],
-            user_type: EUserType.MEZON,
-          },
+        hrUsers.forEach((hr: User) => {
+          if (now.isAfter(messageTime.clone().add(5, 'minutes'))) {
+            const textContent = `${interviewReply.interviewerName} không trả lời tin nhắn tham gia phỏng vấn ${interviewReply.interviewDescription}.`;
+            const messageToUser: ReplyMezonMessage = {
+              userId: hr.userId,
+              textContent,
+              messOptions: {
+                mk: [
+                  { type: 'b', s: 0, e: interviewReply.interviewerName.length },
+                ],
+              },
+            };
+            this.messageQueue.addMessage(messageToUser);
+            this.interviewRepository
+              .createQueryBuilder()
+              .update(InterviewerReply)
+              .set({ isReply: true })
+              .where(`"id" = :id`, {
+                id: interviewReply.id,
+              })
+              .execute();
+          }
         });
-        const userId = interviewUser.userId;
-        if (now.isAfter(messageTime.clone().add(5, 'minutes'))) {
-          const textContent = `${interviewReply.interviewerName} không trả lời tin nhắn tham gia phỏng vấn.`;
-          const messageToUser: ReplyMezonMessage = {
-            userId,
-            textContent,
-            messOptions: {
-              mk: [
-                { type: 'b', s: 0, e: interviewReply.interviewerName.length },
-              ],
-            },
-          };
-          this.messageQueue.addMessage(messageToUser);
-          this.interviewRepository
-            .createQueryBuilder()
-            .update(InterviewerReply)
-            .set({ isReply: true })
-            .where(`"id" = :id`, {
-              id: interviewReply.id,
-            })
-            .execute();
-        }
       });
     } catch (error) {
       this.logger.error('Failed to fetch interview reply:', error);
@@ -159,29 +174,33 @@ export class InterviewSchedulerService {
     const interviewTimeLocalFormat = interviewTimeLocal.format(
       'DD/MM/YYYY HH:mm:ss',
     );
-
+    const { userType, branchName, positionName, candidateFulName } =
+      interviewInfo.cvInfo;
+    const interviewerName =
+      interviewInfo.interviewer.interviewerName.split('@')[0];
     const interviewId = uuidv4();
-
+    const btnId = `interview_${interviewId}_${interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_${candidateFulName}_${branchName}_${userType}_${positionName}`;
+    const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
     const buttons = [
       {
         type: EMessageComponentType.BUTTON,
-        id: `interview_${interviewId}_${interviewInfo.interviewer.interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_btnAccept`,
+        id: `${btnId}_btnAccept`,
         component: { label: 'Có', style: EButtonMessageStyle.PRIMARY },
       },
       {
         type: EMessageComponentType.BUTTON,
-        id: `interview_${interviewId}_${interviewInfo.interviewer.interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_btnReject`,
+        id: `${btnId}_btnReject`,
         component: { label: 'Không', style: EButtonMessageStyle.PRIMARY },
       },
     ];
-
     const embed = [
       {
         color: getRandomColor(),
         title: '📢 Thông báo lịch phỏng vấn',
         description:
           '```' +
-          `\nBạn có lịch phỏng vấn lúc ${interviewTimeLocalFormat}, bạn có thể tham gia không?` +
+          `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
+          'Bạn có thể tham gia buổi phỏng vấn này không?' +
           '```' +
           '\n(Trả lời bằng cách chọn đáp án bên dưới)',
       },
@@ -198,11 +217,12 @@ export class InterviewSchedulerService {
     const interviewerReply = this.interviewRepository.create({
       id: interviewId,
       interviewerId: userId,
-      interviewerName: interviewInfo.interviewer.interviewerName,
+      interviewerName,
       interviewerEmail: interviewInfo.interviewer.interviewerEmail,
       hrEmailProcess: interviewInfo.hrEmail,
       timeSendMessage: moment().format('YYYY-MM-DD HH:mm:ss'),
       isReply: false,
+      interviewDescription,
     });
     await this.interviewRepository.save(interviewerReply);
 
@@ -214,9 +234,11 @@ export class InterviewSchedulerService {
   addCronJob(name: string, cronTime: string, callback: () => void): void {
     const job = new CronJob(
       cronTime,
-      () => {
+      async () => {
         this.logger.log(`Running job: ${name} at ${cronTime}`);
-        callback();
+        await callback();
+        this.schedulerRegistry.deleteCronJob(name);
+        this.logger.log(`Stopped and removed job: ${name}`);
       },
       null,
       true,
@@ -226,6 +248,6 @@ export class InterviewSchedulerService {
     this.schedulerRegistry.addCronJob(name, job);
     job.start();
 
-    this.logger.log(`Added cron job: ${name} at ${cronTime}`);
+    this.logger.log(`Added one-time cron job: ${name} at ${cronTime}`);
   }
 }
