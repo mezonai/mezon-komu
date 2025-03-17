@@ -25,4 +25,7 @@ export class InterviewerReply {
 
   @Column({ type: 'text', nullable: true })
   hrEmailProcess: string;
+
+  @Column({ type: 'text', nullable: true })
+  interviewDescription: string;
 }
