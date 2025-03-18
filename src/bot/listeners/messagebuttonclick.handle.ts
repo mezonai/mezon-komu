@@ -2496,9 +2496,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 '\n(Bạn đã trả lời câu hỏi này)',
           },
         ];
+        const channelDm = await this.channelDmMezonRepository.findOne({
+          where: { username: interviewerName },
+        });
         await this.client.updateChatMessage(
           "",
-          data.channel_id,
+          channelDm.channel_id,
           EMessageMode.DM_MESSAGE,
           true,
           data.message_id,
