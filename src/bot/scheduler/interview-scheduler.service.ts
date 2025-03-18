@@ -50,15 +50,11 @@ export class InterviewSchedulerService {
         where: { title: 'HR' },
       });
 
-      console.log('Find hr role:', findHrRole);
-
       const hrUsers = await this.userRepository
         .createQueryBuilder('user')
         .where(':role = ANY(user.roles)', { role: findHrRole.id })
         .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
         .getMany();
-
-      console.log('Find hr users by role:', hrUsers);
 
       interviewReplies.forEach(async (interviewReply) => {
         const now = moment().tz('Asia/Ho_Chi_Minh');
@@ -177,7 +173,7 @@ export class InterviewSchedulerService {
     const { userType, branchName, positionName, candidateFulName } =
       interviewInfo.cvInfo;
     const interviewerName =
-      interviewInfo.interviewer.interviewerName.split('@')[0];
+      interviewInfo.interviewer.interviewerEmail.split('@')[0];
     const interviewId = uuidv4();
     const btnId = `interview_${interviewId}_${interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_${candidateFulName}_${branchName}_${userType}_${positionName}`;
     const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
