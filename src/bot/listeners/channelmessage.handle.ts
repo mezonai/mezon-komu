@@ -197,9 +197,20 @@ export class EventListenerChannelMessage {
             reactionTimestamp: null,
           },
         });
+        const listMentionConfirmedByMessageId =
+          await this.mentionedRepository.find({
+            where: {
+              messageId: message.message_id,
+              channelId: message.channel_id,
+              confirm: true,
+              reactionTimestamp: null,
+            },
+          });
         const currentMentionUserIds = listMentionByMessageId.map(
           (user) => user.mentionUserId,
         );
+        const currentMentionConfirmedUserIds =
+          listMentionConfirmedByMessageId.map((user) => user.mentionUserId);
         const messageMentionUserIds = message.mentions.map(
           (user) => user.user_id,
         );
@@ -225,6 +236,7 @@ export class EventListenerChannelMessage {
           });
 
           usersAdded.forEach(async (id) => {
+            if (currentMentionConfirmedUserIds.includes(id)) return;
             const findMention = await this.mentionedRepository.find({
               where: {
                 messageId: message.message_id,

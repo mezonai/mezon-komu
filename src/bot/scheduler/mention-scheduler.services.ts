@@ -167,7 +167,7 @@ export class MentionSchedulerService {
       // const textConfirm = '`React ❌ to Complain or ✅ to Accept`';
 
       const messageReply = {
-        t: content + '#!', // '#' at message is channel, auto fill at FE
+        t: content + `#${findChannel.channel_label}!`, // '#' at message is channel, auto fill at FE
         // mk: [
         //   {
         //     type: EMarkdownType.SINGLE,
@@ -179,7 +179,7 @@ export class MentionSchedulerService {
           {
             channelid: user.channelId,
             s: content.length, // replace to '#' in text
-            e: content.length + 1, // replace to '#' in text
+            e: content.length + 1 + (findChannel.channel_label ?? '').length, // replace to '#' in text
           },
         ],
       };
