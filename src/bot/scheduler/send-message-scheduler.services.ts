@@ -352,7 +352,7 @@ export class SendMessageSchedulerService {
             const userdb = await this.userRepository
               .createQueryBuilder('user')
               .where(
-                '(user.clan_nick = :username)',
+                '(user.clan_nick = :username OR user.username = :username)',
                 { username },
               )
               .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
@@ -369,7 +369,7 @@ export class SendMessageSchedulerService {
                   type === 'last'
                     ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
                     : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.",
-                code: userdb.buzzDaily ? 8 : undefined,
+                code: type === 'last' && userdb.buzzDaily ? 8 : undefined,
               };
               this.messageQueue.addMessage(messageToUser);
             }
