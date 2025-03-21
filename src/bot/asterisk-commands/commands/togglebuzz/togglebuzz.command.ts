@@ -16,15 +16,12 @@ export class ToggleBuzzCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    let messageContent = '';
-    if (!args.length) {
-      messageContent =
-        '```' +
-        'Command: *togglebuzz daily' +
-        '\n' +
-        'Command: *togglebuzz ncc8' +
-        '```';
-    }
+    let messageContent =
+      '```' +
+      'Command: *togglebuzz daily' +
+      '\n' +
+      'Command: *togglebuzz ncc8' +
+      '```';
     if (args[0] === 'daily') {
       const findUser = await this.userRepository.findOne({
         where: { userId: message.sender_id, user_type: EUserType.MEZON },
