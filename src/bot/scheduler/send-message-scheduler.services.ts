@@ -76,7 +76,9 @@ export class SendMessageSchedulerService {
     this.addCronJob('remindDailyLastChance', '55 16 * * 1-5', () =>
       this.remindDaily('last'),
     );
-    this.addCronJob('sendMessagePMs', '30 13 * * 2', () => this.sendMessagePMs());
+    this.addCronJob('sendMessagePMs', '30 13 * * 2', () =>
+      this.sendMessagePMs(),
+    );
   }
 
   async sendMessagePMs() {
@@ -350,12 +352,13 @@ export class SendMessageSchedulerService {
             const userdb = await this.userRepository
               .createQueryBuilder('user')
               .where(
-                '(user.clan_nick = :username) AND user.deactive IS NOT TRUE AND user.user_type = :userType',
-                {
-                  username,
-                  userType: EUserType.MEZON,
-                },
+                '(user.clan_nick = :username)',
+                { username },
               )
+              .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
+              .andWhere('user.user_type = :userType', {
+                userType: EUserType.MEZON,
+              })
               .getOne();
 
             if (userdb && userdb.user_type === EUserType.MEZON) {
@@ -366,6 +369,7 @@ export class SendMessageSchedulerService {
                   type === 'last'
                     ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
                     : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.",
+                code: userdb.buzzDaily ? 8 : undefined,
               };
               this.messageQueue.addMessage(messageToUser);
             }

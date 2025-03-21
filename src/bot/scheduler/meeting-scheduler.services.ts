@@ -91,7 +91,7 @@ export class MeetingSchedulerService {
         });
         const isThread =
           findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-          (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+          (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
         const replyMessage = {
           clan_id: this.clientConfig.clandNccId,
           channel_id: dataMeeing.channelId,
@@ -194,7 +194,7 @@ export class MeetingSchedulerService {
     });
     const isThread =
       findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-      (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+      (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
     const voiceChannel = await this.channelRepository.findOne({
       where: {
         channel_id:

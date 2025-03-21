@@ -156,7 +156,7 @@ export class EventListenerChannelMessage {
         );
         if (!findChannel.category_id) {
           const findChannelParent = await this.channelRepository.findOne({
-            where: { channel_id: findChannel.parrent_id },
+            where: { channel_id: findChannel.parent_id },
           });
           validCategory = checkCategoriesId.includes(
             findChannelParent?.category_id,

@@ -60,6 +60,7 @@ export class MezonClientService {
         messageToUser.messOptions ?? {},
         messageToUser.attachments ?? [],
         messageToUser.refs ?? [],
+        messageToUser?.code
       );
     } catch (error) {
       throw error;

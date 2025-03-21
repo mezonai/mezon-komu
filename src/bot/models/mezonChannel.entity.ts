@@ -20,7 +20,7 @@ export class ChannelMezon {
   meeting_code: string;
 
   @Column({ type: 'text' })
-  parrent_id: string | null;
+  parent_id: string | null;
 
   @Column({ type: 'text', unique: true })
   channel_id: string;
