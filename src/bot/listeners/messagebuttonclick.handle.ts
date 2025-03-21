@@ -2473,7 +2473,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const branchName = data.button_id.split('_')[6];
       const userType = data.button_id.split('_')[7];
       const positionName = data.button_id.split('_')[8];
-      const isAccept = data.button_id.split('_')[9] === "btnAccept";
+      const cvId = data.button_id.split('_')[9];
+      const interviewUrl = data.button_id.split('_')[10];
+      const isAccept = data.button_id.split('_')[11] === "btnAccept";
 
       await this.interviewRepository
         .createQueryBuilder()
@@ -2488,14 +2490,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           {
             color: getRandomColor(),
             title: '📢 Thông báo lịch phỏng vấn',
-              description:
-                '```' +
-                `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
-                'Bạn có thể tham gia buổi phỏng vấn này không?' +
-                '```' +
-                '\n(Bạn đã trả lời câu hỏi này)',
+            description:
+              '```' +
+              `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
+              `Bạn có thể tham gia buổi phỏng vấn này không ? \n` +
+              `Link candidate: ${process.env.TALENT_FE_URL}app/candidate/${userType === UserType.Intern ? 'intern-list' : 'staff-list'}/${cvId}?userType=${Number(userType)}&tab=3 \n` +
+              `Link phỏng vấn: ${interviewUrl} \n` +
+              '```' +
+              '\n(Trả lời bằng cách chọn đáp án bên dưới)',
           },
         ];
+        
         const channelDm = await this.channelDmMezonRepository.findOne({
           where: { username: interviewerName },
         });

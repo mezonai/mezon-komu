@@ -91,11 +91,12 @@ export class InterviewSchedulerService {
     }
   }
 
-  @Cron('0 8,13 * * 1-5', {
+  @Cron('*/1 8-22 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async scheduleInterviews() {
-    const urlGetInterviews = `${this.clientConfigService.talentURL}Public/GetInterviewInfo`;
+    const urlGetInterviews =
+      'https://localhost:44311/api/services/app/Public/GetInterviewInfo';
     try {
       const responseTasks = await this.axiosClientService.get(
         urlGetInterviews,
@@ -113,6 +114,8 @@ export class InterviewSchedulerService {
         this.logger.warn('No interviews found.');
         return;
       }
+
+      console.log(interviews, 'interviews');
 
       interviews.forEach((interview) => {
         this.scheduleInterviewReminder(interview);
@@ -170,12 +173,12 @@ export class InterviewSchedulerService {
     const interviewTimeLocalFormat = interviewTimeLocal.format(
       'DD/MM/YYYY HH:mm:ss',
     );
-    const { userType, branchName, positionName, candidateFulName } =
+    const { cvId, userType, branchName, positionName, candidateFulName } =
       interviewInfo.cvInfo;
     const interviewerName =
       interviewInfo.interviewer.interviewerEmail.split('@')[0];
     const interviewId = uuidv4();
-    const btnId = `interview_${interviewId}_${interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_${candidateFulName}_${branchName}_${userType}_${positionName}`;
+    const btnId = `interview_${interviewId}_${interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_${candidateFulName}_${branchName}_${userType}_${positionName}_${cvId}_${interviewInfo.interviewUrl}`;
     const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
     const buttons = [
       {
@@ -196,7 +199,9 @@ export class InterviewSchedulerService {
         description:
           '```' +
           `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
-          'Bạn có thể tham gia buổi phỏng vấn này không?' +
+          `Bạn có thể tham gia buổi phỏng vấn này không ? \n` +
+          `Link candidate: ${process.env.TALENT_FE_URL}app/candidate/${userType === UserType.Intern ? 'intern-list' : 'staff-list'}/${cvId}?userType=${Number(userType)}&tab=3 \n` +
+          `Link phỏng vấn: ${interviewInfo.interviewUrl} \n` +
           '```' +
           '\n(Trả lời bằng cách chọn đáp án bên dưới)',
       },
