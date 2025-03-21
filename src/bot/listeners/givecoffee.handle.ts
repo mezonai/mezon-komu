@@ -40,7 +40,7 @@ export class EventGiveCoffee extends BaseHandleEvent {
       });
       const isThread =
         findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+        (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
 
       const firstText = `@${authorName} just sent a coffee to `;
       const messageContent =

@@ -166,7 +166,7 @@ export class KomuService {
     });
     const isThread =
       findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-      (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+      (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
       channel_id: channelId,

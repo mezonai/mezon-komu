@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { FFmpegService } from '../services/ffmpeg.service';
-import { getRandomColor, sleep } from '../utils/helper';
-import { Uploadfile } from '../models';
+import { getRandomColor, getUserNameByEmail, sleep } from '../utils/helper';
+import { Uploadfile, User } from '../models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EmbedProps, EMessageMode, FFmpegImagePath, FileType } from '../constants/configs';
+import {
+  EmbedProps,
+  EMessageMode,
+  EUserType,
+  FFmpegImagePath,
+  FileType,
+} from '../constants/configs';
 import { join } from 'path';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { MezonClient } from 'mezon-sdk';
@@ -13,6 +19,7 @@ import { Cron } from '@nestjs/schedule';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
+import { TimeSheetService } from '../services/timesheet.services';
 
 @Injectable()
 export class Ncc8SchedulerService {
@@ -25,6 +32,9 @@ export class Ncc8SchedulerService {
     private clientConfigService: ClientConfigService,
     private axiosClientService: AxiosClientService,
     private messageQueue: MessageQueue,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private timeSheetService: TimeSheetService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -35,6 +45,47 @@ export class Ncc8SchedulerService {
       .where('upload_file.file_type = :fileType', { fileType })
       .orderBy('upload_file.episode', 'DESC')
       .getOne();
+  }
+
+  @Cron('25 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  async ncc8JoinScheduler() {
+    const wfhResult = await this.timeSheetService.findWFHUser();
+    const wfhUserEmail = wfhResult
+      .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
+      .map((item) => {
+        return getUserNameByEmail(item.emailAddress);
+      });
+
+    const findUserWfh = await this.userRepository
+      .createQueryBuilder('user')
+      .where(
+        '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))',
+      )
+      .andWhere('user.user_type = :userType')
+      .setParameters({
+        wfhUserEmail,
+        userType: EUserType.MEZON,
+      })
+      .getMany();
+    const text = '[WARNING] Ncc8 will play in 5 minutes, please go to ';
+    const channelLabel = '#ncc8-radio';
+    findUserWfh.map((user) => {
+      const messageToUser: ReplyMezonMessage = {
+        userId: user.userId,
+        textContent: text + channelLabel,
+        messOptions: {
+          hg: [
+            {
+              channelid: process.env.MEZON_NCC8_CHANNEL_ID,
+              s: text.length,
+              e: text.length + channelLabel.length,
+            },
+          ],
+        },
+        code: user.buzzNcc8 ? 8 : undefined,
+      };
+      this.messageQueue.addMessage(messageToUser);
+    });
   }
 
   // @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
@@ -78,7 +129,7 @@ export class Ncc8SchedulerService {
   async ncc8SummaryScheduler() {
     const currentNcc8 = await this.findCurrentNcc8Episode(FileType.NCC8);
     const currentNcc8FileName = currentNcc8?.fileName;
-    console.log('currentNcc8FileName', currentNcc8FileName)
+    console.log('currentNcc8FileName', currentNcc8FileName);
     const { data } = await this.axiosClientService.post(
       process.env.NCC8_SUMARY_API,
       {
@@ -105,7 +156,7 @@ export class Ncc8SchedulerService {
       mode: EMessageMode.CHANNEL_MESSAGE,
       msg: {
         t: '',
-        embed
+        embed,
       },
     };
     this.messageQueue.addMessage(replyMessage);

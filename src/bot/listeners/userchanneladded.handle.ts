@@ -31,7 +31,7 @@ export class EventListenerUserChannelAdded extends BaseHandleEvent {
         clan_id,
         type,
         channel_private,
-        parrent_id,
+        parent_id,
         channel_label,
         category_id,
         meeting_code
@@ -42,7 +42,7 @@ export class EventListenerUserChannelAdded extends BaseHandleEvent {
         channel_type: type,
         channel_private,
         status: Number(input.status),
-        parrent_id: parrent_id,
+        parent_id: parent_id,
         channel_label,
         category_id,
         meeting_code
