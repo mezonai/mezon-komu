@@ -25,7 +25,7 @@ import { ChannelType, MezonClient } from 'mezon-sdk';
 import { PayoutApplication } from '../dto/payoutApplication';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
-import { parseBoldText } from '../utils/helper';
+import { parseMarkDownText } from '../utils/helper';
 
 @Injectable()
 export class KomubotrestService {
@@ -170,7 +170,7 @@ export class KomubotrestService {
     const username = sendMessageToUserDTO.username;
     let message = sendMessageToUserDTO.message;
     const options = sendMessageToUserDTO.options ?? {};
-    const newMessage = parseBoldText(message);
+    const newMessage = parseMarkDownText(message);
     message = newMessage?.t ?? '';
     options.mk = newMessage.mk;
 
@@ -185,7 +185,7 @@ export class KomubotrestService {
 
     try {
       const findUser = await this.userRepository.findOne({
-        where: { username: username, user_type: EUserType.MEZON },
+        where: { clan_nick: username, user_type: EUserType.MEZON },
       });
       if (!findUser) return;
       const messageToUser: ReplyMezonMessage = {
@@ -232,7 +232,7 @@ export class KomubotrestService {
     let message = sendMessageToChannelDTO.message;
     const channelId = sendMessageToChannelDTO.channelid;
     const options = sendMessageToChannelDTO.options ?? {};
-    const newMessage = parseBoldText(message);
+    const newMessage = parseMarkDownText(message);
     message = newMessage?.t ?? '';
     options.mk = newMessage.mk;
 

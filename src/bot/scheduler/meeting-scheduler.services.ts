@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { isFirstDayOfMonth, isLastDayOfMonth } from 'date-fns';
@@ -50,7 +50,7 @@ export class MeetingSchedulerService {
 
     const listVoiceChannel = await this.channelRepository.find({
       where: {
-        channel_type: ChannelType.CHANNEL_TYPE_VOICE,
+        channel_type: In([4, 10]),
         clan_id: this.clientConfig.clandNccId,
       },
     });
@@ -186,9 +186,23 @@ export class MeetingSchedulerService {
   }
 
   async sendMeetingMessage(data, listVoiceChannelAvalable, messageContent) {
-    const randomIndexVoiceChannel = Math.floor(
-      Math.random() * listVoiceChannelAvalable.length,
+    const listType10 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 10,
     );
+    const listType3 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 4,
+    );
+
+    let selectedChannel = null;
+
+    if (listType10.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType10.length);
+      selectedChannel = listType10[randomIndex];
+    } else if (listType3.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType3.length);
+      selectedChannel = listType3[randomIndex];
+    }
+
     const findChannel = await this.channelRepository.findOne({
       where: { channel_id: data.channelId },
     });
@@ -197,8 +211,7 @@ export class MeetingSchedulerService {
       (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
     const voiceChannel = await this.channelRepository.findOne({
       where: {
-        channel_id:
-          listVoiceChannelAvalable[randomIndexVoiceChannel]?.channel_id,
+        channel_id: selectedChannel?.channel_id,
       },
     });
     const replyMessage = {
@@ -216,8 +229,7 @@ export class MeetingSchedulerService {
           `#${voiceChannel?.channel_label || ''} (${data?.task ?? ''})`,
         hg: [
           {
-            channelid:
-              listVoiceChannelAvalable[randomIndexVoiceChannel]?.channel_id,
+            channelid: selectedChannel?.channel_id,
             s: messageContent.length,
             e:
               messageContent.length +

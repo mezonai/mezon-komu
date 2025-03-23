@@ -240,14 +240,23 @@ export function getWeekDays(dateString) {
   return weekDays;
 }
 
-export function parseBoldText(str) {
-  const regex = /\*\*(.*?)\*\*/g;
+export function parseMarkDownText(str) {
+  const boldRegex = /\*\*(.*?)\*\*/g;
+  const codeRegex = /```(.*?)```/gs;
+
   let matches = [];
-  let cleanText = str.replace(regex, (match, p1, offset) => {
-    let start = offset - matches.length * 4;
+  let cleanText = str;
+  
+  cleanText = cleanText.replace(boldRegex, (match, p1, offset) => {
+    let start = offset - (matches.length * 4);
     let end = start + p1.length;
     matches.push({ type: 'b', s: start, e: end });
     return p1;
+  });
+
+  cleanText.replace(codeRegex, (match, p1, offset) => {
+    matches.push({ type: 't', s: offset, e: offset + match.length });
+    return match;
   });
 
   return { t: cleanText, mk: matches };

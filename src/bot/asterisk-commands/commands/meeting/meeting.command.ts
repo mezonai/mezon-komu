@@ -5,7 +5,7 @@ import { MeetingService } from './meeting.services';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelMezon } from 'src/bot/models';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { messHelp } from './meeting.constants';
 import { convertName } from 'src/bot/utils/helper';
 
@@ -47,7 +47,7 @@ export class MeetingCommand extends CommandMessage {
 
       const listVoiceChannel = await this.channelRepository.find({
         where: {
-          channel_type: ChannelType.CHANNEL_TYPE_VOICE,
+          channel_type: In([4, 10]),
           clan_id: message.clan_id,
         },
       });
@@ -62,7 +62,7 @@ export class MeetingCommand extends CommandMessage {
 
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-        if (convertName(item.participant) !== message.username) {
+        if (item.user_id !== message.sender_id) {
           return false;
         }
         const identifier = `${item.user_id}-${item.channel_id}`;
@@ -82,13 +82,13 @@ export class MeetingCommand extends CommandMessage {
           const findChannel = listVoiceChannel.find(
             (channel) => channel.channel_id === item.channel_id,
           );
-          messageContent += `Everyone please join the voice channel #${findChannel?.channel_label || ''}\n`; // '#' at message is channel, auto fill at FE
+          messageContent += `Everyone please join the voice channel #${findChannel?.channel_label || ''}\n`;
           return {
             channelid: item.channel_id,
             s:
               messageContent.length -
-              (2 + (findChannel?.channel_label || '').length), // replace to '#' in text
-            e: messageContent.length - 1, // replace to '#' in text
+              (2 + (findChannel?.channel_label || '').length),
+            e: messageContent.length - 1,
           };
         });
         return this.replyMessageGenerate(
@@ -109,13 +109,24 @@ export class MeetingCommand extends CommandMessage {
         );
       }
 
-      const randomIndexVoiceChannel = Math.floor(
-        Math.random() * listVoiceChannelAvalable.length,
+      const listType10 = listVoiceChannelAvalable.filter(
+        (item) => item.channel_type === 10,
       );
+      const listType3 = listVoiceChannelAvalable.filter(
+        (item) => item.channel_type === 4,
+      );
+
+      let selectedChannel = null;
+
+      if (listType10.length > 0) {
+        const randomIndex = Math.floor(Math.random() * listType10.length);
+        selectedChannel = listType10[randomIndex];
+      } else if (listType3.length > 0) {
+        const randomIndex = Math.floor(Math.random() * listType3.length);
+        selectedChannel = listType3[randomIndex];
+      }
       const findChannel = listVoiceChannel.find(
-        (item) =>
-          item.channel_id ===
-          listVoiceChannelAvalable[randomIndexVoiceChannel].channel_id,
+        (item) => item.channel_id === selectedChannel?.channel_id,
       );
       const messageContent = `Our meeting room is `;
       return this.replyMessageGenerate(
@@ -124,8 +135,7 @@ export class MeetingCommand extends CommandMessage {
             messageContent + `#${findChannel?.channel_label || ''}`, // '#' at message is channel, auto fill at FE
           hg: [
             {
-              channelid:
-                listVoiceChannelAvalable[randomIndexVoiceChannel].channel_id,
+              channelid: selectedChannel?.channel_id,
               s: messageContent.length, // replace to '#' in text
               e:
                 messageContent.length +
