@@ -73,7 +73,7 @@ export class MentionSchedulerService {
       });
       const isThread =
         findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+        (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
       const textContent = `Hãy trả lời ${authorName} tại ${
         isThread ? 'thread' : 'channel'
       } `;
@@ -162,12 +162,12 @@ export class MentionSchedulerService {
       });
       const isThread =
         findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-        (findChannel?.parrent_id !== '0' && findChannel?.parrent_id !== '');
+        (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
       const content = `@${userName} không trả lời tin nhắn mention của @${authorName} lúc ${timestamp} tại ${isThread ? 'thread' : 'channel'} `;
       // const textConfirm = '`React ❌ to Complain or ✅ to Accept`';
 
       const messageReply = {
-        t: content + '#!', // '#' at message is channel, auto fill at FE
+        t: content + `#${findChannel.channel_label}!`, // '#' at message is channel, auto fill at FE
         // mk: [
         //   {
         //     type: EMarkdownType.SINGLE,
@@ -179,7 +179,7 @@ export class MentionSchedulerService {
           {
             channelid: user.channelId,
             s: content.length, // replace to '#' in text
-            e: content.length + 1, // replace to '#' in text
+            e: content.length + 1 + (findChannel.channel_label ?? '').length, // replace to '#' in text
           },
         ],
       };

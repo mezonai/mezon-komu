@@ -11,6 +11,7 @@ import {
   EmbedProps,
   EUserType,
   MEZON_EMBED_FOOTER,
+  MEZON_IMAGE_URL,
 } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
@@ -18,7 +19,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { UserStatusService } from '../user-status/userStatus.service';
-import { User } from 'src/bot/models';
+import { User, VoucherEntiTy } from 'src/bot/models';
 import { EUserError } from 'src/bot/constants/error';
 
 @Command('voucher')
@@ -29,6 +30,8 @@ export class VoucherCommand extends CommandMessage {
     private clientConfigService: ClientConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(VoucherEntiTy)
+    private voucherRepository: Repository<VoucherEntiTy>,
   ) {
     super();
   }
@@ -187,6 +190,44 @@ export class VoucherCommand extends CommandMessage {
           message,
         );
       }
+    }
+
+    if (args[0] === 'list') {
+      const vouchers = await this.voucherRepository
+        .createQueryBuilder('voucher')
+        .select('voucher.price', 'price')
+        .addSelect(
+          'COUNT(CASE WHEN voucher.active = TRUE THEN 1 END)',
+          'available',
+        )
+        .addSelect('COUNT(CASE WHEN voucher.active = FALSE THEN 1 END)', 'used')
+        .groupBy('voucher.price')
+        .getRawMany();
+      const fields = vouchers.map((voucher) => {
+        return {
+          name: `Price: ${voucher.price}`,
+          value: `Available: ${voucher.available}\nUsed: ${voucher.used}`,
+        };
+      });
+      const embed: EmbedProps[] = [
+        {
+          color: getRandomColor(),
+          title: `LIST VOUCHER AVAIBLE`,
+          thumbnail: {
+            url: MEZON_IMAGE_URL,
+          },
+          fields,
+          timestamp: new Date().toISOString(),
+          footer: MEZON_EMBED_FOOTER,
+        },
+      ];
+
+      return this.replyMessageGenerate(
+        {
+          embed,
+        },
+        message,
+      );
     }
 
     const messageContent =

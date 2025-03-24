@@ -65,7 +65,7 @@ export class EventSchedulerService {
     return listVoiceChannelAvalable;
   }
 
-  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
+  //@Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
   async tagEvent() {
     this.logger.warn(
       `time ${CronExpression.EVERY_MINUTE} for job tagEvent to run!`,
@@ -139,24 +139,41 @@ export class EventSchedulerService {
   }
 
   async sendEventMessage(data, listVoiceChannelAvalable, messageContent) {
-    const randomIndexVoiceChannel = Math.floor(
-      Math.random() * listVoiceChannelAvalable.length,
+    const listType10 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 10,
     );
+    const listType3 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 4,
+    );
+
+    let selectedChannel = null;
+
+    if (listType10.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType10.length);
+      selectedChannel = listType10[randomIndex];
+    } else if (listType3.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType3.length);
+      selectedChannel = listType3[randomIndex];
+    }
+    const voiceChannel = await this.channelRepository.findOne({
+      where: {
+        channel_id: selectedChannel?.channel_id,
+      },
+    });
     const listUserId = data.users;
     listUserId.map((userId) => {
       const messageToUser: ReplyMezonMessage = {
         userId: userId,
         textContent:
-          messageContent + (data?.attachment ? ` ${data?.attachment}` : `#`),
+          messageContent + (data?.attachment ? ` ${data?.attachment}` : `#${voiceChannel?.channel_label || ''}`),
         messOptions: !data?.attachment
           ? {
               hg: [
                 {
                   channelid:
-                    listVoiceChannelAvalable[randomIndexVoiceChannel]
-                      .channel_id,
+                  selectedChannel?.channel_id,
                   s: messageContent.length,
-                  e: messageContent.length + 1,
+                  e: messageContent.length + 1 + (voiceChannel?.channel_label || '').length,
                 },
               ],
             }

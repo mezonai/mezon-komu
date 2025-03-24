@@ -159,6 +159,7 @@ import { RequestTaskW2Controller } from './komubot-rest/requestTaskW2.controller
 import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.command';
 import { DailyPmCommand } from './asterisk-commands/commands/daily/dailypm.command';
 import { InterviewSchedulerService } from './scheduler/interview-scheduler.service';
+import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/togglebuzz.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -323,6 +324,7 @@ import { InterviewSchedulerService } from './scheduler/interview-scheduler.servi
     VoucherCommand,
     DailyPmCommand,
     InterviewSchedulerService,
+    ToggleBuzzCommand
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

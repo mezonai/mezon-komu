@@ -119,6 +119,12 @@ export class User {
   @Column({ default: false })
   botPing: boolean;
 
+  @Column({ default: true })
+  buzzDaily: boolean;
+
+  @Column({ default: true })
+  buzzNcc8: boolean;
+
   @Column({
     type: 'numeric',
     precision: 30,
