@@ -91,12 +91,11 @@ export class InterviewSchedulerService {
     }
   }
 
-  @Cron('*/1 8-22 * * 1-5', {
+  @Cron('0 8,13 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async scheduleInterviews() {
-    const urlGetInterviews =
-      'https://localhost:44311/api/services/app/Public/GetInterviewInfo';
+    const urlGetInterviews = `${this.clientConfigService.talentURL}Public/GetInterviewInfo`;
     try {
       const responseTasks = await this.axiosClientService.get(
         urlGetInterviews,
@@ -114,8 +113,6 @@ export class InterviewSchedulerService {
         this.logger.warn('No interviews found.');
         return;
       }
-
-      console.log(interviews, 'interviews');
 
       interviews.forEach((interview) => {
         this.scheduleInterviewReminder(interview);
