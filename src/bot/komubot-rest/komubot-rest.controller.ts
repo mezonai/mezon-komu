@@ -96,6 +96,19 @@ export class KomubotrestController {
     );
   }
 
+  @Post('/sendMessageToChannelAnonymous')
+  async sendMessageToChannelAnonymous(
+    @Body() sendMessageToUserDTO: SendMessageToChannelDTO,
+    @Headers('X-Secret-Key') header,
+    @Res() res: Response,
+  ) {
+    return this.komubotrestService.sendMessageToChannelAnonymouse(
+      sendMessageToUserDTO,
+      header,
+      res,
+    );
+  }
+
   @Post('/sendMessageToThongBao')
   async sendMessageToThongbaoChannel(
     @Body() sendMessageToUserDTO: SendMessageToChannelDTO,

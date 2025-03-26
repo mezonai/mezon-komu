@@ -201,6 +201,62 @@ export class KomubotrestService {
     }
   };
 
+  sendMessageToChannelAnonymouse = async (
+    sendMessageToChannelDTO: any,
+    header,
+    res,
+  ) => {
+    if (!header || header !== this.clientConfig.komubotRestSecretKey) {
+      res.status(403).send({ message: 'Missing secret key!' });
+      return;
+    }
+
+    if (!sendMessageToChannelDTO.channelId) {
+      res.status(400).send({ message: 'ChannelId can not be empty!' });
+      return;
+    }
+
+    if (!sendMessageToChannelDTO.message) {
+      res.status(400).send({ message: 'Message can not be empty!' });
+      return;
+    }
+    let message = sendMessageToChannelDTO.message;
+    const channelId = sendMessageToChannelDTO.channelId;
+
+    try {
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: channelId },
+      });
+      if (!findChannel) {
+        res.status(400).send({ message: 'Cannot find this channel!s' });
+        return;
+      }
+      const isThread =
+        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
+        (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
+      const replyMessage = {
+        clan_id: this.clientConfig.clandNccId,
+        channel_id: channelId,
+        is_public: findChannel ? !findChannel?.channel_private : false,
+        is_parent_public: findChannel ? findChannel?.is_parent_public : true,
+        parent_id: '0',
+        mode: isThread
+          ? EMessageMode.THREAD_MESSAGE
+          : EMessageMode.CHANNEL_MESSAGE,
+        msg: {
+          t: message,
+        },
+        anonymous_message: true,
+        code: 8
+      };
+      this.messageQueue.addMessage(replyMessage);
+      res.status(200).send({ message: 'Successfully!' });
+    } catch (error) {
+      console.log('error send message channel', error);
+      res.status(400).send({ message: error });
+    }
+  };
+
   sendMessageToChannel = async (
     sendMessageToChannelDTO: SendMessageToChannelDTO,
     header,
