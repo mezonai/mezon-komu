@@ -162,7 +162,7 @@ import { DailyPmCommand } from './asterisk-commands/commands/daily/dailypm.comma
 import { InterviewSchedulerService } from './scheduler/interview-scheduler.service';
 import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/togglebuzz.command';
 import { MenuOrder } from './models/menuOrder.entity';
-import { InvoiceOrder } from './models/InvoiceOrder.entity';
+import { InvoiceOrder } from './models/invoiceOrder.entity';
 import { MenuCommand } from './asterisk-commands/commands/menu/menu.command';
 import { MenuOrderService } from './services/menuOrder.services';
 
