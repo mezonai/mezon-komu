@@ -61,6 +61,7 @@ import {
   Application,
   VoucherEntiTy,
   InterviewerReply,
+  MenuOrderMessage,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -160,6 +161,10 @@ import { VoucherCommand } from './asterisk-commands/commands/voucher/voucher.com
 import { DailyPmCommand } from './asterisk-commands/commands/daily/dailypm.command';
 import { InterviewSchedulerService } from './scheduler/interview-scheduler.service';
 import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/togglebuzz.command';
+import { MenuOrder } from './models/menuOrder.entity';
+import { InvoiceOrder } from './models/InvoiceOrder.entity';
+import { MenuCommand } from './asterisk-commands/commands/menu/menu.command';
+import { MenuOrderService } from './services/menuOrder.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -229,6 +234,9 @@ import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/toggl
       Application,
       VoucherEntiTy,
       InterviewerReply,
+      MenuOrder,
+      InvoiceOrder,
+      MenuOrderMessage,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -324,7 +332,9 @@ import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/toggl
     VoucherCommand,
     DailyPmCommand,
     InterviewSchedulerService,
-    ToggleBuzzCommand
+    ToggleBuzzCommand,
+    MenuCommand,
+    MenuOrderService,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

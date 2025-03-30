@@ -16,6 +16,17 @@ export enum EUserType {
   MEZON = 'MEZON',
 }
 
+export enum StatusInvoiceType {
+  REJECT = 'REJECT',
+  APPROVE = 'APPROVE',
+  FINISH = 'FINISH'
+}
+
+export enum TypeOrderMessage {
+  CREATE = 'CREATE',
+  CONFIRM = 'CONFIRM',
+}
+
 export enum BetStatus {
   WIN = 'WIN',
   LOSE = 'LOSE',
@@ -206,14 +217,18 @@ export enum EPMButtonTaskW2 {
   COMFIRM_REGISNATION = 'ConfirmResignationRequest',
 }
 
-export enum Embeb_Button_Type {
+export enum EmbebButtonType {
   CONFIRM = 'CONFIRM',
   CANCEL = 'CANCEL',
   VOTE = 'VOTE',
   FINISH = 'FINISH',
+  ORDER = 'ORDER',
+  REPORT = 'REPORT',
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT'
 }
 
-export enum Voucher_Exchange_Type {
+export enum VoucherExchangeType {
   NCCSoft = 'NccSoft',
   Market = 'Market',
 }
