@@ -62,6 +62,7 @@ import {
   VoucherEntiTy,
   InterviewerReply,
   MenuOrderMessage,
+  InvoiceOrder,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -162,7 +163,6 @@ import { DailyPmCommand } from './asterisk-commands/commands/daily/dailypm.comma
 import { InterviewSchedulerService } from './scheduler/interview-scheduler.service';
 import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/togglebuzz.command';
 import { MenuOrder } from './models/menuOrder.entity';
-import { InvoiceOrder } from './models/invoiceOrder.entity';
 import { MenuCommand } from './asterisk-commands/commands/menu/menu.command';
 import { MenuOrderService } from './services/menuOrder.services';
 
