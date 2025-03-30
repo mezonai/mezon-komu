@@ -62,4 +62,7 @@ export const TABLE = {
   TRANSACTION: 'komu_transaction',
   VOUCHER: 'komu_voucher',
   INTERVIEWER_REPLY: 'komu_interviewerReply',
+  MENU_ORDER: 'komu_menuOrder',
+  INVOICE_ORDER: 'komu_invoiceOrder',
+  MENU_ORDER_MESSAGE: 'komu_menuOrderMessage',
 };

@@ -55,3 +55,6 @@ export { Transaction } from './mezonTransaction.entity';
 export { Application } from './mezonApplication.entity';
 export { VoucherEntiTy } from './voucher.entity';
 export { InterviewerReply } from './interviewReply.entity';
+export { InvoiceOrder } from './invoiceOrder.entity';
+export { MenuOrder } from './menuOrder.entity';
+export { MenuOrderMessage } from './menuOrderMessage.entity';

@@ -11,7 +11,7 @@ import {
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import {
-  Embeb_Button_Type,
+  EmbebButtonType,
   EmbedProps,
   EMessageComponentType,
   EMessageMode,
@@ -30,12 +30,13 @@ import {
   FileType,
   MEZON_EMBED_FOOTER,
   UserType,
-  Voucher_Exchange_Type,
+  VoucherExchangeType,
 } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import {
   Daily,
   InterviewerReply,
+  MenuOrderMessage,
   MezonBotMessage,
   Quiz,
   RoleMezon,
@@ -84,6 +85,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 const https = require('https');
 import axios from 'axios';
 import { PollService } from '../services/poll.service';
+import { MenuOrderService } from '../services/menuOrder.services';
 
 @Injectable()
 export class MessageButtonClickedEvent extends BaseHandleEvent {
@@ -120,6 +122,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private interviewRepository: Repository<InterviewerReply>,
     @InjectRepository(RoleMezon)
     private roleMezonRepository: Repository<RoleMezon>,
+    private menuOrderService: MenuOrderService
   ) {
     super(clientService);
   }
@@ -173,6 +176,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         break;
       case 'interview':
         this.sendAnswerOfInterviewerToHr(data);
+        break;
+      case 'menu':
+        this.menuOrderService.handelSelectMenuOrder(data);
         break;
       default:
         break;
@@ -2201,7 +2207,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const value = dataParse?.VOUCHER?.[0].split('_')?.[1];
       if (data.user_id !== authId) return;
 
-      if (typeButtonRes === Embeb_Button_Type.CANCEL) {
+      if (typeButtonRes === EmbebButtonType.CANCEL) {
         const textCancel = '```Cancel request successful!```';
         const msgCancel = {
           t: textCancel,
@@ -2220,7 +2226,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         );
       }
       if (!value) return;
-      if (typeButtonRes === Embeb_Button_Type.CONFIRM) {
+      if (typeButtonRes === EmbebButtonType.CONFIRM) {
         const textConfirm =
           '```Transaction is pending. KOMU sent you a message, please check!```';
         const msgCancel = {
@@ -2247,7 +2253,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             sessionId: `buy_${value}_voucher`,
             appId: `buy_${value}_voucher`,
           }),
-          ...(value === Voucher_Exchange_Type.Market && { amount: 100000 }),
+          ...(value === VoucherExchangeType.Market && { amount: 100000 }),
         };
         const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));
         const embed: EmbedProps[] = [
@@ -2312,7 +2318,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const dataParse = JSON.parse(data.extra_data || '{}');
       const value = dataParse?.POLL?.[0].split('_')?.[1];
 
-      if (typeButtonRes === Embeb_Button_Type.CANCEL) {
+      if (typeButtonRes === EmbebButtonType.CANCEL) {
         if (data.user_id !== authId) {
           const content =
             '```' +
@@ -2351,7 +2357,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           true,
         );
       }
-      if (typeButtonRes === Embeb_Button_Type.VOTE) {
+      if (typeButtonRes === EmbebButtonType.VOTE) {
         const findUser = await this.userRepository.findOne({
           where: { userId: data.user_id },
         });
@@ -2440,7 +2446,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         );
       }
 
-      if (typeButtonRes === Embeb_Button_Type.FINISH) {
+      if (typeButtonRes === EmbebButtonType.FINISH) {
         if (data.user_id !== authId) {
           const content =
             '```' +
@@ -2475,7 +2481,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const positionName = data.button_id.split('_')[8];
       const cvId = data.button_id.split('_')[9];
       const interviewUrl = data.button_id.split('_')[10];
-      const isAccept = data.button_id.split('_')[11] === "btnAccept";
+      const isAccept = data.button_id.split('_')[11] === 'btnAccept';
 
       await this.interviewRepository
         .createQueryBuilder()
@@ -2485,59 +2491,59 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           id: interviewId,
         })
         .execute();
-      const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTime}`
-        const embed = [
-          {
-            color: getRandomColor(),
-            title: '📢 Thông báo lịch phỏng vấn',
-            description:
-              '```' +
-              `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
-              `Bạn có thể tham gia buổi phỏng vấn này không ? \n` +
-              `Link candidate: ${process.env.TALENT_FE_URL}app/candidate/${userType === UserType.Intern ? 'intern-list' : 'staff-list'}/${cvId}?userType=${Number(userType)}&tab=3 \n` +
-              `Link phỏng vấn: ${interviewUrl} \n` +
-              '```' +
-              '\n(Trả lời bằng cách chọn đáp án bên dưới)',
+      const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTime}`;
+      const embed = [
+        {
+          color: getRandomColor(),
+          title: '📢 Thông báo lịch phỏng vấn',
+          description:
+            '```' +
+            `\nBạn có lịch phỏng vấn ${interviewDescription} \n` +
+            `Bạn có thể tham gia buổi phỏng vấn này không ? \n` +
+            `Link candidate: ${process.env.TALENT_FE_URL}app/candidate/${userType === UserType.Intern ? 'intern-list' : 'staff-list'}/${cvId}?userType=${Number(userType)}&tab=3 \n` +
+            `Link phỏng vấn: ${interviewUrl} \n` +
+            '```' +
+            '\n(Trả lời bằng cách chọn đáp án bên dưới)',
+        },
+      ];
+
+      const channelDm = await this.channelDmMezonRepository.findOne({
+        where: { username: interviewerName },
+      });
+      await this.client.updateChatMessage(
+        '',
+        channelDm.channel_id,
+        EMessageMode.DM_MESSAGE,
+        true,
+        data.message_id,
+        { embed },
+        [],
+        [],
+        true,
+      );
+
+      const textContent = `${interviewerName} ${isAccept ? 'chấp nhận' : 'từ chối'} tham gia phỏng vấn ${interviewDescription}.`;
+      const findHrRole = await this.roleMezonRepository.findOne({
+        where: { title: 'HR' },
+      });
+      console.log('Find hr role:', findHrRole);
+      const hrUsers = await this.userRepository
+        .createQueryBuilder('user')
+        .where(':role = ANY(user.roles)', { role: findHrRole.id })
+        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .getMany();
+
+      console.log('Find hr users by role:', hrUsers);
+      hrUsers.forEach((hr: User) => {
+        const messageToUser: ReplyMezonMessage = {
+          userId: hr.userId,
+          textContent,
+          messOptions: {
+            mk: [{ type: 'b', s: 0, e: interviewerName.length }],
           },
-        ];
-        
-        const channelDm = await this.channelDmMezonRepository.findOne({
-          where: { username: interviewerName },
-        });
-        await this.client.updateChatMessage(
-          "",
-          channelDm.channel_id,
-          EMessageMode.DM_MESSAGE,
-          true,
-          data.message_id,
-          { embed },
-          [],
-          [],
-          true,
-        );
-
-        const textContent = `${interviewerName} ${isAccept ? "chấp nhận" : "từ chối"} tham gia phỏng vấn ${interviewDescription}.` 
-        const findHrRole = await this.roleMezonRepository.findOne({
-          where: { title: 'HR' },
-        });
-        console.log('Find hr role:', findHrRole);
-        const hrUsers = await this.userRepository
-          .createQueryBuilder('user')
-          .where(':role = ANY(user.roles)', { role: findHrRole.id })
-          .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-          .getMany();
-
-        console.log('Find hr users by role:', hrUsers);
-        hrUsers.forEach((hr: User) => {
-          const messageToUser: ReplyMezonMessage = {
-            userId: hr.userId,
-            textContent,
-            messOptions: { 
-              mk: [{ type: 'b', s: 0, e: interviewerName.length }]
-            },
-          };
-           this.messageQueue.addMessage(messageToUser);
-        })
+        };
+        this.messageQueue.addMessage(messageToUser);
+      });
     } catch (error) {
       console.log('sendAnswerOfInterviewerToHr Error', error);
     }
