@@ -99,8 +99,7 @@ export class MenuOrderService {
   ) {
     if (
       isFinish &&
-      (findUserClick.userId === sellerId ||
-        findUserClick.userId === '1827994776956309504')
+      !['1827994776956309504', sellerId].includes(findUserClick.userId)
     ) {
       const content =
         '```' + `❌You have no permission to finish this menu!` + '```';
@@ -180,22 +179,6 @@ export class MenuOrderService {
     };
     this.messageQueue.addMessage(replyMessage);
     if (isFinish) {
-      if (
-        findUserClick.userId !== sellerId ||
-        findUserClick.userId !== '1827994776956309504'
-      ) {
-        const content =
-          '```' + `❌You have no permission to finish this menu!` + '```';
-        const messageToUser: ReplyMezonMessage = {
-          userId: findUserClick.userId,
-          textContent: content,
-          messOptions: {
-            mk: [{ type: 't', s: 0, e: content.length }],
-          },
-        };
-        this.messageQueue.addMessage(messageToUser);
-        return;
-      }
       const findMessageOrderExist = await this.menuOrderMessageRepository.find({
         where: {
           channelId,
