@@ -35,9 +35,9 @@ export class FineReportSchedulerService {
     private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
-    timeZone: 'Asia/Ho_Chi_Minh',
-  })
+  //@Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
+  //   timeZone: 'Asia/Ho_Chi_Minh',
+  // })
   async dailyReportScheduler() {
     const data = await this.calculateAndUpdateSheet();
 
@@ -71,8 +71,9 @@ export class FineReportSchedulerService {
       mode: EMessageMode.CHANNEL_MESSAGE,
       msg: {
         t: messageContent,
-        lk: [
+        mk: [
           {
+            type: 'lk',
             s: messageContent.length - data.sheetUrl.length,
             e: messageContent.length,
           },
@@ -199,8 +200,9 @@ export class FineReportSchedulerService {
     const messageData = replyMessageGenerate(
       {
         messageContent,
-        lk: [
+        mk: [
           {
+            type: 'lk',
             s: messageContent.length - sheetUrl.length,
             e: messageContent.length,
           },

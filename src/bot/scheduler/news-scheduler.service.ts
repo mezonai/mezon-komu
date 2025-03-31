@@ -117,8 +117,9 @@ export class NewsScheduler {
         news.link;
       const messageReply = {
         t: text,
-        lk: [
+        mk: [
           {
+            type: 'lk',
             s:
               line.length +
               news.title.length +
@@ -139,7 +140,7 @@ export class NewsScheduler {
             },
           ]
         : [];
-      const replyMessage: ReplyMezonMessage = {
+      const replyMessage = {
         clan_id: this.clientConfig.clandNccId,
         channel_id: this.clientConfig.newsChannelId,
         is_public: true,

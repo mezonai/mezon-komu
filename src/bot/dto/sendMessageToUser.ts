@@ -13,6 +13,6 @@ export class SendMessageToUserDTO {
 
     @ApiProperty()
     @IsOptional()
-    readonly options?: ChannelMessageContent;
+    readonly options?: any;
 }
 

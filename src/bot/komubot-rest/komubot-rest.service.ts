@@ -177,11 +177,14 @@ export class KomubotrestService {
     const regexHttp = /http[s]?:\/\/[^\s]+/g;
     const matches = Array.from(message.matchAll(regexHttp));
 
-    options.lk =
+    const mkLink =
       matches.map((match) => ({
+        type: 'lk',
         s: match.index || 0,
         e: (match.index || 0) + match[0].length,
       })) || [];
+
+    options.mk = [...options.mk, ...mkLink];
 
     try {
       const findUser = await this.userRepository.findOne({
@@ -247,7 +250,7 @@ export class KomubotrestService {
           t: message,
         },
         anonymous_message: true,
-        code: 8
+        code: 8,
       };
       this.messageQueue.addMessage(replyMessage);
       res.status(200).send({ message: 'Successfully!' });
@@ -311,13 +314,15 @@ export class KomubotrestService {
     const regexHttp = /http[s]?:\/\/[^\s]+/g;
     const matches = Array.from(message.matchAll(regexHttp));
 
-    const lk =
+    const mkLink =
       matches.map((match) => ({
         // text: match[0],
+        type: 'lk',
         s: match.index || 0,
         e: (match.index || 0) + match[0].length,
       })) || [];
-
+    options.mk = [...options.mk, ...mkLink];
+    console.log('options', options)
     try {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: channelId },
@@ -340,7 +345,6 @@ export class KomubotrestService {
           : EMessageMode.CHANNEL_MESSAGE,
         msg: {
           t: message,
-          lk,
           ...(options ? { ...options } : {}),
         },
         mentions: mentions.filter((user) => user) || [],

@@ -178,8 +178,9 @@ export class EventSchedulerService {
               ],
             }
           : {
-              lk: [
+              mk: [
                 {
+                  type: 'lk',
                   s: messageContent.length,
                   e: messageContent.length + data?.attachment.length + 1,
                 },

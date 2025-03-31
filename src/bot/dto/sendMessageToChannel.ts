@@ -43,5 +43,5 @@ export class SendMessageToChannelDTO {
 
   @ApiProperty()
   @IsOptional()
-  options?: ChannelMessageContent;
+  options?: any;
 }

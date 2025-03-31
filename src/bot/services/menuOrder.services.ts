@@ -99,8 +99,8 @@ export class MenuOrderService {
   ) {
     if (
       isFinish &&
-      (findUserClick.userId !== sellerId ||
-        findUserClick.userId !== '1827994776956309504')
+      (findUserClick.userId === sellerId ||
+        findUserClick.userId === '1827994776956309504')
     ) {
       const content =
         '```' + `❌You have no permission to finish this menu!` + '```';

@@ -127,8 +127,9 @@ export class EventService {
         textContent: textContent + (attachment ? textAttachment : ''),
         messOptions: attachment
           ? {
-              lk: [
+              mk: [
                 {
+                  type: 'lk',
                   s: textContent.length,
                   e: textContent.length + textAttachment.length,
                 },
@@ -149,8 +150,9 @@ export class EventService {
       textContent: textContent + (attachment ? textAttachment : ''),
       messOptions: attachment
         ? {
-            lk: [
+            mk: [
               {
+                type: 'lk',
                 s: textContent.length,
                 e: textContent.length + textAttachment.length,
               },
