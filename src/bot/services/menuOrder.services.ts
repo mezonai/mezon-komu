@@ -80,10 +80,6 @@ export class MenuOrderService {
           orderItem.seller,
         );
 
-        await this.invoiceOrderRepository.update(
-          { channelId, status: StatusInvoiceType.APPROVE },
-          { status: StatusInvoiceType.FINISH },
-        );
       }
     } catch (error) {}
   }
@@ -160,7 +156,7 @@ export class MenuOrderService {
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `${isFinish ? 'Finish' : 'Report'} order by ${findUserClick.clan_nick || findUserClick.clan_nick}`,
+        title: `${isFinish ? 'Finish' : 'Report'} order by ${findUserClick.clan_nick || findUserClick.username}`,
         description: '```' + messages + '```',
         timestamp: new Date().toISOString(),
         footer: MEZON_EMBED_FOOTER,
@@ -221,6 +217,15 @@ export class MenuOrderService {
           );
         }
       }
+    }
+    if (
+      isFinish &&
+      ['1827994776956309504', sellerId].includes(findUserClick.userId)
+    ) {
+      await this.invoiceOrderRepository.update(
+        { channelId, status: StatusInvoiceType.APPROVE },
+        { status: StatusInvoiceType.FINISH },
+      );
     }
   }
 
