@@ -19,6 +19,8 @@ export enum EUserType {
 export enum StatusInvoiceType {
   REJECT = 'REJECT',
   APPROVE = 'APPROVE',
+  CANCEL = 'CANCEL',
+  CONFIRM = 'CONFIRM',
   FINISH = 'FINISH'
 }
 

@@ -30,6 +30,12 @@ export class InvoiceOrder {
   @Column({ nullable: true })
   channelId: string;
 
+  @Column({ nullable: true })
+  note: string;
+
+  @Column({ nullable: true })
+  quantity: number;
+
   @Column({ type: 'decimal', nullable: true })
   createdAt: number;
 }
