@@ -93,7 +93,18 @@ export class MenuOrderService {
     isFinish?,
     sellerId?,
   ) {
-    if (isFinish && !['1827994776956309504', sellerId].includes(userId)) {
+    if (
+      isFinish &&
+      ![
+        '1827994776956309504',
+        '1805137029512564736', //anh.ngothuc
+        '1800478701561843712', //vy.truongngoccam
+        '1800396411926220800', //hien.ngothu
+        '1820647107783036928', //ngan.tonthuy
+        '1783441451758129152', //giang.tranminhchau
+        '1840671876997713920', //ha.tranngan
+      ].includes(userId)
+    ) {
       const content =
         '```' + `❌You have no permission to finish this menu!` + '```';
       const messageToUser: ReplyMezonMessage = {
