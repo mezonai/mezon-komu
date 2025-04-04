@@ -35,9 +35,9 @@ export class FineReportSchedulerService {
     private roleMezonRepository: Repository<RoleMezon>,
   ) {}
 
-  //@Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
-  //   timeZone: 'Asia/Ho_Chi_Minh',
-  // })
+  @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_8AM, {
+    timeZone: 'Asia/Ho_Chi_Minh',
+  })
   async dailyReportScheduler() {
     const data = await this.calculateAndUpdateSheet();
 
