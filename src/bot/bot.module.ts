@@ -63,6 +63,7 @@ import {
   InterviewerReply,
   MenuOrderMessage,
   InvoiceOrder,
+  MenuAddress,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -237,6 +238,7 @@ import { MenuOrderService } from './services/menuOrder.services';
       MenuOrder,
       InvoiceOrder,
       MenuOrderMessage,
+      MenuAddress
     ]),
     HttpModule,
     ScheduleModule.forRoot(),

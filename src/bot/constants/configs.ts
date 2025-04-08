@@ -21,12 +21,14 @@ export enum StatusInvoiceType {
   APPROVE = 'APPROVE',
   CANCEL = 'CANCEL',
   CONFIRM = 'CONFIRM',
-  FINISH = 'FINISH'
+  FINISH = 'FINISH',
 }
 
 export enum TypeOrderMessage {
   CREATE = 'CREATE',
   CONFIRM = 'CONFIRM',
+  REPORT = 'REPORT',
+  FINISH = 'FINISH',
 }
 
 export enum BetStatus {
@@ -227,7 +229,7 @@ export enum EmbebButtonType {
   ORDER = 'ORDER',
   REPORT = 'REPORT',
   APPROVE = 'APPROVE',
-  REJECT = 'REJECT'
+  REJECT = 'REJECT',
 }
 
 export enum VoucherExchangeType {

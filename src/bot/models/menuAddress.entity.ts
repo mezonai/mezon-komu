@@ -8,27 +8,30 @@ import {
 
 import { TABLE } from '../constants/table';
 
-@Index(['name', 'price', 'category', 'seller', 'corner'])
-@Entity(TABLE.MENU_ORDER)
-export class MenuOrder {
+@Index(['id', 'name', 'image', 'address', 'link'])
+@Entity(TABLE.MENU_ADDRESS)
+export class MenuAddress{
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column({ nullable: true })
+  key: string;
 
   @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
-  price: number;
+  phone: string;
 
   @Column({ nullable: true })
-  category: string;
+  image: string;
 
   @Column({ nullable: true })
-  seller: string;
+  address: string;
 
   @Column({ nullable: true })
   corner: string;
 
   @Column({ nullable: true })
-  addressKey: string;
+  link: string;
 }

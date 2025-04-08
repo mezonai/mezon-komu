@@ -58,3 +58,4 @@ export { InterviewerReply } from './interviewReply.entity';
 export { InvoiceOrder } from './invoiceOrder.entity';
 export { MenuOrder } from './menuOrder.entity';
 export { MenuOrderMessage } from './menuOrderMessage.entity';
+export { MenuAddress } from './menuAddress.entity';

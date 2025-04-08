@@ -9,7 +9,7 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import { CommandStorage } from 'src/bot/base/storage';
 import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MenuOrder, MenuOrderMessage } from 'src/bot/models';
+import { MenuAddress, MenuOrder, MenuOrderMessage } from 'src/bot/models';
 import { Like, Repository } from 'typeorm';
 import {
   EmbedProps,
@@ -35,12 +35,24 @@ export class MenuCommand extends CommandMessage {
     private clientService: MezonClientService,
     @InjectRepository(MenuOrder)
     private menuRepository: Repository<MenuOrder>,
+    @InjectRepository(MenuAddress)
+    private menuAddressRepository: Repository<MenuAddress>,
     @InjectRepository(MenuOrderMessage)
     private menuOrderMessageRepository: Repository<MenuOrderMessage>,
   ) {
     super();
     this.client = this.clientService.getClient();
   }
+
+  private defaultMenuCorner = {
+    vinh: 'mambo',
+    hanoi1: 'tra-sukem',
+    hanoi2: 'ngocthach',
+    hanoi3: 'mocquan',
+    danang: 'tuctac',
+    quynhon: 'chutcoffee',
+    saigon: 'nangcoffee',
+  };
 
   getCorrectName(text: string): string | null {
     if (!text) return null;
@@ -54,15 +66,50 @@ export class MenuCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    let messageContent = '```' + 'Command: *menu corner' + '```';
+    let messageContent =
+      '```' +
+      '- Command: *menu corner (address)\n- In case no address: *menu corner -> using default address!\n- *menu corner list //To check corner list address or default address' +
+      +'```';
+    const currentCorner = this.getCorrectName(args[0]);
     if (args[0]) {
-      if (!this.getCorrectName(args[0])) {
+      if (!currentCorner) {
         messageContent = '```' + 'Not found this corner!' + '```';
 
         return this.replyMessageGenerate(
           {
             messageContent,
             mk: [{ type: 't', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
+      }
+
+      if (args[1] === 'list') {
+        const listMenuByCorner = await this.menuAddressRepository.find({
+          where: {
+            corner: currentCorner,
+          },
+        });
+        const messageList = listMenuByCorner.map((item, index) => {
+          return {
+            name: `${index + 1}. ${item.name} ${item.address ? ` - ${item.address}` : ''} ${item.phone ? ` - ${item.phone}` : ''}`,
+            value: `*menu ${currentCorner} ${item.key} -> to use this menu!`,
+          };
+        });
+        const embed: EmbedProps[] = [
+          {
+            color: getRandomColor(),
+            title: `MENU LIST ${currentCorner.toUpperCase()} - `,
+            description: "Let's order!!!",
+            fields: messageList,
+            timestamp: new Date().toISOString(),
+            footer: MEZON_EMBED_FOOTER,
+          },
+        ];
+        messageContent = '```' + messageList.join('\n') + '```';
+        return this.replyMessageGenerate(
+          {
+            embed,
           },
           message,
         );
@@ -75,6 +122,27 @@ export class MenuCommand extends CommandMessage {
           type: TypeOrderMessage.CREATE,
         },
       });
+
+      if (args[1]) {
+        if (
+          findMessageOrderExist.length > 0 &&
+          this.defaultMenuCorner[currentCorner] !== args[1]
+        ) {
+          messageContent =
+            '```' +
+            `Ordering menu <${this.defaultMenuCorner[currentCorner]}>. Please finish this menu if you want to change to another menu!` +
+            '```';
+          return this.replyMessageGenerate(
+            {
+              messageContent,
+              mk: [{ type: 't', s: 0, e: messageContent.length }],
+            },
+            message,
+          );
+        }
+        this.defaultMenuCorner[currentCorner] = args[1];
+      }
+
       const newMessageContent =
         '```' +
         'A new menu has been created below, please order from that menu!' +
@@ -109,12 +177,15 @@ export class MenuCommand extends CommandMessage {
           );
         }
       }
-      const MenuList = await this.menuRepository.find({
+
+      const menuList = await this.menuRepository.find({
         where: {
-          corner: this.getCorrectName(args[0]),
+          corner: currentCorner,
+          addressKey: args[1] || this.defaultMenuCorner[currentCorner],
         },
       });
-      if (!MenuList.length) {
+
+      if (!menuList.length) {
         messageContent = '```Menu not found!```';
         return this.replyMessageGenerate(
           {
@@ -124,7 +195,8 @@ export class MenuCommand extends CommandMessage {
           message,
         );
       }
-      const mappedMenu = MenuList.reduce((acc, item) => {
+
+      const mappedMenu = menuList.reduce((acc, item) => {
         const categoryIndex = acc.findIndex(
           (obj) => obj.category === item.category,
         );
@@ -170,7 +242,7 @@ export class MenuCommand extends CommandMessage {
       const embed: EmbedProps[] = [
         {
           color: getRandomColor(),
-          title: `MENU LIST ${this.getCorrectName(args[0]).toUpperCase()}`,
+          title: `MENU LIST ${currentCorner.toUpperCase()}`,
           description: "Let's order!!!",
           fields: [
             ...combinedMenu,
@@ -187,7 +259,7 @@ export class MenuCommand extends CommandMessage {
         {
           components: [
             {
-              id: `menu_FINISH_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}_${message.channel_id}`,
+              id: `menu_FINISH_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}_${message.channel_id}_${currentCorner}_${args[1] || this.defaultMenuCorner[currentCorner]}`,
               type: EMessageComponentType.BUTTON,
               component: {
                 label: `Finish`,
@@ -195,7 +267,7 @@ export class MenuCommand extends CommandMessage {
               },
             },
             {
-              id: `menu_REPORT_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}_${message.channel_id}`,
+              id: `menu_REPORT_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}_${message.channel_id}_${currentCorner}_${args[1] || this.defaultMenuCorner[currentCorner]}`,
               type: EMessageComponentType.BUTTON,
               component: {
                 label: `Report`,

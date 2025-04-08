@@ -122,7 +122,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     private interviewRepository: Repository<InterviewerReply>,
     @InjectRepository(RoleMezon)
     private roleMezonRepository: Repository<RoleMezon>,
-    private menuOrderService: MenuOrderService
+    private menuOrderService: MenuOrderService,
   ) {
     super(clientService);
   }
@@ -130,58 +130,61 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
-    const args = data.button_id.split('_');
-    // check case by buttonId
-    const buttonConfirmType = args[0];
-    switch (buttonConfirmType) {
-      case 'question':
-        this.handleAnswerQuestionWFH(data);
-        break;
-      case 'unlockTs':
-        this.handleUnlockTimesheet(data);
-        break;
-      case ERequestAbsenceDayType.REMOTE:
-      case ERequestAbsenceDayType.ONSITE:
-      case ERequestAbsenceDayType.OFF:
-      case ERequestAbsenceDayType.OFFCUSTOM:
-        this.handleRequestAbsenceDay(data);
-        break;
-      case 'daily':
-        this.handleSubmitDaily(data);
-        break;
-      case 'logts':
-        this.handleLogTimesheet(data);
-        break;
-      case 'w2request':
-        this.handleEventRequestW2(data);
-        break;
-      case EPMButtonTaskW2.APPROVE_TASK:
-      case EPMButtonTaskW2.REJECT_TASK:
-      case EPMButtonTaskW2.SUBMIT_REJECT_TASK:
-      case EPMButtonTaskW2.CONFIRM_PROBATIONARY:
-      case EPMButtonTaskW2.COMFIRM_REGISNATION:
-        this.handleTaskW2Request(data);
-        break;
-      case 'PMRequestDay':
-        this.handlePMRequestAbsenceDay(data);
-        break;
-      case 'dailyPm':
-        this.handleSubmitDailyPm(data);
-        break;
-      case 'voucher':
-        this.handleSelectVoucher(data);
-        break;
-      case 'poll':
-        this.handleSelectPoll(data);
-        break;
-      case 'interview':
-        this.sendAnswerOfInterviewerToHr(data);
-        break;
-      case 'menu':
-        this.menuOrderService.handelSelectMenuOrder(data);
-        break;
-      default:
-        break;
+    try {
+      const args = data.button_id.split('_');
+      const buttonConfirmType = args[0];
+      switch (buttonConfirmType) {
+        case 'question':
+          this.handleAnswerQuestionWFH(data);
+          break;
+        case 'unlockTs':
+          this.handleUnlockTimesheet(data);
+          break;
+        case ERequestAbsenceDayType.REMOTE:
+        case ERequestAbsenceDayType.ONSITE:
+        case ERequestAbsenceDayType.OFF:
+        case ERequestAbsenceDayType.OFFCUSTOM:
+          this.handleRequestAbsenceDay(data);
+          break;
+        case 'daily':
+          this.handleSubmitDaily(data);
+          break;
+        case 'logts':
+          this.handleLogTimesheet(data);
+          break;
+        case 'w2request':
+          this.handleEventRequestW2(data);
+          break;
+        case EPMButtonTaskW2.APPROVE_TASK:
+        case EPMButtonTaskW2.REJECT_TASK:
+        case EPMButtonTaskW2.SUBMIT_REJECT_TASK:
+        case EPMButtonTaskW2.CONFIRM_PROBATIONARY:
+        case EPMButtonTaskW2.COMFIRM_REGISNATION:
+          this.handleTaskW2Request(data);
+          break;
+        case 'PMRequestDay':
+          this.handlePMRequestAbsenceDay(data);
+          break;
+        case 'dailyPm':
+          this.handleSubmitDailyPm(data);
+          break;
+        case 'voucher':
+          this.handleSelectVoucher(data);
+          break;
+        case 'poll':
+          this.handleSelectPoll(data);
+          break;
+        case 'interview':
+          this.sendAnswerOfInterviewerToHr(data);
+          break;
+        case 'menu':
+          this.menuOrderService.handelSelectMenuOrder(data);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.log('hanndleButtonForm ERROR', error);
     }
   }
 
