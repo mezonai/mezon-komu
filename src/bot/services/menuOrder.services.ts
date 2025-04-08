@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { InvoiceOrder, MenuOrder, MenuOrderMessage, User } from '../models';
+import {
+  InvoiceOrder,
+  MenuAddress,
+  MenuOrder,
+  MenuOrderMessage,
+  User,
+} from '../models';
 import { MessageQueue } from './messageQueue.service';
 import {
   EmbebButtonType,
@@ -37,6 +43,8 @@ export class MenuOrderService {
     private menuOrderMessageRepository: Repository<MenuOrderMessage>,
     @InjectRepository(InvoiceOrder)
     private invoiceOrderRepository: Repository<InvoiceOrder>,
+    @InjectRepository(MenuAddress)
+    private menuAddressRepository: Repository<MenuAddress>,
     private utilsService: UtilsService,
     private messageQueue: MessageQueue,
   ) {
@@ -45,8 +53,17 @@ export class MenuOrderService {
 
   async handelSelectMenuOrder(data) {
     try {
-      const [_, typeButtonRes, authId, clanId, mode, isPublic, channelId] =
-        data.button_id.split('_');
+      const [
+        _,
+        typeButtonRes,
+        authId,
+        clanId,
+        mode,
+        isPublic,
+        channelId,
+        currentCorner,
+        currentKeyMenu,
+      ] = data.button_id.split('_');
       const dataParse = JSON.parse(data.extra_data || '{}');
       const itemId = dataParse?.MENU?.[0].split('_')?.[1];
       if (typeButtonRes === EmbebButtonType.ORDER) {
@@ -64,6 +81,8 @@ export class MenuOrderService {
           isPublic,
           mode,
           data.user_id,
+          currentCorner,
+          currentKeyMenu,
         );
       }
 
@@ -77,11 +96,58 @@ export class MenuOrderService {
           isPublic,
           mode,
           data.user_id,
+          currentCorner,
+          currentKeyMenu,
           true,
           orderItem.seller,
         );
       }
     } catch (error) {}
+  }
+
+  async handleEditOldReportMessage(channelId, clanId, findUserClick) {
+    const findMessageOrderExist = await this.menuOrderMessageRepository.find({
+      where: {
+        channelId: channelId,
+        clanId: clanId,
+        isEdited: false,
+        type: TypeOrderMessage.REPORT,
+      },
+    });
+    const newMessageContent =
+      '```' +
+      `A new report message has been created by <${findUserClick.clan_nick || findUserClick.username}> below!` +
+      '```';
+    if (findMessageOrderExist.length > 0) {
+      for (const {
+        id,
+        clanId,
+        channelId,
+        mode,
+        isPublic,
+        messageId,
+      } of findMessageOrderExist) {
+        await this.client.updateChatMessage(
+          clanId,
+          channelId,
+          mode,
+          isPublic,
+          messageId,
+          {
+            t: newMessageContent,
+            mk: [{ type: 't', s: 0, e: newMessageContent.length }],
+          },
+          [],
+          [],
+          true,
+        );
+
+        await this.menuOrderMessageRepository.update(
+          { id },
+          { isEdited: true },
+        );
+      }
+    }
   }
 
   async handleReportOrder(
@@ -90,9 +156,12 @@ export class MenuOrderService {
     isPublic,
     mode,
     userId,
+    currentCorner,
+    currentKeyMenu,
     isFinish?,
     sellerId?,
   ) {
+    // check permission finish
     if (
       isFinish &&
       ![
@@ -120,6 +189,17 @@ export class MenuOrderService {
     const findUserClick = await this.userRepository.findOne({
       where: { userId },
     });
+
+    // edit old report message
+    await this.handleEditOldReportMessage(channelId, clanId, findUserClick);
+
+    const curerentMenu = await this.menuAddressRepository.findOne({
+      where: {
+        corner: currentCorner,
+        key: currentKeyMenu,
+      },
+    });
+
     let messages = 'Không có ai order';
     let messagesFinish = 'Không có ai order';
     const arrayUser = await this.invoiceOrderRepository
@@ -159,7 +239,7 @@ export class MenuOrderService {
         'Chốt đơn!!! Số lượng order lần này như sau: \n\n' +
         messagesReportSummaryArray.filter((msg) => msg !== null).join('\n') +
         '\n\n' +
-        `Tổng số lượng: ${totalQuantity} món\n\nTổng tiền: ${totalPrice} vnđ`;
+        `Quán: ${curerentMenu.name} ${curerentMenu.phone ? `- ${curerentMenu.phone}` : ''}${curerentMenu.link ? `\nLink quán: ${curerentMenu.link}` : ''}\n\nTổng số lượng: ${totalQuantity} món\n\nTổng tiền: ${totalPrice} vnđ`;
     }
 
     const embed: EmbedProps[] = [
@@ -182,7 +262,23 @@ export class MenuOrderService {
         embed,
       },
     };
-    this.messageQueue.addMessage(replyMessage);
+
+    // save message report to edit when a new one created
+    const response = await this.clientService.sendMessage(replyMessage);
+    const menuOrderMessage = new MenuOrderMessage();
+    menuOrderMessage.clanId = clanId;
+    menuOrderMessage.channelId = channelId;
+    menuOrderMessage.author = userId;
+    menuOrderMessage.mode = mode;
+    menuOrderMessage.isPublic = isPublic === 'true' ? true : false;
+    menuOrderMessage.createdAt = Date.now();
+    menuOrderMessage.messageId = response.message_id;
+    menuOrderMessage.type = isFinish
+      ? TypeOrderMessage.FINISH
+      : TypeOrderMessage.REPORT;
+    await this.menuOrderMessageRepository.save(menuOrderMessage);
+
+    //handle finish order
     if (isFinish) {
       const findMessageOrderExist = await this.menuOrderMessageRepository.find({
         where: {
@@ -246,6 +342,7 @@ export class MenuOrderService {
             embed,
           },
         };
+        if (messagesFinish === 'Không có ai order') return;
         this.messageQueue.addMessage(replyMessage);
       }
     }
@@ -459,19 +556,26 @@ export class MenuOrderService {
       return acc;
     }, {});
 
-    const messagesReportSummaryArray = Object.entries(itemCount).map(
-      ([key, quantity]) => {
+    const messagesReportSummaryArray = Object.entries(itemCount)
+      .map(([key, quantity]) => {
         const [itemId, note] = key.split('-');
         const itemData = itemMap.get(+itemId) || {
           name: `Item ${itemId}`,
           price: 0,
         };
 
-        return note === 'no_note'
-          ? `- Số lượng <${itemData.name}>: ${quantity}`
-          : `- Số lượng <${itemData.name} (${note})>: ${quantity}`;
-      },
-    );
+        return {
+          name: itemData.name,
+          note,
+          quantity,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(({ name, note, quantity }) =>
+        note === 'no_note'
+          ? `- Số lượng <${name}>: ${quantity}`
+          : `- Số lượng <${name} (${note})>: ${quantity}`,
+      );
     let totalQuantity = 0;
     let totalPrice = 0;
     for (const item of listInvoice) {
