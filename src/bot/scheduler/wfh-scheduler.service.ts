@@ -346,6 +346,7 @@ export class WFHSchedulerService {
           '(last_message_time <= :thirtyMinutesAgo OR last_message_time is null)',
           { thirtyMinutesAgo },
         )
+        .andWhere('user.deactive IS NOT True')
         .select('*')
         .execute();
       await this.sendQuizzesWithLimit(userSend, false);

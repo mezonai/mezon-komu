@@ -19,11 +19,12 @@ import {
   EMessageMode,
   EUnlockTimeSheetPayment,
   EUserType,
+  MEZON_EMBED_FOOTER,
 } from '../constants/configs';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
-import { generateEmail } from '../utils/helper';
+import { generateEmail, getRandomColor } from '../utils/helper';
 
 @Injectable()
 export class EventTokenSend extends BaseHandleEvent {
@@ -47,6 +48,47 @@ export class EventTokenSend extends BaseHandleEvent {
     private readonly dataSource: DataSource,
   ) {
     super(clientService);
+  }
+
+  @OnEvent(Events.TokenSend)
+  async handleReceivingToken(data) {
+    if (data.receiver_id !== process.env.BOT_KOMU_ID) return;
+    const sender = await this.userRepository.findOne({
+      where: { userId: data.sender_id },
+    });
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `KOMU BALANCE FLUCTUATIONS`,
+        fields: [
+          {
+            name: `Sender name:`,
+            value: `${sender.clan_nick || sender.username}`,
+          },
+          {
+            name: `Funds Transferred:`,
+            value: `${data.amount}₫`,
+          },
+          {
+            name: `Detail:`,
+            value: `${data.note}`,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+        footer: MEZON_EMBED_FOOTER,
+      },
+    ];
+    const replyMessage = {
+      clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+      channel_id: process.env.MEZON_TAPHOA_CHANNEL_ID || '1840679163397148672',
+      is_public: false,
+      parent_id: '0',
+      mode: EMessageMode.THREAD_MESSAGE,
+      msg: {
+        embed,
+      },
+    };
+    this.messageQueue.addMessage(replyMessage);
   }
 
   @OnEvent(Events.TokenSend)

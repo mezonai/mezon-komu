@@ -38,71 +38,113 @@ export class VoucherCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (args[0] === 'exchange') {
+      // const embed: EmbedProps[] = [
+      //   {
+      //     color: getRandomColor(),
+      //     title: `VOUCHER EXCHANGE OPTION`,
+      //     description: 'Select option you want to exchange voucher',
+      //     fields: [
+      //       {
+      //         name: '',
+      //         value: '',
+      //         inputs: {
+      //           id: `VOUCHER`,
+      //           type: EMessageComponentType.RADIO,
+      //           component: [
+      //             {
+      //               label: 'Exchange voucher NCCSoft:',
+      //               value: 'voucher_NccSoft',
+      //               description:
+      //                 '- Quy đổi thành voucher sử dụng ở voucher.nccsoft.vn\n- Được sử dụng ở cuối tháng, giúp giảm tiền phạt\n- Nhập số tiền để quy đổi: 1 mezon token = 1 vnđ',
+      //               style: EButtonMessageStyle.PRIMARY,
+      //             },
+      //             {
+      //               label: 'Exchange voucher Market:',
+      //               value: 'voucher_Market',
+      //               description:
+      //                 '- Quy đổi thành voucher sử dụng ở nhiều trang thương mại điện tử \n   (Vd: Shopee, Lazada, Grab...)\n- Mỗi lần quy đổi cần 100.000 mezon token (tương ứng 100.000 vnđ cho mã giảm khi thanh toán ở trang thương mại điện tử)',
+      //               style: EButtonMessageStyle.PRIMARY,
+      //             },
+      //           ],
+      //         },
+      //       },
+      //       {
+      //         name: 'Vui lòng click Confirm để xác nhận.\nNếu không muốn giao dịch, vui lòng click Cancel!',
+      //         value: '',
+      //       },
+      //     ],
+      //     timestamp: new Date().toISOString(),
+      //     footer: MEZON_EMBED_FOOTER,
+      //   },
+      // ];
+      // const components = [
+      //   {
+      //     components: [
+      //       {
+      //         id: `voucher_CANCEL_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
+      //         type: EMessageComponentType.BUTTON,
+      //         component: {
+      //           label: `Cancel`,
+      //           style: EButtonMessageStyle.SECONDARY,
+      //         },
+      //       },
+      //       {
+      //         id: `voucher_CONFIRM_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
+      //         type: EMessageComponentType.BUTTON,
+      //         component: {
+      //           label: `Confirm`,
+      //           style: EButtonMessageStyle.SUCCESS,
+      //         },
+      //       },
+      //     ],
+      //   },
+      // ];
+      // return this.replyMessageGenerate(
+      //   {
+      //     embed,
+      //     components,
+      //   },
+      //   message,
+      // );
+      const sendTokenData = {
+        sender_id: message.sender_id,
+        receiver_id: process.env.BOT_KOMU_ID,
+        note: `[NccSoft Voucher Buying]`,
+        extra_attribute: JSON.stringify({
+          sessionId: 'buy_NccSoft_voucher',
+          appId: 'buy_NccSoft_voucher',
+        }),
+      };
+      const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));
       const embed: EmbedProps[] = [
         {
           color: getRandomColor(),
-          title: `VOUCHER EXCHANGE OPTION`,
-          description: 'Select option you want to exchange voucher',
+          title: 'VOUCHER NCCSOFT EXCHANGE!',
           fields: [
             {
-              name: '',
-              value: '',
-              inputs: {
-                id: `VOUCHER`,
-                type: EMessageComponentType.RADIO,
-                component: [
-                  {
-                    label: 'Exchange voucher NCCSoft:',
-                    value: 'voucher_NccSoft',
-                    description:
-                      '- Quy đổi thành voucher sử dụng ở voucher.nccsoft.vn\n- Được sử dụng ở cuối tháng, giúp giảm tiền phạt\n- Nhập số tiền để quy đổi: 1 mezon token = 1 vnđ',
-                    style: EButtonMessageStyle.PRIMARY,
-                  },
-                  {
-                    label: 'Exchange voucher Market:',
-                    value: 'voucher_Market',
-                    description:
-                      '- Quy đổi thành voucher sử dụng ở nhiều trang thương mại điện tử \n   (Vd: Shopee, Lazada, Grab...)\n- Mỗi lần quy đổi cần 100.000 mezon token (tương ứng 100.000 vnđ cho mã giảm khi thanh toán ở trang thương mại điện tử)',
-                    style: EButtonMessageStyle.PRIMARY,
-                  },
-                ],
-              },
-            },
-            {
-              name: 'Vui lòng click Confirm để xác nhận.\nNếu không muốn giao dịch, vui lòng click Cancel!',
+              name: 'Scan this QR code for EXCHANGE NCCSOFT VOUCHER!',
               value: '',
             },
           ],
+          image: {
+            url: qrCodeImage + '',
+          },
           timestamp: new Date().toISOString(),
           footer: MEZON_EMBED_FOOTER,
         },
       ];
-      const components = [
-        {
-          components: [
-            {
-              id: `voucher_CANCEL_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
-              type: EMessageComponentType.BUTTON,
-              component: {
-                label: `Cancel`,
-                style: EButtonMessageStyle.SECONDARY,
-              },
-            },
-            {
-              id: `voucher_CONFIRM_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
-              type: EMessageComponentType.BUTTON,
-              component: {
-                label: `Confirm`,
-                style: EButtonMessageStyle.SUCCESS,
-              },
-            },
-          ],
-        },
-      ];
+      const messageToUser: ReplyMezonMessage = {
+        userId: message.sender_id,
+        textContent: '',
+        messOptions: { embed },
+      };
+      this.messageQueue.addMessage(messageToUser);
+      const messageContent =
+        '```' + `Komu sent to you a message. Please check!` + '```';
       return this.replyMessageGenerate(
         {
-          embed,
-          components,
+          messageContent,
+          mk: [{ type: 't', s: 0, e: messageContent.length }],
         },
         message,
       );
