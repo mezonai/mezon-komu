@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DynamicMezon } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import axios from 'axios';
+import * as ffmpeg from 'fluent-ffmpeg';
 
 @CommandDynamic('dynamic')
 export class DynamicExcuteCommand extends CommandMessage {
@@ -13,6 +14,24 @@ export class DynamicExcuteCommand extends CommandMessage {
     private dynamicRepository: Repository<DynamicMezon>,
   ) {
     super();
+  }
+
+  getAttachmentSize(url: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(url, (err, metadata) => {
+        if (err) return reject(err);
+
+        const videoStream = metadata.streams.find(
+          (s) => s.codec_type === 'video',
+        );
+        if (!videoStream) return reject(new Error('No video stream found'));
+
+        resolve({
+          width: videoStream.width,
+          height: videoStream.height,
+        });
+      });
+    });
   }
 
   async execute(args: string[], message: ChannelMessage, commandName: string) {
@@ -36,6 +55,7 @@ export class DynamicExcuteCommand extends CommandMessage {
         'webm',
       ].includes(extension); // use with contentType=binary/octet-stream
       const response = await axios.head(url);
+      const attachmentSize = await this.getAttachmentSize(url);
       let contentType = response.headers['content-type'];
 
       if (contentType.includes('binary/octet-stream')) {
@@ -51,10 +71,8 @@ export class DynamicExcuteCommand extends CommandMessage {
             {
               url,
               filetype: contentType,
-              ...(['video'].includes(contentType) && {
-                width: 640,
-                height: 360,
-              }),
+              width: attachmentSize.width,
+              height: attachmentSize.height,
             },
           ],
         },
