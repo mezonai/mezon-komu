@@ -62,6 +62,10 @@ export class EventTokenSend extends BaseHandleEvent {
         title: `KOMU BALANCE FLUCTUATIONS`,
         fields: [
           {
+            name: `Transaction id:`,
+            value: `${data?.transaction_id}`,
+          },
+          {
             name: `Sender name:`,
             value: `${sender.clan_nick || sender.username}`,
           },
