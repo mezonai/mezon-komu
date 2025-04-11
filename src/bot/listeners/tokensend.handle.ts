@@ -59,7 +59,7 @@ export class EventTokenSend extends BaseHandleEvent {
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `KOMU BALANCE FLUCTUATIONS`,
+        title: `KOMU BALANCE NOTIFICATIONS`,
         fields: [
           {
             name: `Transaction id:`,
