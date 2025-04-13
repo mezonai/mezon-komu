@@ -25,7 +25,7 @@ import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { AxiosClientService } from '../services/axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
 import { generateEmail, getRandomColor } from '../utils/helper';
-import { FStore_TransactionRepository } from 'src/firebase/repositories/transactions.repository';
+import { FStore_TransactionRepository } from '../../firebase/repositories/transactions.repository';
 import { extractBranchCodeByTaphoaRemark } from '../utils/extract-text';
 
 
