@@ -2526,20 +2526,27 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       );
 
       const textContent = `${interviewerName} ${isAccept ? 'chấp nhận' : 'từ chối'} tham gia phỏng vấn ${interviewDescription}.`;
-      const findHrRole = await this.roleMezonRepository.findOne({
-        where: { title: 'HR' },
-      });
-      console.log('Find hr role:', findHrRole);
-      const hrUsers = await this.userRepository
-        .createQueryBuilder('user')
-        .where(':role = ANY(user.roles)', { role: findHrRole.id })
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .getMany();
-
-      console.log('Find hr users by role:', hrUsers);
-      hrUsers.forEach((hr: User) => {
+      // const findHrRole = await this.roleMezonRepository.findOne({
+      //   where: { title: 'HR' },
+      // });
+      // console.log('Find hr role:', findHrRole);
+      // const hrUsers = await this.userRepository
+      //   .createQueryBuilder('user')
+      //   .where(':role = ANY(user.roles)', { role: findHrRole.id })
+      //   .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+      //   .getMany();
+      // todo: hard code to send message, will be update later
+      const hrUsers = [
+        '1805137029512564736', //anh.ngothuc
+        '1800478701561843712', //vy.truongngoccam
+        '1800396411926220800', //hien.ngothu
+        '1820647107783036928', //ngan.tonthuy
+        '1783441451758129152', //giang.tranminhchau
+        '1840671876997713920', //ha.tranngan
+      ];
+      hrUsers.forEach((hr) => {
         const messageToUser: ReplyMezonMessage = {
-          userId: hr.userId,
+          userId: hr,
           textContent,
           messOptions: {
             mk: [{ type: 'b', s: 0, e: interviewerName.length }],
