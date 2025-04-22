@@ -46,15 +46,24 @@ export class InterviewSchedulerService {
         where: { isReply: false },
       });
 
-      const findHrRole = await this.roleMezonRepository.findOne({
-        where: { title: 'HR' },
-      });
+      // const findHrRole = await this.roleMezonRepository.findOne({
+      //   where: { title: 'HR' },
+      // });
 
-      const hrUsers = await this.userRepository
-        .createQueryBuilder('user')
-        .where(':role = ANY(user.roles)', { role: findHrRole.id })
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .getMany();
+      // const hrUsers = await this.userRepository
+      //   .createQueryBuilder('user')
+      //   .where(':role = ANY(user.roles)', { role: findHrRole.id })
+      //   .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+      //   .getMany();
+      // todo: hard code to send message, will be update later
+      const hrUsers = [
+        '1805137029512564736', //anh.ngothuc
+        '1800478701561843712', //vy.truongngoccam
+        '1800396411926220800', //hien.ngothu
+        '1820647107783036928', //ngan.tonthuy
+        '1783441451758129152', //giang.tranminhchau
+        '1840671876997713920', //ha.tranngan
+      ];
 
       interviewReplies.forEach(async (interviewReply) => {
         const now = moment().tz('Asia/Ho_Chi_Minh');
@@ -62,11 +71,11 @@ export class InterviewSchedulerService {
           'Asia/Ho_Chi_Minh',
         );
 
-        hrUsers.forEach((hr: User) => {
+        hrUsers.forEach((hr) => {
           if (now.isAfter(messageTime.clone().add(5, 'minutes'))) {
             const textContent = `${interviewReply.interviewerName} không trả lời tin nhắn tham gia phỏng vấn ${interviewReply.interviewDescription}.`;
             const messageToUser: ReplyMezonMessage = {
-              userId: hr.userId,
+              userId: hr,
               textContent,
               messOptions: {
                 mk: [
@@ -91,7 +100,7 @@ export class InterviewSchedulerService {
     }
   }
 
-  @Cron('0 8,13 * * 1-5', {
+  @Cron('15 8,13 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async scheduleInterviews() {
