@@ -100,7 +100,7 @@ export class InterviewSchedulerService {
     }
   }
 
-  @Cron('0 8,13 * * 1-5', {
+  @Cron('15 8,13 * * 1-5', {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async scheduleInterviews() {
