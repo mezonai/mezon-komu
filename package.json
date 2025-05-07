@@ -60,7 +60,8 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.20",
     "uuid": "^11.1.0",
-    "wake_on_lan": "^1.0.0"
+    "wake_on_lan": "^1.0.0",
+    "ws": "^8.18.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

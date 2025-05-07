@@ -12,14 +12,17 @@ import { EmbedProps, FileType } from 'src/bot/constants/configs';
 import { FFmpegImagePath } from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import path from 'path';
+import WebSocket from 'ws';
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// @Command('ncc8')
+@Command('ncc8')
 export class Ncc8Command extends CommandMessage {
   private client: MezonClient;
+  private ws: WebSocket;
+
   constructor(
     private clientConfigService: ClientConfigService,
     private axiosClientService: AxiosClientService,
@@ -30,6 +33,17 @@ export class Ncc8Command extends CommandMessage {
   ) {
     super();
     this.client = this.clientService.getClient();
+    this.ws = this.clientService.getSocket();
+  }
+
+  wsSend(message: any) {
+    const json = JSON.stringify(message);
+    if (this.ws.readyState === WebSocket.OPEN) {
+      console.log('this.ws.readyState', this.ws.readyState);
+      this.ws.send(json);
+    } else {
+      console.debug('ws: send not ready, skipping...', json);
+    }
   }
 
   async execute(args: string[], message: ChannelMessage) {
@@ -40,68 +54,20 @@ export class Ncc8Command extends CommandMessage {
       'Example: *ncc8 play 180' +
       '```';
     if (args[0] === 'play') {
-      if (!args[1])
-        return this.replyMessageGenerate(
-          {
-            messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
-          },
-          message,
-        );
+      const params = {
+        ChannelId: '1840654626995572736',
+        Password: '',
+        FileUrl:
+          'https://raw.githubusercontent.com/mezonai/mezon-go-bot/refs/heads/main/audio/ncc8.ogg',
+      };
 
-      const textContent = `Go to `;
-      const channel_id = this.clientConfigService.ncc8ChannelId;
-      // try {
-      //   // call api in sdk
-      //   const channel = await this.client.registerStreamingChannel({
-      //     clan_id: message.clan_id,
-      //     channel_id: channel_id,
-      //   });
+      const messageSocket = {
+        Key: 'connect_publisher',
+        Value: params,
+      };
 
-      //   if (!channel) return;
-
-      //   const res = await this.axiosClientService.get(
-      //     `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
-      //   );
-      //   if (!res) return;
-
-      //   // check channel is not streaming
-      //   // ffmpeg mp3 to streaming url
-      //   if (channel?.streaming_url !== '') {
-      //     this.ffmpegService
-      //       .transcodeMp3ToRtmp(
-      //         FFmpegImagePath.NCC8,
-      //         res?.data?.url,
-      //         channel?.streaming_url,
-      //         FileType.NCC8,
-      //       )
-      //       .catch((error) => console.log('error mp3', error));
-      //   }
-
-      //   await sleep(1000);
-
-      //   return this.replyMessageGenerate(
-      //     {
-      //       messageContent: textContent,
-      //       hg: [
-      //         {
-      //           channelid: channel_id,
-      //           s: textContent.length,
-      //           e: textContent.length + 1,
-      //         },
-      //       ],
-      //     },
-      //     message,
-      //   );
-      // } catch (error) {
-      //   console.log('error', message.clan_id, channel_id, error);
-      //   return this.replyMessageGenerate(
-      //     {
-      //       messageContent: 'Ncc8 not found',
-      //     },
-      //     message,
-      //   );
-      // }
+      this.wsSend(messageSocket);
+      return;
     }
 
     if (args[0] === 'playlist') {
