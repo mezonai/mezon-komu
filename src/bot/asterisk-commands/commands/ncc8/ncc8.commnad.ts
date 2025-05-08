@@ -9,20 +9,12 @@ import { Uploadfile } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EmbedProps, FileType } from 'src/bot/constants/configs';
-import { FFmpegImagePath } from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import path from 'path';
-import WebSocket from 'ws';
-
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { NCC8Service } from 'src/bot/services/ncc8.services';
 
 @Command('ncc8')
 export class Ncc8Command extends CommandMessage {
-  private client: MezonClient;
-  private ws: WebSocket;
-
   constructor(
     private clientConfigService: ClientConfigService,
     private axiosClientService: AxiosClientService,
@@ -30,43 +22,56 @@ export class Ncc8Command extends CommandMessage {
     private ffmpegService: FFmpegService,
     @InjectRepository(Uploadfile)
     private uploadFileData: Repository<Uploadfile>,
+    private ncc8Service: NCC8Service,
   ) {
     super();
-    this.client = this.clientService.getClient();
-    this.ws = this.clientService.getSocket();
-  }
-
-  wsSend(message: any) {
-    const json = JSON.stringify(message);
-    if (this.ws.readyState === WebSocket.OPEN) {
-      console.log('this.ws.readyState', this.ws.readyState);
-      this.ws.send(json);
-    } else {
-      console.debug('ws: send not ready, skipping...', json);
-    }
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    if (message.sender_id !== '1827994776956309504') return;
     const messageContent =
       '```' +
       'Command: *ncc8 play ID' +
       '\n' +
       'Example: *ncc8 play 180' +
       '```';
+
     if (args[0] === 'play') {
-      const params = {
-        ChannelId: '1840654626995572736',
-        Password: '',
-        FileUrl:
-          'https://raw.githubusercontent.com/mezonai/mezon-go-bot/refs/heads/main/audio/ncc8.ogg',
-      };
+      if (!args[1])
+        return this.replyMessageGenerate(
+          {
+            messageContent: messageContent,
+            mk: [{ type: 't', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
+      const textContent = `Go to `;
+      const res = await this.axiosClientService.get(
+        `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
+      );
+      console.log('res?.data?.url', res?.data?.url)
+      if (!res) return;
+      // this.ncc8Service.ncc8Play('https://raw.githubusercontent.com/mezonai/mezon-go-bot/refs/heads/main/audio/ncc8.ogg');
+      this.ncc8Service.playNcc8(
+        res?.data?.url?.replace(/\.mp3$/, '.ogg') ?? '',
+      );
+      return this.replyMessageGenerate(
+        {
+          messageContent: textContent,
+          hg: [
+            {
+              channelid: this.clientConfigService.ncc8ChannelId,
+              s: textContent.length,
+              e: textContent.length + 1,
+            },
+          ],
+        },
+        message,
+      );
+    }
 
-      const messageSocket = {
-        Key: 'connect_publisher',
-        Value: params,
-      };
-
-      this.wsSend(messageSocket);
+    if (args[0] === 'stop') {
+      this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
       return;
     }
 
@@ -131,7 +136,7 @@ export class Ncc8Command extends CommandMessage {
             message,
           );
         }
-        const messageWatting = '```Summarizing...```'
+        const messageWatting = '```Summarizing...```';
         const dataSendWatting = this.replyMessageGenerate(
           {
             messageContent: messageWatting,
@@ -139,7 +144,7 @@ export class Ncc8Command extends CommandMessage {
           },
           message,
         );
-        this.clientService.sendMessage(dataSendWatting)
+        this.clientService.sendMessage(dataSendWatting);
         const fileName = path.basename(res?.data?.url);
         const { data } = await this.axiosClientService.post(
           process.env.NCC8_SUMARY_API,
@@ -167,31 +172,17 @@ export class Ncc8Command extends CommandMessage {
           message,
         );
       } catch (error) {
-        const messageContent = '```Ncc8 not found or getting error when trying summary!```';
-          return this.replyMessageGenerate(
-            {
-              messageContent: messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
-            },
-            message,
-          );
+        const messageContent =
+          '```Ncc8 not found or getting error when trying summary!```';
+        return this.replyMessageGenerate(
+          {
+            messageContent: messageContent,
+            mk: [{ type: 't', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
       }
-      
     }
-
-    // TODO: stop stream
-    // if (args[0] === 'stop') {
-    //   this.ffmpegService.killCurrentStream(FileType.NCC8);
-    //   await sleep(1000);
-    //   const messageEply = '```Stop ncc8 successful!```';
-    //   return this.replyMessageGenerate(
-    //     {
-    //       messageContent: messageEply,
-    //       mk: [{ type: 't', s: 0, e: messageEply.length }],
-    //     },
-    //     message,
-    //   );
-    // }
 
     return this.replyMessageGenerate(
       {

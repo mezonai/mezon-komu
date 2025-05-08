@@ -5,13 +5,11 @@ import {
   ReactMessageChannel,
   ReplyMezonMessage,
 } from 'src/bot/asterisk-commands/dto/replyMessage.dto';
-import WebSocket from 'ws';
 
 @Injectable()
 export class MezonClientService {
   private readonly logger = new Logger(MezonClientService.name);
   private client: MezonClient;
-  private ws: WebSocket;
 
   constructor(clientConfigs: MezonClientConfig) {
     this.client = new MezonClient(clientConfigs.token);
@@ -21,18 +19,6 @@ export class MezonClientService {
     try {
       const result = await this.client.authenticate();
       this.logger.log('authenticated.', result);
-      const session = JSON.parse(result);
-      const token = session.token;
-
-      this.ws = new WebSocket(`wss://stn.nccsoft.vn/ws?token=${token}`);
-
-      this.ws.on('open', () => {
-        console.log('open');
-      });
-
-      this.ws.on('error', (err) => {
-        console.error('WebSocket error:', err);
-      });
     } catch (error) {
       this.logger.error('error authenticating.', error);
       throw error;
@@ -41,10 +27,6 @@ export class MezonClientService {
 
   getClient() {
     return this.client;
-  }
-
-  getSocket() {
-    return this.ws;
   }
 
   async sendMessage(replyMessage: ReplyMezonMessage) {
@@ -77,7 +59,7 @@ export class MezonClientService {
         messageToUser.messOptions ?? {},
         messageToUser.attachments ?? [],
         messageToUser.refs ?? [],
-        messageToUser?.code
+        messageToUser?.code,
       );
     } catch (error) {
       throw error;
