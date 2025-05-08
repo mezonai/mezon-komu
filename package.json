@@ -40,6 +40,7 @@
     "chrono-node": "^1.4.9",
     "class-validator": "^0.14.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.5.0",
     "ffmpeg-static": "^5.2.0",
     "ffprobe-static": "^3.1.0",
     "firebase-admin": "^13.2.0",
@@ -48,7 +49,7 @@
     "https": "^1.0.0",
     "js-base64": "^3.7.7",
     "local-devices": "^4.0.0",
-    "mezon-sdk": "^2.7.83",
+    "mezon-sdk": "2.7.83",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.47",
     "net": "^1.0.2",
@@ -60,7 +61,8 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.20",
     "uuid": "^11.1.0",
-    "wake_on_lan": "^1.0.0"
+    "wake_on_lan": "^1.0.0",
+    "ws": "^8.18.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

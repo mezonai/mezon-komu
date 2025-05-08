@@ -5,7 +5,6 @@ import {
   ReactMessageChannel,
   ReplyMezonMessage,
 } from 'src/bot/asterisk-commands/dto/replyMessage.dto';
-import { EMessageMode } from 'src/bot/constants/configs';
 
 @Injectable()
 export class MezonClientService {
@@ -60,7 +59,7 @@ export class MezonClientService {
         messageToUser.messOptions ?? {},
         messageToUser.attachments ?? [],
         messageToUser.refs ?? [],
-        messageToUser?.code
+        messageToUser?.code,
       );
     } catch (error) {
       throw error;
