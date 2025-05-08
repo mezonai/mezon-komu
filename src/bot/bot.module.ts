@@ -166,6 +166,7 @@ import { ToggleBuzzCommand } from './asterisk-commands/commands/togglebuzz/toggl
 import { MenuOrder } from './models/menuOrder.entity';
 import { MenuCommand } from './asterisk-commands/commands/menu/menu.command';
 import { MenuOrderService } from './services/menuOrder.services';
+import { FirebaseModule } from '../firebase/firebase.module';
 import { NCC8Service } from './services/ncc8.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
