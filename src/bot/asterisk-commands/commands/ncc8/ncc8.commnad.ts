@@ -33,9 +33,9 @@ export class Ncc8Command extends CommandMessage {
       '```' +
       'Command: *ncc8 play ID' +
       '\n' +
-      'Example: *ncc8 play 180' +
+      'Example: *ncc8 play 190' +
       '```';
-
+    
     if (args[0] === 'play') {
       if (!args[1])
         return this.replyMessageGenerate(
@@ -49,7 +49,7 @@ export class Ncc8Command extends CommandMessage {
       const res = await this.axiosClientService.get(
         `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
       );
-      console.log('res?.data?.url', res?.data?.url)
+      console.log('res?.data?.url', res?.data?.url);
       if (!res) return;
       // this.ncc8Service.ncc8Play('https://raw.githubusercontent.com/mezonai/mezon-go-bot/refs/heads/main/audio/ncc8.ogg');
       this.ncc8Service.playNcc8(

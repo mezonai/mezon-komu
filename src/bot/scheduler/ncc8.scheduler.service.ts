@@ -20,6 +20,7 @@ import { AxiosClientService } from '../services/axiosClient.services';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
 import { TimeSheetService } from '../services/timesheet.services';
+import { NCC8Service } from '../services/ncc8.services';
 
 @Injectable()
 export class Ncc8SchedulerService {
@@ -35,6 +36,7 @@ export class Ncc8SchedulerService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private timeSheetService: TimeSheetService,
+    private ncc8Service: NCC8Service,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -88,41 +90,32 @@ export class Ncc8SchedulerService {
     });
   }
 
-  // @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('30 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
-    await sleep(42000);
-    this.ffmpegService.killCurrentStream(FileType.NCC8);
-    await sleep(2000);
-    const currentNcc8 = await this.findCurrentNcc8Episode(FileType.NCC8);
-    const nccPath = join(__dirname, '../../../..', 'uploads/');
-    const currentNcc8FilePath = join(nccPath + currentNcc8.fileName);
-    console.log('currentNcc8FilePath', currentNcc8FilePath);
-    // const channel = await this.client.registerStreamingChannel({
-    //   clan_id: this.clientConfigService.clandNccId,
-    //   channel_id: this.clientConfigService.ncc8ChannelId,
-    // });
-    // if (!channel) return;
-    // if (channel?.streaming_url !== '') {
-    //   this.ffmpegService
-    //     .transcodeMp3ToRtmp(
-    //       FFmpegImagePath.NCC8,
-    //       currentNcc8FilePath,
-    //       channel?.streaming_url,
-    //       FileType.NCC8,
-    //     )
-    //     .catch(async (error) => {
-    //       console.log('error mp3', error);
-    //       await sleep(1000);
-    //       this.ffmpegService
-    //         .transcodeMp3ToRtmp(
-    //           FFmpegImagePath.NCC8,
-    //           currentNcc8FilePath,
-    //           channel?.streaming_url,
-    //           FileType.NCC8,
-    //         )
-    //         .catch((error) => console.log('error mp3 2', error));
-    //     });
-    // }
+    console.log('ncc8Scheduler');
+    // const currentNcc8 = await this.findCurrentNcc8Episode(FileType.NCC8);
+    // const nccPath = join(__dirname, '../../../..', 'uploads/');
+    // const currentNcc8FilePath = join(nccPath + currentNcc8.fileName);
+    // console.log('currentNcc8FilePath', currentNcc8FilePath);
+    if (this.ncc8Service.getSocket()) {
+      this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
+    }
+    await sleep(1000);
+    this.ncc8Service.playNcc8(
+      'https://cdn.mezon.ai/0/1840659984552038400/1827994776956309500/1746701451462_0ncc8.ogg',
+    );
+  }
+
+  @Cron('33 10 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  async ncc8Scheduler2() {
+    console.log('ncc8Scheduler');
+    if (this.ncc8Service.getSocket()) {
+      this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
+    }
+    await sleep(1000);
+    this.ncc8Service.playNcc8(
+      'https://cdn.mezon.ai/0/1840659984552038400/1827994776956309500/1746701451462_0ncc8.ogg',
+    );
   }
 
   @Cron('5 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })

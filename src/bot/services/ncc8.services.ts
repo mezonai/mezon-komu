@@ -15,6 +15,10 @@ export class NCC8Service {
     ffmpeg.setFfprobePath(ffprobePath.path);
   }
 
+  getSocket() {
+    return this.ws
+  }
+
   connectSocket() {
     this.ws = new WebSocket(
       `wss://stn.mezon.ai/ws?token=${process.env.BOT_TOKEN}`,
