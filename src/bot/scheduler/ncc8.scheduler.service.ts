@@ -106,7 +106,7 @@ export class Ncc8SchedulerService {
     );
   }
 
-  @Cron('33 10 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('35 10 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler2() {
     console.log('ncc8Scheduler');
     if (this.ncc8Service.getSocket()) {
