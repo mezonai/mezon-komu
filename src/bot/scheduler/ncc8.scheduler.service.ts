@@ -93,22 +93,6 @@ export class Ncc8SchedulerService {
   @Cron('30 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
     console.log('ncc8Scheduler');
-    // const currentNcc8 = await this.findCurrentNcc8Episode(FileType.NCC8);
-    // const nccPath = join(__dirname, '../../../..', 'uploads/');
-    // const currentNcc8FilePath = join(nccPath + currentNcc8.fileName);
-    // console.log('currentNcc8FilePath', currentNcc8FilePath);
-    if (this.ncc8Service.getSocket()) {
-      this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
-    }
-    await sleep(1000);
-    this.ncc8Service.playNcc8(
-      'https://cdn.mezon.ai/0/1840659984552038400/1827994776956309500/1746701451462_0ncc8.ogg',
-    );
-  }
-
-  @Cron('35 10 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
-  async ncc8Scheduler2() {
-    console.log('ncc8Scheduler');
     if (this.ncc8Service.getSocket()) {
       this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
     }
