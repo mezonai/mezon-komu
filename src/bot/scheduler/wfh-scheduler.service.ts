@@ -151,7 +151,7 @@ export class WFHSchedulerService {
   }
 
   async sendQuizzesWithLimit(userSend, botPing: boolean = true) {
-    const delay = 200;
+    const delay = 20;
     for (let i = 0; i < userSend.length; i++) {
       const user = userSend[i];
       await this.quizeService.sendQuizToSingleUser(user, botPing);
@@ -161,7 +161,7 @@ export class WFHSchedulerService {
     }
   }
 
-  @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  // @Cron('*/1 9-11,13-17 * * 1-5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async punish() {
     if (await this.utilsService.checkHoliday()) return;
     if (this.utilsService.checkTime(new Date())) return;

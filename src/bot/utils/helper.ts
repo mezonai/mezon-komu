@@ -8,7 +8,7 @@ import { refGenerate } from './generateReplyMessage';
 export function extractMessage(message: string) {
   const args = message.replace('\n', ' ').slice('*'.length).trim().split(/ +/);
   if (args.length > 0) {
-    return [args.shift().toLowerCase(), args];
+    return [args?.shift()?.toLowerCase(), args];
   } else return [false, []];
 }
 
@@ -142,7 +142,7 @@ export function getRandomColor(): string {
 }
 
 export function convertName(fullName: string): string {
-  const parts = fullName.toLowerCase().split(' ');
+  const parts = fullName?.toLowerCase()?.split(' ');
   const firstLetter = parts[0];
   const lastName = parts.slice(1).join('');
   const username = `${firstLetter}.${lastName}`;
@@ -205,7 +205,7 @@ export function findProjectByLabel(optionsProject, projectText) {
     return null;
   }
 
-  const normalizedText = projectText.trim().toLowerCase();
+  const normalizedText = projectText?.trim()?.toLowerCase();
 
   return (
     optionsProject.find((option) => {
@@ -214,7 +214,7 @@ export function findProjectByLabel(optionsProject, projectText) {
         value = option?.value?.split(' ')?.[0] ?? '';
       }
       if (typeof value === 'string') {
-        return value.trim().toLowerCase() === normalizedText;
+        return value?.trim()?.toLowerCase() === normalizedText;
       }
       return false;
     }) || null
