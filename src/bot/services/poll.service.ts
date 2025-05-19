@@ -1,6 +1,7 @@
 import {
   ChannelType,
   EButtonMessageStyle,
+  EMarkdownType,
   EMessageComponentType,
   MezonClient,
 } from 'mezon-sdk';
@@ -216,15 +217,17 @@ export class PollService {
         where: { userId: findMessagePoll.userId },
       });
 
-      const groupedByValue: { [key: string]: any[] } =
-        userVoteMessageId.reduce((acc: any, item) => {
+      const groupedByValue: { [key: string]: any[] } = userVoteMessageId.reduce(
+        (acc: any, item) => {
           const { value } = item;
           if (!acc[value]) {
             acc[value] = [];
           }
           acc[value].push(item.username);
           return acc;
-        }, {});
+        },
+        {},
+      );
       const embedCompoents = this.generateEmbedComponentsResult(
         options,
         groupedByValue,
@@ -269,19 +272,17 @@ export class PollService {
       const textConfirm = '```This poll has finished!```';
       const msgFinish = {
         t: textConfirm,
-        mk: [{ type: 't', s: 0, e: textConfirm.length }],
+        mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textConfirm.length }],
       };
-      await this.client.updateChatMessage(
-        this.clientConfig.clandNccId,
+      const channel = await this.client.channels.fetch(
         findMessagePoll.channelId,
-        isThread ? EMessageMode.THREAD_MESSAGE : EMessageMode.CHANNEL_MESSAGE,
-        findChannel ? !findChannel?.channel_private : false,
-        findMessagePoll.messageId,
-        msgFinish,
-        [],
-        [],
-        true,
       );
+      if (!channel) return;
+      const pollMessage = await channel.messages.fetch(
+        findMessagePoll.messageId,
+      );
+      if (!pollMessage) return;
+      await pollMessage.update(msgFinish);
     } catch (error) {
       console.log('handleResultPoll', error);
     }

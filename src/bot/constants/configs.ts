@@ -84,7 +84,7 @@ export interface EmbedProps {
     options?: any[];
     inputs?: {};
   }>;
-  image?: { url: string };
+  image?: { url: string; width: string; height: string };
   timestamp?: string;
   footer?: { text: string; icon_url?: string };
 }

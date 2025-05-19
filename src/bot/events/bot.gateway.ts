@@ -7,6 +7,9 @@ import {
   TokenSentEvent,
   StreamingJoinedEvent,
   StreamingLeavedEvent,
+  UserChannelRemoved,
+  GiveCoffeeEvent,
+  AddClanUserEvent,
 } from 'mezon-sdk';
 
 import {
@@ -14,7 +17,6 @@ import {
   ChannelDeletedEvent,
   ChannelUpdatedEvent,
   UserChannelAddedEvent,
-  UserChannelRemovedEvent,
   UserClanRemovedEvent,
 } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
@@ -24,6 +26,7 @@ import { User } from '../models';
 import { IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EUserType } from '../constants/configs';
+import { RoleAssignedEvent } from 'mezon-sdk/dist/cjs/rtapi/realtime';
 
 @Injectable()
 export class BotGateway {
@@ -41,106 +44,91 @@ export class BotGateway {
   }
 
   initEvent() {
-    for (const event in Events) {
-      const eventValue =
-        Events[event] === 'clan_event_created'
-          ? Events[event].replace(/_/g, '')
-          : Events[event].replace(/_event/g, '').replace(/_/g, '');
-      this.logger.log(`Init event ${eventValue}`);
-      const key = `handle${eventValue}`;
-      if (key in this) {
-        this.client.on(Events[event], this[key], this);
-      }
-    }
-  }
-
-  handlewebrtcsignalingfwd = (data) => {
-    console.log('handlewebrtcsignalingfwd', data)
-  }
-
-  handledropdownboxselected = (data) => {
-    console.log('data', data)
-  }
-  
-  handletokensent = (data: TokenSentEvent) => {
-    this.eventEmitter.emit(Events.TokenSend, data);
-  };
-
-  handlemessagebuttonclicked = (data) => {
-    this.eventEmitter.emit(Events.MessageButtonClicked, data);
-  };
-
-  handlestreamingjoined = (data: StreamingJoinedEvent) => {
-    this.eventEmitter.emit(Events.StreamingJoinedEvent, data);
-  };
-
-  handlestreamingleaved = (data: StreamingLeavedEvent) => {
-    this.eventEmitter.emit(Events.StreamingLeavedEvent, data);
-  };
-
-  handleclaneventcreated = (data) => {
-    this.eventEmitter.emit(Events.ClanEventCreated, data);
-  };
-
-  handlemessagereaction = async (msg: ApiMessageReaction) => {
-    this.eventEmitter.emit(Events.MessageReaction, msg);
-  };
-
-  handlechannelcreated = async (channel: ChannelCreatedEvent) => {
-    this.eventEmitter.emit(Events.ChannelCreated, channel);
-  };
-
-  handleuserclanremoved(user: UserClanRemovedEvent) {
-    this.eventEmitter.emit(Events.UserClanRemoved, user);
-  }
-
-  handlerole = (data) => {
-    this.eventEmitter.emit(Events.RoleEvent, data);
-  };
-
-  handleroleassign = (data) => {
-    this.eventEmitter.emit(Events.RoleAssign, data);
-  };
-
-  handleuserchanneladded = async (user: UserChannelAddedEvent) => {
-    this.eventEmitter.emit(Events.UserChannelAdded, user);
-  };
-
-  handlechanneldeleted = async (channel: ChannelDeletedEvent) => {
-    this.eventEmitter.emit(Events.ChannelDeleted, channel);
-  };
-
-  handlechannelupdated = async (channel: ChannelUpdatedEvent) => {
-    this.eventEmitter.emit(Events.ChannelUpdated, channel);
-  };
-
-  handleuserchannelremoved = async (msg: UserChannelRemovedEvent) => {
-    this.eventEmitter.emit(Events.UserChannelRemoved, msg);
-  };
-
-  handlegivecoffee = async (data) => {
-    this.eventEmitter.emit(Events.GiveCoffee, data);
-  };
-
-  handleaddclanuser = async (data) => {
-    this.eventEmitter.emit(Events.AddClanUser, data);
-  };
-
-  handleroleassigned = async (msg) => {
-    console.log(msg);
-  };
-
-  handlechannelmessage = async (msg: ChannelMessage) => {
-    ['attachments', 'mentions', 'references'].forEach((key) => {
-      if (!Array.isArray(msg[key])) msg[key] = [];
+    this.client.onWebrtcSignalingFwd((data) => {
+      console.log('handlewebrtcsignalingfwd', data);
     });
-    try {
-      if (msg.sender_id && msg.sender_id !== '0') {
-        await this.extendersService.addDBUser(msg);
+
+    this.client.onTokenSend((data: TokenSentEvent) => {
+      this.eventEmitter.emit(Events.TokenSend, data);
+    });
+
+    this.client.onMessageButtonClicked((data) => {
+      this.eventEmitter.emit(Events.MessageButtonClicked, data);
+    });
+
+    this.client.onStreamingJoinedEvent((data: StreamingJoinedEvent) => {
+      this.eventEmitter.emit(Events.StreamingJoinedEvent, data);
+    });
+
+    this.client.onStreamingLeavedEvent((data: StreamingLeavedEvent) => {
+      this.eventEmitter.emit(Events.StreamingLeavedEvent, data);
+    });
+
+    this.client.onClanEventCreated((data) => {
+      this.eventEmitter.emit(Events.ClanEventCreated, data);
+    });
+
+    this.client.onMessageReaction((msg: ApiMessageReaction) => {
+      this.eventEmitter.emit(Events.MessageReaction, msg);
+    });
+
+    this.client.onChannelCreated((channel: ChannelCreatedEvent) => {
+      this.eventEmitter.emit(Events.ChannelCreated, channel);
+    });
+
+    this.client.onUserClanRemoved((user: UserClanRemovedEvent) => {
+      this.eventEmitter.emit(Events.UserClanRemoved, user);
+    });
+
+    this.client.onRoleEvent((data) => {
+      this.eventEmitter.emit(Events.RoleEvent, data);
+    });
+
+    this.client.onRoleAssign((data) => {
+      this.eventEmitter.emit(Events.RoleAssign, data);
+    });
+
+    this.client.onUserChannelAdded((user: UserChannelAddedEvent) => {
+      this.eventEmitter.emit(Events.UserChannelAdded, user);
+    });
+
+    this.client.onChannelDeleted((channel: ChannelDeletedEvent) => {
+      this.eventEmitter.emit(Events.ChannelDeleted, channel);
+    });
+
+    this.client.onChannelUpdated((channel: ChannelUpdatedEvent) => {
+      this.eventEmitter.emit(Events.ChannelUpdated, channel);
+    });
+
+    this.client.onUserChannelRemoved((msg: UserChannelRemoved) => {
+      this.eventEmitter.emit(Events.UserChannelRemoved, msg);
+    });
+
+    this.client.onGiveCoffee((data: GiveCoffeeEvent) => {
+      this.eventEmitter.emit(Events.GiveCoffee, data);
+    });
+
+    this.client.onAddClanUser((data: AddClanUserEvent) => {
+      this.eventEmitter.emit(Events.AddClanUser, data);
+    });
+
+    this.client.onRoleAssign((data: RoleAssignedEvent) => {
+      this.eventEmitter.emit(Events.RoleAssign, data);
+      console.log(data);
+    });
+
+    this.client.onChannelMessage(async (message) => {
+      ['attachments', 'mentions', 'references'].forEach((key) => {
+        if (!Array.isArray(message[key])) message[key] = [];
+      });
+      try {
+        if (message.sender_id && message.sender_id !== '0') {
+          await this.extendersService.addDBUser(message);
+        }
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
-    }
-    this.eventEmitter.emit(Events.ChannelMessage, msg);
-  };
+      this.eventEmitter.emit(Events.ChannelMessage, message);
+    });
+  }
 }

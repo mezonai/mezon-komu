@@ -36,12 +36,12 @@ export class MeetingSchedulerService {
   async getListVoiceChannelAvalable() {
     let listChannelVoiceUsers = [];
     try {
+      const clan = await this.client.clans.fetch(this.clientConfig.clandNccId)
       listChannelVoiceUsers =
         (
-          await this.client.listChannelVoiceUsers(
-            this.clientConfig.clandNccId,
+          await clan.listChannelVoiceUsers(
             '',
-            ChannelType.CHANNEL_TYPE_VOICE,
+            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
           )
         )?.voice_channel_users ?? [];
     } catch (error) {

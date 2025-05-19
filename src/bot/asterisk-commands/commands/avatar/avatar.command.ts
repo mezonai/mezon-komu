@@ -53,7 +53,9 @@ export class AvatarCommand extends CommandMessage {
           { query: args[0] },
         )
         .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .orderBy('CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 ELSE 3 END')
+        .orderBy(
+          'CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 ELSE 3 END',
+        )
         .getOne();
       if (findUserArg) {
         userQuery = findUserArg.username;
@@ -72,24 +74,28 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
-    const embed: EmbedProps[] = [{
-      color: getRandomColor(),
-      title: `${findUser.clan_nick || findUser.username}'s avatar`,
-      author: {
-        name: findUser.clan_nick || findUser.username,
-        icon_url: findUser.avatar,
-        url: findUser.avatar,
+    const embed: EmbedProps[] = [
+      {
+        color: getRandomColor(),
+        title: `${findUser.clan_nick || findUser.username}'s avatar`,
+        author: {
+          name: findUser.clan_nick || findUser.username,
+          icon_url: findUser.avatar,
+          url: findUser.avatar,
+        },
+        image: {
+          url: findUser.avatar,
+          width: '400px',
+          height: '400px',
+        },
+        timestamp: new Date().toISOString(),
+        footer: {
+          text: 'Powered by Mezon',
+          icon_url:
+            'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
+        },
       },
-      image: {
-        url: findUser.avatar,
-      },
-      timestamp: new Date().toISOString(),
-      footer: {
-        text: 'Powered by Mezon',
-        icon_url:
-          'https://cdn.mezon.vn/1837043892743049216/1840654271217930240/1827994776956309500/857_0246x0w.webp',
-      },
-    }];
+    ];
 
     return this.replyMessageGenerate(
       {

@@ -20,6 +20,7 @@ import {
 } from '../constants/configs';
 import {
   EButtonMessageStyle,
+  EMarkdownType,
   EMessageSelectType,
   MezonClient,
 } from 'mezon-sdk';
@@ -127,20 +128,14 @@ export class MenuOrderService {
         isPublic,
         messageId,
       } of findMessageOrderExist) {
-        await this.client.updateChatMessage(
-          clanId,
-          channelId,
-          mode,
-          isPublic,
-          messageId,
-          {
-            t: newMessageContent,
-            mk: [{ type: 't', s: 0, e: newMessageContent.length }],
-          },
-          [],
-          [],
-          true,
-        );
+        const channel = await this.client.channels.fetch(channelId);
+        const message = await channel.messages.fetch(messageId);
+        await message.update({
+          t: newMessageContent,
+          mk: [
+            { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+          ],
+        });
 
         await this.menuOrderMessageRepository.update(
           { id },
@@ -301,20 +296,14 @@ export class MenuOrderService {
           isPublic,
           messageId,
         } of findMessageOrderExist) {
-          await this.client.updateChatMessage(
-            clanId,
-            channelId,
-            mode,
-            isPublic,
-            messageId,
-            {
-              t: newMessageContent,
-              mk: [{ type: 't', s: 0, e: newMessageContent.length }],
-            },
-            [],
-            [],
-            true,
-          );
+          const channel = await this.client.channels.fetch(channelId);
+          const message = await channel.messages.fetch(messageId);
+          await message.update({
+            t: newMessageContent,
+            mk: [
+              { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+            ],
+          });
 
           await this.menuOrderMessageRepository.update(
             { id },
@@ -479,17 +468,9 @@ export class MenuOrderService {
           footer: MEZON_EMBED_FOOTER,
         },
       ];
-      await this.client.updateChatMessage(
-        '0',
-        channelDmId || data.channel_id,
-        EMessageMode.DM_MESSAGE,
-        false,
-        data.message_id,
-        { embed: embedSeller },
-        [],
-        [],
-        true,
-      );
+      const channel = await this.client.channels.fetch(channelId);
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update({ embed: embedSeller });
 
       if (isError) return;
       const orderItem = await this.menuOrderRepository.findOne({

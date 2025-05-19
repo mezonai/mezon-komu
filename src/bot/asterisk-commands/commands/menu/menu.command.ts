@@ -1,6 +1,7 @@
 import {
   ChannelMessage,
   EButtonMessageStyle,
+  EMarkdownType,
   EMessageComponentType,
   MezonClient,
 } from 'mezon-sdk';
@@ -19,7 +20,7 @@ import {
 import { getRandomColor } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
 
-@Command('menu')
+// @Command('menu')
 export class MenuCommand extends CommandMessage {
   private client: MezonClient;
   private validCorner = new Map([
@@ -156,20 +157,14 @@ export class MenuCommand extends CommandMessage {
           isPublic,
           messageId,
         } of findMessageOrderExist) {
-          await this.client.updateChatMessage(
-            clanId,
-            channelId,
-            mode,
-            isPublic,
-            messageId,
-            {
-              t: newMessageContent,
-              mk: [{ type: 't', s: 0, e: newMessageContent.length }],
-            },
-            [],
-            [],
-            true,
-          );
+          const channel = await this.client.channels.fetch(channelId);
+          const message = await channel.messages.fetch(messageId);
+          await message.update({
+            t: newMessageContent,
+            mk: [
+              { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+            ],
+          });
 
           await this.menuOrderMessageRepository.update(
             { id },

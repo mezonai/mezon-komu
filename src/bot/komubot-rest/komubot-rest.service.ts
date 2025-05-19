@@ -322,7 +322,6 @@ export class KomubotrestService {
         e: (match.index || 0) + match[0].length,
       })) || [];
     options.mk = [...options.mk, ...mkLink];
-    console.log('options', options)
     try {
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: channelId },
@@ -616,7 +615,13 @@ export class KomubotrestService {
               sessionId: 'send_by_api',
             }),
           };
-          return this.client.sendToken(dataSendToken);
+          try {
+            return this.client.sendToken(dataSendToken);
+          } catch (error) {
+            console.log('error send token api', error);
+            res.status(400).send({ message: 'Send fail!' });
+            return
+          }
         }),
       );
 

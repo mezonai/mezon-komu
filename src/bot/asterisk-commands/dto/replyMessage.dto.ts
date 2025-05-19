@@ -29,6 +29,7 @@ export interface ReplyMezonMessage {
   avatar?: string;
   code?: number;
   topic_id?: string;
+  message_id?: string;
 }
 
 export interface ReactMessageChannel {
