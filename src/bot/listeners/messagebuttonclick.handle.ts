@@ -303,17 +303,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '\n(Câu hỏi đã được trả lời)',
         },
       ];
-      await this.client.updateChatMessage(
-        '0',
-        channelDmId,
-        EMessageMode.DM_MESSAGE,
-        false,
-        data.message_id,
-        { embed },
-        [],
-        [],
-        true,
-      );
+      const channel = await this.client.channels.fetch(channelDmId);
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update({ embed });
       this.messageQueue.addMessage(messageToUser);
     } catch (error) {
       console.log('handleMessageButtonClicked', error);
@@ -359,17 +351,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             status: EUnlockTimeSheet.CANCEL,
           },
         );
-        await this.client.updateChatMessage(
-          replyMessage.clan_id,
+        const channel = await this.client.channels.fetch(
           replyMessage.channel_id,
-          replyMessage.mode,
-          replyMessage.is_public,
-          data.message_id,
-          replyMessage.msg,
-          [],
-          [],
-          true,
         );
+        const message = await channel.messages.fetch(data.message_id);
+        await message.update(replyMessage.msg);
         return;
       }
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
@@ -426,6 +412,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 ],
                 image: {
                   url: qrCodeImage + '',
+                  width: '300px',
+                  height: '300px',
                 },
                 timestamp: new Date().toISOString(),
                 footer: MEZON_EMBED_FOOTER,
@@ -459,17 +447,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: messageContent.length }],
         };
       }
-      await this.client.updateChatMessage(
-        replyMessage.clan_id,
-        replyMessage.channel_id,
-        replyMessage.mode,
-        replyMessage.is_public,
-        data.message_id,
-        replyMessage.msg,
-        [],
-        [],
-        true,
-      );
+      const channel = await this.client.channels.fetch(replyMessage.channel_id);
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update(replyMessage.msg);
     } catch (e) {
       console.log('handleUnlockTimesheet', e);
     }
@@ -648,37 +628,31 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '```';
           const msgDailySuccess = {
             t: textDailySuccess,
-            mk: [{ type: 't', s: 0, e: textDailySuccess.length }],
+            mk: [
+              { type: EMarkdownType.TRIPLE, s: 0, e: textDailySuccess.length },
+            ],
           };
-          await this.client.updateChatMessage(
-            clanIdValue,
-            channelId,
-            modeValue,
-            isPublicValue,
-            data.message_id,
-            msgDailySuccess,
-            [],
-            [],
-            true,
-          );
+          const channel = await this.client.channels.fetch(channelId);
+          const message = await channel.messages.fetch(data.message_id);
+          await message.update(msgDailySuccess);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           const textDailyCancelSuccess = '```The daily has been cancelled```';
           const msgDailyCancelSuccess = {
             t: textDailyCancelSuccess,
-            mk: [{ type: 't', s: 0, e: textDailyCancelSuccess.length }],
+            mk: [
+              {
+                type: EMarkdownType.TRIPLE,
+                s: 0,
+                e: textDailyCancelSuccess.length,
+              },
+            ],
           };
-          await this.client.updateChatMessage(
-            clanIdValue,
-            channelId,
-            modeValue,
-            isPublicValue,
+          const channelCannel = await this.client.channels.fetch(channelId);
+          const messageCannel = await channelCannel.messages.fetch(
             data.message_id,
-            msgDailyCancelSuccess,
-            [],
-            [],
-            true,
           );
+          await messageCannel.update(msgDailyCancelSuccess);
           return;
         default:
           break;
@@ -846,16 +820,13 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 const textSuccess = `\`\`\`✅ Request ${typeRequest || 'absence'} successful! \`\`\``;
                 const msgSuccess = {
                   t: textSuccess,
-                  mk: [{ type: 't', s: 0, e: textSuccess.length }],
+                  mk: [
+                    { type: EMarkdownType.TRIPLE, s: 0, e: textSuccess.length },
+                  ],
                 };
-                await this.client.updateChatMessage(
-                  clanIdValue,
-                  channelId,
-                  modeValue,
-                  isPublicValue,
-                  data.message_id,
-                  msgSuccess,
-                );
+                const channel = await this.client.channels.fetch(channelId);
+                const message = await channel.messages.fetch(data.message_id);
+                await message.update(msgSuccess);
               } else {
                 throw new Error('Request failed!');
               }
@@ -863,16 +834,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const textError = `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``;
               const msgError = {
                 t: textError,
-                mk: [{ type: 't', s: 0, e: textError.length }],
+                mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textError.length }],
               };
-              await this.client.updateChatMessage(
-                clanIdValue,
-                channelId,
-                modeValue,
-                isPublicValue,
-                data.message_id,
-                msgError,
-              );
+              const channel = await this.client.channels.fetch(channelId);
+              const message = await channel.messages.fetch(data.message_id);
+              await message.update(msgError);
+
               return;
             }
             // Update status to CONFIRM
@@ -981,16 +948,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             const textCancel = `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``;
             const msgCancel = {
               t: textCancel,
-              mk: [{ type: 't', s: 0, e: textCancel.length }],
+              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
             };
-            await this.client.updateChatMessage(
-              clanIdValue,
-              channelId,
-              modeValue,
-              isPublicValue,
-              data.message_id,
-              msgCancel,
-            );
+            const channel = await this.client.channels.fetch(channelId);
+            const message = await channel.messages.fetch(data.message_id);
+            await message.update(msgCancel);
 
             // Update status to CANCEL
             await this.absenceDayRequestRepository.update(
@@ -1158,20 +1120,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               '```';
             const msgSubmitByWeekSuccess = {
               t: textSubmitByWeekSuccess,
-              mk: [{ type: 't', s: 0, e: textSubmitByWeekSuccess.length }],
+              mk: [
+                {
+                  type: EMarkdownType.TRIPLE,
+                  s: 0,
+                  e: textSubmitByWeekSuccess.length,
+                },
+              ],
             };
-
-            await this.client.updateChatMessage(
-              clanIdValue,
-              channelId,
-              modeValue,
-              isPublicValue,
-              data.message_id,
-              msgSubmitByWeekSuccess,
-              [],
-              [],
-              true,
-            );
+            const channel = await this.client.channels.fetch(channelId);
+            const message = await channel.messages.fetch(data.message_id);
+            await message.update(msgSubmitByWeekSuccess);
           } else {
             await this.timeSheetService.logTimeSheetByDate(
               typeOfWorkValue,
@@ -1204,20 +1163,18 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               '```';
             const msgSubmitByDateSuccess = {
               t: textSubmitByDateSuccess,
-              mk: [{ type: 't', s: 0, e: textSubmitByDateSuccess.length }],
+              mk: [
+                {
+                  type: EMarkdownType.TRIPLE,
+                  s: 0,
+                  e: textSubmitByDateSuccess.length,
+                },
+              ],
             };
 
-            await this.client.updateChatMessage(
-              clanIdValue,
-              channelId,
-              modeValue,
-              isPublicValue,
-              data.message_id,
-              msgSubmitByDateSuccess,
-              [],
-              [],
-              true,
-            );
+            const channel = await this.client.channels.fetch(channelId);
+            const message = await channel.messages.fetch(data.message_id);
+            await message.update(msgSubmitByDateSuccess);
           }
 
           break;
@@ -1226,19 +1183,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '```The log timesheet has been cancelled!```';
           const msgLogtsCancelSuccess = {
             t: textLogTsCancelSuccess,
-            mk: [{ type: 't', s: 0, e: textLogTsCancelSuccess.length }],
+            mk: [
+              {
+                type: EMarkdownType.TRIPLE,
+                s: 0,
+                e: textLogTsCancelSuccess.length,
+              },
+            ],
           };
-          await this.client.updateChatMessage(
-            clanIdValue,
-            channelId,
-            modeValue,
-            isPublicValue,
-            data.message_id,
-            msgLogtsCancelSuccess,
-            [],
-            [],
-            true,
-          );
+          const channel = await this.client.channels.fetch(channelId);
+          const message = await channel.messages.fetch(data.message_id);
+          await message.update(msgLogtsCancelSuccess);
           return;
         default:
           break;
@@ -1424,16 +1379,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const textCreateRequestSuccess = '```Create request successfully!```';
       const msgCreateSuccess = {
         t: textCreateRequestSuccess,
-        mk: [{ type: 't', s: 0, e: textCreateRequestSuccess.length }],
+        mk: [
+          {
+            type: EMarkdownType.TRIPLE,
+            s: 0,
+            e: textCreateRequestSuccess.length,
+          },
+        ],
       };
-      await this.client.updateChatMessage(
-        findW2requestData.clanId,
+      const channel = await this.client.channels.fetch(
         findW2requestData.channelId,
-        findW2requestData.modeMessage,
-        findW2requestData.isChannelPublic,
-        data.message_id,
-        msgCreateSuccess,
       );
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update(msgCreateSuccess);
       this.messageQueue.addMessage(replyMessage);
       const agent = new https.Agent({
         rejectUnauthorized: false,
@@ -1449,16 +1407,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         '```Failed to create request. Please try again later.```';
       const msgCreateFailed = {
         t: textCreateRequestFailed,
-        mk: [{ type: 't', s: 0, e: textCreateRequestFailed.length }],
+        mk: [
+          {
+            type: EMarkdownType.TRIPLE,
+            s: 0,
+            e: textCreateRequestFailed.length,
+          },
+        ],
       };
-      await this.client.updateChatMessage(
-        findW2requestData.clanId,
+      const channel = await this.client.channels.fetch(
         findW2requestData.channelId,
-        findW2requestData.modeMessage,
-        findW2requestData.isChannelPublic,
-        data.message_id,
-        msgCreateFailed,
       );
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update(msgCreateFailed);
     }
   }
   private taskId: Record<string, any> = { id: '' };
@@ -1472,6 +1433,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     if (args[3]) {
       this.taskId = args[3];
     }
+    const clan = await this.client.clans.fetch(
+      process.env.KOMUBOTREST_CLAN_NCC_ID,
+    );
+    const user = await clan.users.fetch(data.user_id);
     if (data.button_id.split('_')[0] === EPMButtonTaskW2.APPROVE_TASK) {
       if (buttonConfirmType === EPMTaskW2Type.RESIGNATION) {
         const embed: EmbedProps[] = [
@@ -1605,10 +1570,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         this.messageQueue.addMessage(messageToUser);
       } else {
         try {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            'Sending Request...',
-          );
+          await user.sendDM({ t: 'Sending Request...' });
           const payload = {
             id: this.taskId,
             email: `${findUser[0].username}@ncc.asia`,
@@ -1625,22 +1587,13 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           );
 
           if (response.status === 200) {
-            await this.client.sendDMChannelMessage(
-              data.channel_id,
-              'Approve Task Success!',
-            );
+            await user.sendDM({ t: 'Approve Task Success!' });
           }
         } catch (error) {
           if (error.response.data.error.code === '409') {
-            await this.client.sendDMChannelMessage(
-              data.channel_id,
-              `${error.response.data.error.message}!!`,
-            );
+            await user.sendDM({ t: `${error.response.data.error.message}!!` });
           } else {
-            await this.client.sendDMChannelMessage(
-              data.channel_id,
-              `${error.message}`,
-            );
+            await user.sendDM({ t: `${error.message}` });
           }
         }
       }
@@ -1702,28 +1655,19 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
     if (data.button_id === EPMButtonTaskW2.SUBMIT_REJECT_TASK) {
       if (!data.extra_data) {
-        await this.client.sendDMChannelMessage(
-          data.channel_id,
-          'Missing Reason Reject Task!',
-        );
+        await user.sendDM({ t: 'Missing Reason Reject Task!' });
         return;
       }
       const extraData = JSON.parse(data.extra_data);
       try {
-        await this.client.sendDMChannelMessage(
-          data.channel_id,
-          'Sending Request...',
-        );
+        await user.sendDM({ t: 'Sending Request...' });
         const payload = {
           id: this.taskId,
           reason: extraData.submitRejectTask,
           email: `${findUser[0].username}@ncc.asia`,
         };
         if (payload.reason === '') {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            'Missing Reason Reject Task!',
-          );
+          await user.sendDM({ t: 'Missing Reason Reject Task!' });
         }
         const response = await axios.post(
           `${process.env.W2_REQUEST_API_BASE_URL}/reject-w2task`,
@@ -1736,36 +1680,24 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           },
         );
         if (response.status === 200) {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            'Rejected Task Success!',
-          );
+          await user.sendDM({ t: 'Rejected Task Success!' });
         }
       } catch (error) {
         if (error.response.data.error.code === '409') {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.response.data.error.message}!!`,
-          );
+          await user.sendDM({ t: `${error.response.data.error.message}!!` });
         } else {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.message}`,
-          );
+          await user.sendDM({ t: `${error.message}` });
         }
       }
     }
     if (data.button_id === EPMButtonTaskW2.CONFIRM_PROBATIONARY) {
       if (!data.extra_data) {
-        await this.client.sendDMChannelMessage(data.channel_id, 'Missing Data');
+        await user.sendDM({ t: 'Missing Data' });
         return;
       }
       const extraData = JSON.parse(data.extra_data);
       try {
-        await this.client.sendDMChannelMessage(
-          data.channel_id,
-          'Sending Request...',
-        );
+        await user.sendDM({ t: 'Sending Request...' });
         const payload = {
           dynamicActionData: JSON.stringify([
             {
@@ -1801,41 +1733,26 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           },
         );
         if (response.status === 200) {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            'Approve Task Success!',
-          );
+          await user.sendDM({ t: 'Approve Task Success!' });
         }
       } catch (error) {
         console.log(error.response.data);
 
         if (error.response.data.error.code === '409') {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.response.data.error.message}!!`,
-          );
+          await user.sendDM({ t: `${error.response.data.error.message}!!` });
         } else {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.message}`,
-          );
+          await user.sendDM({ t: `${error.message}` });
         }
       }
     }
     if (data.button_id === EPMButtonTaskW2.COMFIRM_REGISNATION) {
       if (!data.extra_data) {
-        await this.client.sendDMChannelMessage(
-          data.channel_id,
-          'Missing Data !',
-        );
+        await user.sendDM({ t: 'Missing Data !' });
         return;
       }
       const extraData = JSON.parse(data.extra_data);
       try {
-        await this.client.sendDMChannelMessage(
-          data.channel_id,
-          'Sending Request...',
-        );
+        await user.sendDM({ t: 'Sending Request...' });
         const payload = {
           dynamicActionData: JSON.stringify([
             {
@@ -1870,22 +1787,13 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           },
         );
         if (response.status === 200) {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            'Approve Task Success!',
-          );
+          await user.sendDM({ t: 'Approve Task Success!' });
         }
       } catch (error) {
         if (error.response.data.error.code === '409') {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.response.data.error.message}!!`,
-          );
+          await user.sendDM({ t: `${error.response.data.error.message}!!` });
         } else {
-          await this.client.sendDMChannelMessage(
-            data.channel_id,
-            `${error.message}`,
-          );
+          await user.sendDM({ t: `${error.message}` });
         }
       }
     }
@@ -2162,37 +2070,33 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '```';
           const msgDailySuccess = {
             t: textDailySuccess,
-            mk: [{ type: 't', s: 0, e: textDailySuccess.length }],
+            mk: [
+              { type: EMarkdownType.TRIPLE, s: 0, e: textDailySuccess.length },
+            ],
           };
-          await this.client.updateChatMessage(
-            clanIdValue,
-            channelId,
-            modeValue,
-            isPublicValue,
+          const channelSucces = await this.client.channels.fetch(channelId);
+          const messageSucces = await channelSucces.messages.fetch(
             data.message_id,
-            msgDailySuccess,
-            [],
-            [],
-            true,
           );
+          await messageSucces.update(msgDailySuccess);
+
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           const textDailyCancelSuccess = '```The daily has been cancelled```';
           const msgDailyCancelSuccess = {
             t: textDailyCancelSuccess,
-            mk: [{ type: 't', s: 0, e: textDailyCancelSuccess.length }],
+            mk: [
+              {
+                type: EMarkdownType.TRIPLE,
+                s: 0,
+                e: textDailyCancelSuccess.length,
+              },
+            ],
           };
-          await this.client.updateChatMessage(
-            clanIdValue,
-            channelId,
-            modeValue,
-            isPublicValue,
-            data.message_id,
-            msgDailyCancelSuccess,
-            [],
-            [],
-            true,
-          );
+          const channel = await this.client.channels.fetch(channelId);
+          const message = await channel.messages.fetch(data.message_id);
+          await message.update(msgDailyCancelSuccess);
+
           return;
         default:
           break;
@@ -2214,39 +2118,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const textCancel = '```Cancel request successful!```';
         const msgCancel = {
           t: textCancel,
-          mk: [{ type: 't', s: 0, e: textCancel.length }],
+          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
         };
-        await this.client.updateChatMessage(
-          clanId,
-          data.channel_id,
-          mode,
-          isPublic === 'true' ? true : false,
-          data.message_id,
-          msgCancel,
-          [],
-          [],
-          true,
-        );
+        const channel = await this.client.channels.fetch(data.channel_id);
+        const message = await channel.messages.fetch(data.message_id);
+        await message.update(msgCancel);
       }
       if (!value) return;
       if (typeButtonRes === EmbebButtonType.CONFIRM) {
         const textConfirm =
           '```Transaction is pending. KOMU sent you a message, please check!```';
-        const msgCancel = {
+        const msgConfirm = {
           t: textConfirm,
-          mk: [{ type: 't', s: 0, e: textConfirm.length }],
+          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textConfirm.length }],
         };
-        await this.client.updateChatMessage(
-          clanId,
-          data.channel_id,
-          mode,
-          isPublic === 'true' ? true : false,
-          data.message_id,
-          msgCancel,
-          [],
-          [],
-          true,
-        );
+        const channel = await this.client.channels.fetch(data.channel_id);
+        const message = await channel.messages.fetch(data.message_id);
+        await message.update(msgConfirm);
 
         const sendTokenData = {
           sender_id: authId,
@@ -2271,6 +2159,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             ],
             image: {
               url: qrCodeImage + '',
+              width: '300px',
+              height: '300px',
             },
             timestamp: new Date().toISOString(),
             footer: MEZON_EMBED_FOOTER,
@@ -2331,7 +2221,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             userId: data.user_id,
             textContent: content,
             messOptions: {
-              mk: [{ type: 't', s: 0, e: content.length }],
+              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: content.length }],
             },
           };
           this.messageQueue.addMessage(messageToUser);
@@ -2340,7 +2230,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         const textCancel = '```Cancel poll successful!```';
         const msgCancel = {
           t: textCancel,
-          mk: [{ type: 't', s: 0, e: textCancel.length }],
+          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
         };
         await this.mezonBotMessageRepository.update(
           {
@@ -2348,17 +2238,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           },
           { deleted: true },
         );
-        await this.client.updateChatMessage(
-          clanId,
-          data.channel_id,
-          mode,
-          isPublicBoolean,
-          data.message_id,
-          msgCancel,
-          [],
-          [],
-          true,
-        );
+        const channel = await this.client.channels.fetch(data.channel_id);
+        const message = await channel.messages.fetch(data.message_id);
+        await message.update(msgCancel);
       }
       if (typeButtonRes === EmbebButtonType.VOTE) {
         const findUser = await this.userRepository.findOne({
@@ -2436,17 +2318,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         );
 
         // update message
-        await this.client.updateChatMessage(
-          clanId,
-          data.channel_id,
-          mode,
-          isPublicBoolean,
-          data.message_id,
-          { embed, components },
-          [],
-          [],
-          true,
-        );
+        const channel = await this.client.channels.fetch(data.channel_id);
+        const message = await channel.messages.fetch(data.message_id);
+        await message.update({ embed, components });
       }
 
       if (typeButtonRes === EmbebButtonType.FINISH) {
@@ -2459,7 +2333,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             userId: data.user_id,
             textContent: content,
             messOptions: {
-              mk: [{ type: 't', s: 0, e: content.length }],
+              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: content.length }],
             },
           };
           this.messageQueue.addMessage(messageToUser);
@@ -2513,17 +2387,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const channelDm = await this.channelDmMezonRepository.findOne({
         where: { username: interviewerName },
       });
-      await this.client.updateChatMessage(
-        '',
-        channelDm.channel_id,
-        EMessageMode.DM_MESSAGE,
-        true,
-        data.message_id,
-        { embed },
-        [],
-        [],
-        true,
-      );
+      const channel = await this.client.channels.fetch(channelDm.channel_id);
+      const message = await channel.messages.fetch(data.message_id);
+      await message.update({ embed });
 
       const textContent = `${interviewerName} ${isAccept ? 'chấp nhận' : 'từ chối'} tham gia phỏng vấn ${interviewDescription}.`;
       // const findHrRole = await this.roleMezonRepository.findOne({

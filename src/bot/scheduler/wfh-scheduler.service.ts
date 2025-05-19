@@ -54,11 +54,12 @@ export class WFHSchedulerService {
       const wfhUserEmail = await this.getUserByDateTypeNames();
       const { notSendUser: userOff } =
         await this.timeSheetService.getUserOffWork(null);
-
-      const userClans = await this.client.listChannelVoiceUsers(
+      const clan = await this.client.clans.fetch(
         process.env.KOMUBOTREST_CLAN_NCC_ID,
+      );
+      const userClans = await clan.listChannelVoiceUsers(
         '',
-        ChannelType.CHANNEL_TYPE_VOICE,
+        ChannelType.CHANNEL_TYPE_GMEET_VOICE,
       );
       const username = new Set();
       if ('voice_channel_users' in userClans) {
@@ -260,10 +261,12 @@ export class WFHSchedulerService {
       });
       const { notSendUser: userOff } =
         await this.timeSheetService.getUserOffWork(null);
-      const userClans = await this.client.listChannelVoiceUsers(
+      const clan = await this.client.clans.fetch(
         process.env.KOMUBOTREST_CLAN_NCC_ID,
+      );
+      const userClans = await clan.listChannelVoiceUsers(
         '',
-        ChannelType.CHANNEL_TYPE_VOICE,
+        ChannelType.CHANNEL_TYPE_GMEET_VOICE,
       );
       const username = new Set();
       if ('voice_channel_users' in userClans) {

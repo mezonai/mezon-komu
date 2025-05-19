@@ -128,6 +128,8 @@ export class VoucherCommand extends CommandMessage {
           ],
           image: {
             url: qrCodeImage + '',
+            width: '300px',
+            height: '300px',
           },
           timestamp: new Date().toISOString(),
           footer: MEZON_EMBED_FOOTER,

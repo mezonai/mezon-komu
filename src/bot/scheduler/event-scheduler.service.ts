@@ -35,13 +35,13 @@ export class EventSchedulerService {
 
   async getListVoiceChannelAvalable() {
     let listChannelVoiceUsers = [];
+    const clan = await this.client.clans.fetch(this.clientConfig.clandNccId);
     try {
       listChannelVoiceUsers =
         (
-          await this.client.listChannelVoiceUsers(
-            this.clientConfig.clandNccId,
+          await clan.listChannelVoiceUsers(
             '',
-            ChannelType.CHANNEL_TYPE_VOICE,
+            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
           )
         )?.voice_channel_users ?? [];
     } catch (error) {
@@ -50,7 +50,7 @@ export class EventSchedulerService {
 
     const listVoiceChannel = await this.channelRepository.find({
       where: {
-        channel_type: ChannelType.CHANNEL_TYPE_VOICE,
+        channel_type: ChannelType.CHANNEL_TYPE_GMEET_VOICE,
         clan_id: this.clientConfig.clandNccId,
       },
     });
@@ -165,15 +165,20 @@ export class EventSchedulerService {
       const messageToUser: ReplyMezonMessage = {
         userId: userId,
         textContent:
-          messageContent + (data?.attachment ? ` ${data?.attachment}` : `#${voiceChannel?.channel_label || ''}`),
+          messageContent +
+          (data?.attachment
+            ? ` ${data?.attachment}`
+            : `#${voiceChannel?.channel_label || ''}`),
         messOptions: !data?.attachment
           ? {
               hg: [
                 {
-                  channelid:
-                  selectedChannel?.channel_id,
+                  channelid: selectedChannel?.channel_id,
                   s: messageContent.length,
-                  e: messageContent.length + 1 + (voiceChannel?.channel_label || '').length,
+                  e:
+                    messageContent.length +
+                    1 +
+                    (voiceChannel?.channel_label || '').length,
                 },
               ],
             }

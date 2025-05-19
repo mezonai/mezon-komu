@@ -26,13 +26,6 @@ export class CallCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    if (message.sender_id === '1827994776956309504') {
-      const messageToUser: ReplyMezonMessage = {
-        userId: '1827994776956309504',
-        textContent: `Date system: ${new Date()}, giờ: ${new Date().getHours()}`,
-      };
-      this.messageQueue.addMessage(messageToUser);
-    }
     if (!args.length) {
       const messageContent =
         '```' +
@@ -76,17 +69,19 @@ export class CallCommand extends CommandMessage {
             message,
           );
         }
+        const clan = await this.client.clans.fetch(
+          process.env.KOMUBOTREST_CLAN_NCC_ID,
+        );
         listChannelVoiceUsers = (
-          await this.client.listChannelVoiceUsers(
-            message.clan_id,
+          await clan.listChannelVoiceUsers(
             '',
-            ChannelType.CHANNEL_TYPE_VOICE,
+            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
           )
         )?.voice_channel_users;
 
         const listVoiceChannel = await this.channelRepository.find({
           where: {
-            channel_type: ChannelType.CHANNEL_TYPE_VOICE,
+            channel_type: ChannelType.CHANNEL_TYPE_GMEET_VOICE,
             clan_id: message.clan_id,
           },
         });

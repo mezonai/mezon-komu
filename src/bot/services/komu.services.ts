@@ -50,40 +50,12 @@ export class KomuService {
       let sent: ChannelMessageAck;
       let newMessage;
       try {
-        const findDMChannel = await this.channelDmMezonRepository.findOne({
-          where: { user_id: userdb.userId },
+        const clan = await this.client.clans.fetch('0');
+        const user = await clan.users.fetch(userId);
+        sent = await user.sendDM({
+          components,
+          embed,
         });
-        if (!findDMChannel) {
-          const newDMChannel = await this.clientService.createDMchannel(
-            userdb.userId,
-          ); // create new DM channel
-          if (!newDMChannel) return;
-          const dataInsert = {
-            user_id: userdb.userId,
-            channel_id: newDMChannel.channel_id,
-            username: userdb?.username,
-          };
-          await this.channelDmMezonRepository.insert(dataInsert);
-          newMessage = {
-            textContent: '',
-            messOptions: {
-              components,
-              embed,
-            },
-            channelDmId: newDMChannel.channel_id,
-          };
-          sent = await this.clientService.sendMessageToUser(newMessage);
-        } else {
-          newMessage = {
-            textContent: '',
-            messOptions: {
-              components,
-              embed,
-            },
-            channelDmId: findDMChannel.channel_id,
-          };
-          sent = await this.clientService.sendMessageToUser(newMessage);
-        }
       } catch (error) {
         switch (error) {
           case ErrorSocketType.TIME_OUT:
@@ -97,16 +69,7 @@ export class KomuService {
             break;
         }
       }
-
-      // msg = '```' + msg + '```';
-      // const sent = await this.client.sendDMChannelMessage(userdb.userId, msg, {
-      //   mk: [{ type: 't', s: 0, e: msg.length }],
-      // });
-
-      // }
-
-      // botPing : work when bot send quiz wfh user
-      //* isSendQuiz : work when bot send quiz
+      if (!sent) return;
       if (isSendQuiz && sent?.message_id) {
         if (botPing) {
           userdb.last_bot_message_id = sent?.message_id;

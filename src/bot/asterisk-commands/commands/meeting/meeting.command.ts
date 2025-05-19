@@ -34,11 +34,11 @@ export class MeetingCommand extends CommandMessage {
     if (args[0] === 'now') {
       let listChannelVoiceUsers = [];
       try {
+        const clan = this.client.clans.get(message.clan_id);
         listChannelVoiceUsers = (
-          await this.client.listChannelVoiceUsers(
-            message.clan_id,
+          await clan.listChannelVoiceUsers(
             '',
-            ChannelType.CHANNEL_TYPE_VOICE,
+            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
           )
         )?.voice_channel_users;
       } catch (error) {

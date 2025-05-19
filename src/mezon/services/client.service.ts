@@ -17,7 +17,7 @@ export class MezonClientService {
 
   async initializeClient() {
     try {
-      const result = await this.client.authenticate();
+      const result = await this.client.login();
       this.logger.log('authenticated.', result);
     } catch (error) {
       this.logger.error('error authenticating.', error);
@@ -31,20 +31,27 @@ export class MezonClientService {
 
   async sendMessage(replyMessage: ReplyMezonMessage) {
     try {
-      return await this.client.sendMessage(
-        replyMessage.clan_id,
-        replyMessage.channel_id,
-        replyMessage.mode,
-        replyMessage.is_public,
+      const channel = await this.client.channels.fetch(replyMessage.channel_id);
+      if (replyMessage?.ref?.length && replyMessage?.message_id) {
+        const message = await channel.messages.fetch(replyMessage.message_id);
+        return await message.reply(
+          replyMessage.msg,
+          replyMessage.mentions,
+          replyMessage.attachments,
+          replyMessage.mention_everyone,
+          replyMessage.anonymous_message,
+          replyMessage.topic_id,
+          replyMessage.code,
+        );
+      }
+      return await channel.send(
         replyMessage.msg,
         replyMessage.mentions,
         replyMessage.attachments,
-        replyMessage.ref,
-        replyMessage.anonymous_message,
         replyMessage.mention_everyone,
-        replyMessage.avatar,
-        replyMessage.code,
+        replyMessage.anonymous_message,
         replyMessage.topic_id,
+        replyMessage.code,
       );
     } catch (error) {
       throw error;
@@ -52,15 +59,13 @@ export class MezonClientService {
   }
 
   async sendMessageToUser(messageToUser: ReplyMezonMessage) {
+    const dmClan = await this.client.clans.fetch('0');
+    const user = await dmClan.users.fetch(messageToUser.userId);
     try {
-      return await this.client.sendDMChannelMessage(
-        messageToUser.channelDmId,
-        messageToUser.textContent ?? '',
-        messageToUser.messOptions ?? {},
-        messageToUser.attachments ?? [],
-        messageToUser.refs ?? [],
-        messageToUser?.code,
-      );
+      return await user.sendDM({
+        t: messageToUser.textContent,
+        ...messageToUser.messOptions,
+      });
     } catch (error) {
       throw error;
     }
@@ -75,20 +80,15 @@ export class MezonClientService {
   }
 
   async reactMessageChannel(dataReact: ReactMessageChannel) {
+    const channel = await this.client.channels.fetch(dataReact.channel_id);
+    const message = await channel.messages.fetch(dataReact.message_id);
+    const dataSend = {
+      emoji_id: dataReact.emoji_id,
+      emoji: dataReact.emoji,
+      count: dataReact.count,
+    };
     try {
-      return await this.client.reactionMessage(
-        '',
-        dataReact.clan_id,
-        dataReact.channel_id,
-        dataReact.mode,
-        dataReact.is_public,
-        dataReact.message_id,
-        dataReact.emoji_id,
-        dataReact.emoji,
-        dataReact.count,
-        dataReact.message_sender_id,
-        false,
-      );
+      return await message.react(dataSend);
     } catch (error) {
       console.log('reactMessageChannel', error);
       return null;

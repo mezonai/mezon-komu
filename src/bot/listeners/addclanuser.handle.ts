@@ -40,15 +40,13 @@ export class EventAddClanUser extends BaseHandleEvent {
       const randomIndexVoiceChannel = Math.floor(
         Math.random() * textWelcome.length,
       );
-      const DMchannel = await this.client.createDMchannel(data?.user?.user_id);
-      if (!DMchannel) return;
-      await this.client.sendDMChannelMessage(
-        DMchannel.channel_id,
-        textWelcome[randomIndexVoiceChannel],
-      );
+      const clan = await this.client.clans.fetch(data.clan_id);
+      const user = await clan.users.fetch(data?.user?.user_id);
+      if (!user.dmChannelId) return;
+      await user.sendDM({ t: textWelcome[randomIndexVoiceChannel] });
       const dataInsert = {
         user_id: data?.user?.user_id,
-        channel_id: DMchannel.channel_id,
+        channel_id: user.dmChannelId,
         username: data?.user?.username,
       };
 
@@ -64,7 +62,7 @@ export class EventAddClanUser extends BaseHandleEvent {
           findUser.display_name = data?.user?.display_name ?? '';
           findUser.user_type = EUserType.MEZON;
           findUser.last_message_time = Date.now();
-          findUser.roles = ['user']
+          findUser.roles = ['user'];
           await this.userRepository.update(
             { userId: data?.user?.user_id },
             findUser,

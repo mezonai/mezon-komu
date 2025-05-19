@@ -89,6 +89,8 @@ export class QRCodeCommand extends CommandMessage {
         title: `QR send token to ${findUser.username}`,
         image: {
           url: qrCodeDataUrl,
+          width: '300px',
+          height: '300px',
         },
         timestamp: new Date().toISOString(),
         footer: MEZON_EMBED_FOOTER,
