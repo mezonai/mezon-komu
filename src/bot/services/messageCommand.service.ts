@@ -40,11 +40,16 @@ export class MessageCommand {
               try {
                 const user = await clan.users.fetch(message.userId);
                 if (!user) return;
+                console.log('useruseruser', user.id);
                 await user.sendDM({
                   t: message.textContent,
                   ...message.messOptions,
                 });
               } catch (error) {
+                await this.userRepository.update(
+                  { userId: message.userId },
+                  { botPing: false },
+                );
                 console.log('Error fetch user', message.userId);
               }
             } else {

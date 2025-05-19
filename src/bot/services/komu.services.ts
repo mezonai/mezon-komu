@@ -50,13 +50,20 @@ export class KomuService {
       let sent: ChannelMessageAck;
       let newMessage;
       try {
-        const clan = await this.client.clans.fetch('0');
-        const user = await clan.users.fetch(userId);
+        const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
+        console.log('userId DMM', userId);
+        const user = clan.users.get(userId);
+        if (!user) return;
+        console.log('useruseruseruser DMM', user.id);
         sent = await user.sendDM({
           components,
           embed,
         });
       } catch (error) {
+        await this.userRepository.update(
+          { userId },
+          { botPing: false },
+        );
         switch (error) {
           case ErrorSocketType.TIME_OUT:
             console.log('Message wfh get error', newMessage);
