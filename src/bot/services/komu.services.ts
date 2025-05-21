@@ -44,6 +44,7 @@ export class KomuService {
         .andWhere('"deactive" IS NOT True ')
         .select('*')
         .getRawOne();
+      console.log('userdbuserdb', userdb?.user_id);
       if (!userdb) {
         return null;
       }
@@ -60,10 +61,7 @@ export class KomuService {
           embed,
         });
       } catch (error) {
-        await this.userRepository.update(
-          { userId },
-          { botPing: false },
-        );
+        await this.userRepository.update({ userId }, { botPing: false });
         switch (error) {
           case ErrorSocketType.TIME_OUT:
             console.log('Message wfh get error', newMessage);
