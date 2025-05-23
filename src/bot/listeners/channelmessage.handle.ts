@@ -336,7 +336,7 @@ export class EventListenerChannelMessage {
     }
   }
 
-  @OnEvent(Events.ChannelMessage)
+  // @OnEvent(Events.ChannelMessage)
   async handleAIforbot(msg: ChannelMessage) {
     if (
       msg.channel_id === this.clientConfigService.machleoChannelId ||
