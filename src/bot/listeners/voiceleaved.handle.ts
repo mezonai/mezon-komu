@@ -3,13 +3,13 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Events, VoiceLeavedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { VoiceSessionService } from '../services/voiceSession.services';
+import { OpentalkService } from '../services/opentalk.services';
 
 @Injectable()
 export class EventVoiceLeaved extends BaseHandleEvent {
   constructor(
     clientService: MezonClientService,
-    private voiceSessionService: VoiceSessionService,
+    private opentalkService: OpentalkService,
   ) {
     super(clientService);
   }
@@ -20,7 +20,7 @@ export class EventVoiceLeaved extends BaseHandleEvent {
       const now = new Date();
       const day = now.getDay();
       if (day !== 6) return;
-      await this.voiceSessionService.handleVoiceLeaved(data);
+      await this.opentalkService.handleVoiceLeaved(data);
     } catch (error) {
       console.log('handleVoiceLeaved');
     }

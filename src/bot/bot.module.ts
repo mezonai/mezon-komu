@@ -171,8 +171,8 @@ import { NCC8Service } from './services/ncc8.services';
 import { EventVoiceLeaved } from './listeners/voiceleaved.handle';
 import { EventVoiceJoined } from './listeners/voicejoined.handle';
 import { VoiceSession } from './models/voiceSession.entity';
-import { VoiceSessionService } from './services/voiceSession.services';
 import { OpentalkCommand } from './asterisk-commands/commands/opentalk/opentalk.command';
+import { OpentalkService } from './services/opentalk.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -349,7 +349,7 @@ import { OpentalkCommand } from './asterisk-commands/commands/opentalk/opentalk.
     NCC8Service,
     EventVoiceJoined,
     EventVoiceLeaved,
-    VoiceSessionService,
+    OpentalkService,
     OpentalkCommand
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],

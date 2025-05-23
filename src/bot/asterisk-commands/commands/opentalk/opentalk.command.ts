@@ -1,15 +1,15 @@
 import { ChannelMessage } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
-import { VoiceSessionService } from 'src/bot/services/voiceSession.services';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
+import { OpentalkService } from 'src/bot/services/opentalk.services';
 
 @Command('opt')
 export class OpentalkCommand extends CommandMessage {
   constructor(
-    private voiceSessionService: VoiceSessionService,
+    private opentalkService: OpentalkService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {
@@ -44,8 +44,8 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'set') {
       if (message.sender_id !== '1827994776956309504') return
       const channelsList = args.slice(1);
-      this.voiceSessionService.setValidChannelIds(channelsList);
-      const listChannelValid = this.voiceSessionService.getValidChannelIds();
+      this.opentalkService.setValidChannelIds(channelsList);
+      const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' +
         `List channel: ${channelsList}\nSet list channel opentalk valid success! Current channel: ${listChannelValid.join(', ')}` +
@@ -62,8 +62,8 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'add') {
       if (message.sender_id !== '1827994776956309504') return
       const channelsList = args.slice(1);
-      this.voiceSessionService.addValidChannelIds(channelsList);
-      const listChannelValid = this.voiceSessionService.getValidChannelIds();
+      this.opentalkService.addValidChannelIds(channelsList);
+      const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' +
         `List add channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
@@ -80,8 +80,8 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'remove') {
       if (message.sender_id !== '1827994776956309504') return
       const channelsList = args.slice(1);
-      this.voiceSessionService.removeValidChannelIds(channelsList[0]);
-      const listChannelValid = this.voiceSessionService.getValidChannelIds();
+      this.opentalkService.removeValidChannelIds(channelsList[0]);
+      const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' +
         `List remove channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
@@ -97,7 +97,7 @@ export class OpentalkCommand extends CommandMessage {
 
     if (args[0] === 'list') {
       if (message.sender_id !== '1827994776956309504') return
-      const listChannelValid = this.voiceSessionService.getValidChannelIds();
+      const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' + `Current channels: ${listChannelValid ?? 'empty'}` + '```';
       return this.replyMessageGenerate(
@@ -111,7 +111,7 @@ export class OpentalkCommand extends CommandMessage {
 
     if (args[0] === 'removeAll') {
       if (message.sender_id !== '1827994776956309504') return
-      this.voiceSessionService.removeAllValidChannelIds();
+      this.opentalkService.removeAllValidChannelIds();
       const messageContent = '```' + `Romove all channel success!` + '```';
       return this.replyMessageGenerate(
         {
@@ -122,7 +122,7 @@ export class OpentalkCommand extends CommandMessage {
       );
     }
 
-    const total = await this.voiceSessionService.getAllUsersVoiceTime(
+    const total = await this.opentalkService.getAllUsersVoiceTime(
       message.clan_id,
       args[0],
     );

@@ -10,9 +10,10 @@ import {
 import { VoiceSession } from '../models/voiceSession.entity';
 import { VoiceJoinedEvent, VoiceLeavedEvent } from 'mezon-sdk';
 import { isValid, parse } from 'date-fns';
+import { Cron } from '@nestjs/schedule';
 
 @Injectable()
-export class VoiceSessionService {
+export class OpentalkService {
   private validChannelIds: string[];
   constructor(
     @InjectRepository(VoiceSession)
@@ -29,7 +30,7 @@ export class VoiceSessionService {
 
   removeAllValidChannelIds() {
     this.validChannelIds = [];
-    return this.validChannelIds
+    return this.validChannelIds;
   }
 
   addValidChannelIds(id: string[]) {
@@ -121,5 +122,10 @@ export class VoiceSessionService {
       user_id,
       totalMinutes: Math.floor(totalMs / 60000),
     }));
+  }
+
+  @Cron('0 8 * * 1', { timeZone: 'Asia/Ho_Chi_Minh' })
+  removeChannelValidsSchedule() {
+    this.validChannelIds = [];
   }
 }
