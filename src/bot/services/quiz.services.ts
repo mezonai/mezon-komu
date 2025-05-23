@@ -92,8 +92,8 @@ export class QuizService {
     const userId = userInput.userId;
     const client = this.clientService.getClient();
     const clan = client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
-    const userFetch = clan.users.get(userId);
-    const channelDmId = userFetch?.dmChannelId ?? ''
+    const userFetch = await clan.users.fetch(userId);
+    const channelDmId = userFetch?.dmChannelId ?? '';
 
     const q = await this.randomQuiz(userInput, roleSelect);
 
@@ -150,7 +150,8 @@ export class QuizService {
         color: color,
         title: `${title}`,
         description:
-          '```' + '\n'+
+          '```' +
+          '\n' +
           `${question.options
             .map((otp, index) => {
               return `${index + 1} - ${otp}`;

@@ -112,7 +112,7 @@ export class PollService {
         color,
         title: `[Poll] - ${title}`,
         description:
-          'Select option you want to vote.\nThe voting will end in 12 hours.\nPoll creater can end the poll forcefully by click Finish button.',
+          'Select option you want to vote.\nThe voting will end in 7 days.\nPoll creater can end the poll forcefully by click Finish button.',
         fields: [
           {
             name: '',
