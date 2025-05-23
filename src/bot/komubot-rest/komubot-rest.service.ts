@@ -26,6 +26,7 @@ import { PayoutApplication } from '../dto/payoutApplication';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
 import { parseMarkDownText } from '../utils/helper';
+import { OpentalkService } from '../services/opentalk.services';
 
 @Injectable()
 export class KomubotrestService {
@@ -49,6 +50,7 @@ export class KomubotrestService {
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
     private clientService: MezonClientService,
+    private opentalkService: OpentalkService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -620,7 +622,7 @@ export class KomubotrestService {
           } catch (error) {
             console.log('error send token api', error);
             res.status(400).send({ message: 'Send fail!' });
-            return
+            return;
           }
         }),
       );
@@ -629,5 +631,9 @@ export class KomubotrestService {
     } catch (error) {
       console.log('handleSendTokenToUser api error', error);
     }
+  }
+
+  async getAllOpentalkTime(time: string) {
+    return await this.opentalkService.getAllUsersVoiceTime(time);
   }
 }

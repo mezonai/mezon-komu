@@ -384,4 +384,10 @@ export class KomubotrestController {
       res,
     );
   }
+
+  @Get('/getAllOpentalkTime')
+  async getAllOpentalkTime(@Query('date') date: string) {
+    console.log('getAllOpentalkTime', date)
+    return await this.komubotrestService.getAllOpentalkTime(date);
+  }
 }

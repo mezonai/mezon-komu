@@ -42,9 +42,10 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'set') {
-      if (message.sender_id !== '1827994776956309504') return
+      if (message.sender_id !== '1827994776956309504') return;
       const channelsList = args.slice(1);
       this.opentalkService.setValidChannelIds(channelsList);
+      this.opentalkService.saveValidChannelIdsToFile();
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' +
@@ -60,7 +61,7 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'add') {
-      if (message.sender_id !== '1827994776956309504') return
+      if (message.sender_id !== '1827994776956309504') return;
       const channelsList = args.slice(1);
       this.opentalkService.addValidChannelIds(channelsList);
       const listChannelValid = this.opentalkService.getValidChannelIds();
@@ -78,7 +79,7 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'remove') {
-      if (message.sender_id !== '1827994776956309504') return
+      if (message.sender_id !== '1827994776956309504') return;
       const channelsList = args.slice(1);
       this.opentalkService.removeValidChannelIds(channelsList[0]);
       const listChannelValid = this.opentalkService.getValidChannelIds();
@@ -96,7 +97,7 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'list') {
-      if (message.sender_id !== '1827994776956309504') return
+      if (message.sender_id !== '1827994776956309504') return;
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
         '```' + `Current channels: ${listChannelValid ?? 'empty'}` + '```';
@@ -110,7 +111,7 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'removeAll') {
-      if (message.sender_id !== '1827994776956309504') return
+      if (message.sender_id !== '1827994776956309504') return;
       this.opentalkService.removeAllValidChannelIds();
       const messageContent = '```' + `Romove all channel success!` + '```';
       return this.replyMessageGenerate(
@@ -123,21 +124,13 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     const total = await this.opentalkService.getAllUsersVoiceTime(
-      message.clan_id,
       args[0],
-    );
-    const messages = await Promise.all(
-      total.map(async (data) => {
-        const findUser = await this.userRepository.findOne({
-          where: { userId: data.user_id },
-        });
-
-        if (!findUser) return null;
-
-        return `- ${findUser.clan_nick || findUser.username} join opentalk tổng cộng được: ${data?.totalMinutes ?? 0} phút!`;
-      }),
+      message.clan_id,
     );
 
+    const messages = total.map((data) => {
+      return `- ${data.email} join opentalk tổng cộng được: ${data?.totalTime ?? 0} phút!`;
+    });
     const messageArray = messages.filter((msg) => msg !== null);
     const chunks = this.chunkArray(messageArray, 50);
     const messagesSend = [];
