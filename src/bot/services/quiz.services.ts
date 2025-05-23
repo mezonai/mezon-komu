@@ -90,10 +90,18 @@ export class QuizService {
   async sendQuizToSingleUser(userInput, botPing = false, roleSelect = null) {
     if (!userInput) return;
     const userId = userInput.userId;
-    const client = this.clientService.getClient();
-    const clan = client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
-    const userFetch = await clan.users.fetch(userId);
-    const channelDmId = userFetch?.dmChannelId ?? '';
+    const channelDm = await this.channelDmMezonRepository.findOne({
+      where: { user_id: userId },
+    });
+    let channelDmId = channelDm?.channel_id;
+    if (!channelDmId) {
+      const newDmChannel = await this.clientService.createDMchannel(userId);
+      if (!newDmChannel) {
+        console.log('userId missed', userId);
+      }
+      channelDmId = newDmChannel?.channel_id;
+    }
+    const username = userInput.username;
 
     const q = await this.randomQuiz(userInput, roleSelect);
 
