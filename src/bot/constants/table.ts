@@ -66,4 +66,5 @@ export const TABLE = {
   MENU_ADDRESS: 'komu_menuAddress',
   INVOICE_ORDER: 'komu_invoiceOrder',
   MENU_ORDER_MESSAGE: 'komu_menuOrderMessage',
+  VOICE_SESSION: 'komu_voiceSession',
 };

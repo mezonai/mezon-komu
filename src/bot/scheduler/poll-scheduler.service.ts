@@ -21,11 +21,11 @@ export class PollSchedulerService {
       `time ${CronExpression.EVERY_MINUTE} for job handleResultPollExpire to run!`,
     );
     const currentTimestamp = Date.now();
-    const twelveHoursInMs = 12 * 60 * 60 * 1000;
-    const timestampMinus12Hours = new Date(+currentTimestamp - twelveHoursInMs);
+    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+    const sevenDays = new Date(+currentTimestamp - sevenDaysInMs);
 
     const findMessagePolls = await this.mezonBotMessageRepository.find({
-      where: { createAt: LessThan(+timestampMinus12Hours), deleted: false },
+      where: { createAt: LessThan(+sevenDays), deleted: false },
     });
     if (!findMessagePolls?.length) return;
     findMessagePolls.map((findMessagePoll) => {

@@ -74,6 +74,17 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
+    if (!findUser.avatar) {
+      const messageContent =
+        '```Not found or this person has not uploaded an avatar yet!```';
+      return this.replyMessageGenerate(
+        {
+          messageContent,
+          mk: [{ type: 't', s: 0, e: messageContent.length }],
+        },
+        message,
+      );
+    }
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),

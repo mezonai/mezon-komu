@@ -10,6 +10,8 @@ import {
   UserChannelRemoved,
   GiveCoffeeEvent,
   AddClanUserEvent,
+  VoiceJoinedEvent,
+  VoiceLeavedEvent,
 } from 'mezon-sdk';
 
 import {
@@ -50,6 +52,9 @@ export class BotGateway {
 
     this.client.onTokenSend((data: TokenSentEvent) => {
       this.eventEmitter.emit(Events.TokenSend, data);
+    });
+
+    this.client.onNotification((data) => {
     });
 
     this.client.onMessageButtonClicked((data) => {
@@ -115,6 +120,14 @@ export class BotGateway {
     this.client.onRoleAssign((data: RoleAssignedEvent) => {
       this.eventEmitter.emit(Events.RoleAssign, data);
       console.log(data);
+    });
+
+    this.client.onVoiceJoinedEvent((data: VoiceJoinedEvent) => {
+      this.eventEmitter.emit(Events.VoiceJoinedEvent, data);
+    });
+
+    this.client.onVoiceLeavedEvent((data: VoiceLeavedEvent) => {
+      this.eventEmitter.emit(Events.VoiceLeavedEvent, data);
     });
 
     this.client.onChannelMessage(async (message) => {

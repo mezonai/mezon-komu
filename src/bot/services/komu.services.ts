@@ -44,7 +44,7 @@ export class KomuService {
         .andWhere('"deactive" IS NOT True ')
         .select('*')
         .getRawOne();
-      console.log('userdbuserdb', userdb?.user_id);
+
       if (!userdb) {
         return null;
       }
@@ -53,7 +53,7 @@ export class KomuService {
       try {
         const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
         console.log('userId DMM', userId);
-        const user = clan.users.get(userId);
+        const user = await clan.users.fetch(userId);
         if (!user) return;
         console.log('useruseruseruser DMM', user.id);
         sent = await user.sendDM({

@@ -168,6 +168,11 @@ import { MenuCommand } from './asterisk-commands/commands/menu/menu.command';
 import { MenuOrderService } from './services/menuOrder.services';
 import { FirebaseModule } from '../firebase/firebase.module';
 import { NCC8Service } from './services/ncc8.services';
+import { EventVoiceLeaved } from './listeners/voiceleaved.handle';
+import { EventVoiceJoined } from './listeners/voicejoined.handle';
+import { VoiceSession } from './models/voiceSession.entity';
+import { VoiceSessionService } from './services/voiceSession.services';
+import { OpentalkCommand } from './asterisk-commands/commands/opentalk/opentalk.command';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -240,7 +245,8 @@ import { NCC8Service } from './services/ncc8.services';
       MenuOrder,
       InvoiceOrder,
       MenuOrderMessage,
-      MenuAddress
+      MenuAddress,
+      VoiceSession
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -341,6 +347,10 @@ import { NCC8Service } from './services/ncc8.services';
     MenuCommand,
     MenuOrderService,
     NCC8Service,
+    EventVoiceJoined,
+    EventVoiceLeaved,
+    VoiceSessionService,
+    OpentalkCommand
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

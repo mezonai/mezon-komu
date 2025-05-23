@@ -36,24 +36,11 @@ export class MessageCommand {
               const clan = await this.client.clans.fetch(
                 process.env.KOMUBOTREST_CLAN_NCC_ID,
               );
-              console.log('message.userId', message.userId);
               try {
                 const clan = this.client.clans.get(
                   process.env.KOMUBOTREST_CLAN_NCC_ID,
                 );
-
-                //
-                const clanDM = this.client.clans.get('0');
-                const userClan = [...clan.users.values()];
-                const userClanId = userClan.map((user) => user.id);
-                const userDm = [...clanDM.users.values()];
-                const userDmId = userDm.map((user) => user.id);
-                console.log('userClanId', userClanId);
-                console.log('userDmId', userDmId);
-                //
-
-                const user = clan.users.get(message.userId);
-                console.log('useruseruser', user.id, user.dmChannelId);
+                const user = await clan.users.fetch(message.userId);
                 if (!user) return;
                 await user.sendDM({
                   t: message?.textContent ?? '',
