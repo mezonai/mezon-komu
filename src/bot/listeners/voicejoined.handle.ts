@@ -19,6 +19,7 @@ export class EventVoiceJoined extends BaseHandleEvent {
     const now = new Date();
     const day = now.getDay();
     if (day !== 6) return;
+    console.log('handleVoiceJoined', data)
 
     try {
       await this.opentalkService.handleVoiceJoined(data);

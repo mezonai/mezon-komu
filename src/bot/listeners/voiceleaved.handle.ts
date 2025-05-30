@@ -20,6 +20,7 @@ export class EventVoiceLeaved extends BaseHandleEvent {
       const now = new Date();
       const day = now.getDay();
       if (day !== 6) return;
+      console.log('handleVoiceLeaved', data)
       await this.opentalkService.handleVoiceLeaved(data);
     } catch (error) {
       console.log('handleVoiceLeaved');
