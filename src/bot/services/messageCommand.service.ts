@@ -33,19 +33,19 @@ export class MessageCommand {
         if (message) {
           try {
             if (message.userId) {
-              const clan = await this.client.clans.fetch(
-                process.env.KOMUBOTREST_CLAN_NCC_ID,
-              );
               try {
                 const clan = this.client.clans.get(
                   process.env.KOMUBOTREST_CLAN_NCC_ID,
                 );
                 const user = await clan.users.fetch(message.userId);
                 if (!user) return;
-                await user.sendDM({
-                  t: message?.textContent ?? '',
-                  ...(message?.messOptions ?? {}),
-                });
+                await user.sendDM(
+                  {
+                    t: message?.textContent ?? '',
+                    ...(message?.messOptions ?? {}),
+                  },
+                  message?.code,
+                );
               } catch (error) {
                 await this.userRepository.update(
                   { userId: message.userId },

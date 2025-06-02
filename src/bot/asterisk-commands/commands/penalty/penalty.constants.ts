@@ -10,5 +10,5 @@ export enum EPenaltyCommand {
     '```',
   NO_RESULT = '```No result```',
   PENALTY_SAVE = '✅ Penalty saved.',
-  CLEAR_PENALTY = 'Clear penalty successfully'
+  CLEAR_PENALTY = '```Clear penalty successfully```'
 }
