@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { UtilsService } from '../services/utils.services';
@@ -35,8 +35,8 @@ export class EventSchedulerService {
 
   async getListVoiceChannelAvalable() {
     let listChannelVoiceUsers = [];
-    const clan = await this.client.clans.fetch(this.clientConfig.clandNccId);
     try {
+      const clan = await this.client.clans.fetch(this.clientConfig.clandNccId);
       listChannelVoiceUsers =
         (
           await clan.listChannelVoiceUsers(
@@ -50,7 +50,7 @@ export class EventSchedulerService {
 
     const listVoiceChannel = await this.channelRepository.find({
       where: {
-        channel_type: ChannelType.CHANNEL_TYPE_GMEET_VOICE,
+        channel_type: In([4, 10]),
         clan_id: this.clientConfig.clandNccId,
       },
     });
