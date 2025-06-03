@@ -333,12 +333,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // handle cancel
       if (typeButtonRes === EUnlockTimeSheet.CANCEL) {
         const messageContentDefault =
-          '```The unlock timesheet has been cancelled!```';
+          'The unlock timesheet has been cancelled!';
         replyMessage['msg'] = {
           t: messageContentDefault,
           mk: [
             {
-              type: EMarkdownType.TRIPLE,
+              type: EMarkdownType.PRE,
               s: 0,
               e: messageContentDefault.length,
             },
@@ -426,11 +426,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             };
             this.messageQueue.addMessage(messageToUser);
             const messageContent =
-              '```Transaction pending! KOMU was sent to you a message, please check!```';
+              'Transaction pending! KOMU was sent to you a message, please check!';
             replyMessage['msg'] = {
               t: messageContent,
               mk: [
-                { type: EMarkdownType.TRIPLE, s: 0, e: messageContent.length },
+                { type: EMarkdownType.PRE, s: 0, e: messageContent.length },
               ],
             };
             break;
@@ -439,12 +439,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       } else {
         const messageContent =
-          '```' +
+          '' +
           `This request has been ${findUnlockTsData.status.toLowerCase()}ed!` +
-          '```';
+          '';
         replyMessage['msg'] = {
           t: messageContent,
-          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: messageContent.length }],
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
         };
       }
       const channel = await this.client.channels.fetch(replyMessage.channel_id);
@@ -468,9 +468,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const dateValue = splitButtonId[7];
     const buttonType = splitButtonId[8];
     const invalidLength =
-      '```Please enter at least 100 characters in your daily text```';
+      'Please enter at least 100 characters in your daily text';
     const missingField =
-      '```Missing project, yesterday, today, block or task field```';
+      'Missing project, yesterday, today, block or task field';
 
     const isOwner = ownerSenderDaily === senderId;
     if (!isOwner) return;
@@ -613,7 +613,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               : errorMessageNotWFH;
 
           const textDailySuccess =
-            '```' +
+            '' +
             messageContent +
             '\n' +
             `Date: ${dateValue}` +
@@ -625,11 +625,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             `Block: ${blockValue}` +
             '\n' +
             `Working time: ${workingTimeValue}h` +
-            '```';
+            '';
           const msgDailySuccess = {
             t: textDailySuccess,
             mk: [
-              { type: EMarkdownType.TRIPLE, s: 0, e: textDailySuccess.length },
+              { type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length },
             ],
           };
           const channel = await this.client.channels.fetch(channelId);
@@ -637,12 +637,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           await message.update(msgDailySuccess);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
-          const textDailyCancelSuccess = '```The daily has been cancelled```';
+          const textDailyCancelSuccess = 'The daily has been cancelled';
           const msgDailyCancelSuccess = {
             t: textDailyCancelSuccess,
             mk: [
               {
-                type: EMarkdownType.TRIPLE,
+                type: EMarkdownType.PRE,
                 s: 0,
                 e: textDailyCancelSuccess.length,
               },
@@ -821,7 +821,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                 const msgSuccess = {
                   t: textSuccess,
                   mk: [
-                    { type: EMarkdownType.TRIPLE, s: 0, e: textSuccess.length },
+                    { type: EMarkdownType.PRE, s: 0, e: textSuccess.length },
                   ],
                 };
                 const channel = await this.client.channels.fetch(channelId);
@@ -834,7 +834,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               const textError = `\`\`\`❌ ${error.response.data.error.message || 'Request absence failed.'}\`\`\``;
               const msgError = {
                 t: textError,
-                mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textError.length }],
+                mk: [{ type: EMarkdownType.PRE, s: 0, e: textError.length }],
               };
               const channel = await this.client.channels.fetch(channelId);
               const message = await channel.messages.fetch(data.message_id);
@@ -948,7 +948,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             const textCancel = `\`\`\`Cancel request ${typeRequest || 'absence'} successful! \`\`\``;
             const msgCancel = {
               t: textCancel,
-              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
+              mk: [{ type: EMarkdownType.PRE, s: 0, e: textCancel.length }],
             };
             const channel = await this.client.channels.fetch(channelId);
             const message = await channel.messages.fetch(data.message_id);
@@ -985,11 +985,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const isLogByWeek = splitButtonId[8] === 'false' ? false : true;
     const buttonType = splitButtonId[9];
     const isOwner = ownerSenderId === senderId;
-    const missingFieldMessage = '```Missing some field```';
+    const missingFieldMessage = 'Missing some field';
     const logTimesheetByDateSuccess = 'Timesheet Logged Successfully on';
     const logTimesheetByWeekSuccess =
       'Timesheet Logged Successfully for the Week';
-    const logTimesheetByDateFail = '```Failed to Log Timesheet```';
+    const logTimesheetByDateFail = 'Failed to Log Timesheet';
 
     //init reply message
     const getBotInformation = await this.userRepository.findOne({
@@ -1102,7 +1102,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             await this.timeSheetService.logTimeSheetByWeek(mapToPayloadOfWeek);
 
             const textSubmitByWeekSuccess =
-              '```' +
+              '' +
               logTimesheetByWeekSuccess +
               '\n' +
               `Time: ${changeDateFormat(daysOfWeek[0])} to ${changeDateFormat(daysOfWeek[6])}` +
@@ -1117,12 +1117,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               '\n' +
               `Type Of Work: ${typeOfWork}` +
               '\n' +
-              '```';
+              '';
             const msgSubmitByWeekSuccess = {
               t: textSubmitByWeekSuccess,
               mk: [
                 {
-                  type: EMarkdownType.TRIPLE,
+                  type: EMarkdownType.PRE,
                   s: 0,
                   e: textSubmitByWeekSuccess.length,
                 },
@@ -1145,7 +1145,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             );
 
             const textSubmitByDateSuccess =
-              '```' +
+              '' +
               logTimesheetByDateSuccess +
               '\n' +
               `Date: ${changeDateFormat(dateValue)}` +
@@ -1160,12 +1160,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               '\n' +
               `Type Of Work: ${typeOfWork}` +
               '\n' +
-              '```';
+              '';
             const msgSubmitByDateSuccess = {
               t: textSubmitByDateSuccess,
               mk: [
                 {
-                  type: EMarkdownType.TRIPLE,
+                  type: EMarkdownType.PRE,
                   s: 0,
                   e: textSubmitByDateSuccess.length,
                 },
@@ -1180,12 +1180,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           const textLogTsCancelSuccess =
-            '```The log timesheet has been cancelled!```';
+            'The log timesheet has been cancelled!';
           const msgLogtsCancelSuccess = {
             t: textLogTsCancelSuccess,
             mk: [
               {
-                type: EMarkdownType.TRIPLE,
+                type: EMarkdownType.PRE,
                 s: 0,
                 e: textLogTsCancelSuccess.length,
               },
@@ -1376,12 +1376,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     }
 
     try {
-      const textCreateRequestSuccess = '```Create request successfully!```';
+      const textCreateRequestSuccess = 'Create request successfully!';
       const msgCreateSuccess = {
         t: textCreateRequestSuccess,
         mk: [
           {
-            type: EMarkdownType.TRIPLE,
+            type: EMarkdownType.PRE,
             s: 0,
             e: textCreateRequestSuccess.length,
           },
@@ -1404,12 +1404,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       });
     } catch (error) {
       const textCreateRequestFailed =
-        '```Failed to create request. Please try again later.```';
+        'Failed to create request. Please try again later.';
       const msgCreateFailed = {
         t: textCreateRequestFailed,
         mk: [
           {
-            type: EMarkdownType.TRIPLE,
+            type: EMarkdownType.PRE,
             s: 0,
             e: textCreateRequestFailed.length,
           },
@@ -1923,7 +1923,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const dateValue = splitButtonId[7];
     const buttonType = splitButtonId[8];
     const missingField =
-      '```Missing project, yesterday, today, block or task field```';
+      'Missing project, yesterday, today, block or task field';
 
     const isOwner = ownerSenderDaily === senderId;
     if (!isOwner) return;
@@ -2055,7 +2055,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               : errorMessageNotWFH;
 
           const textDailySuccess =
-            '```' +
+            '' +
             messageContent +
             '\n' +
             `Date: ${dateValue}` +
@@ -2067,11 +2067,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             `Block: ${blockValue}` +
             '\n' +
             `Working time: ${workingTimeValue}h` +
-            '```';
+            '';
           const msgDailySuccess = {
             t: textDailySuccess,
             mk: [
-              { type: EMarkdownType.TRIPLE, s: 0, e: textDailySuccess.length },
+              { type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length },
             ],
           };
           const channelSucces = await this.client.channels.fetch(channelId);
@@ -2082,12 +2082,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
-          const textDailyCancelSuccess = '```The daily has been cancelled```';
+          const textDailyCancelSuccess = 'The daily has been cancelled';
           const msgDailyCancelSuccess = {
             t: textDailyCancelSuccess,
             mk: [
               {
-                type: EMarkdownType.TRIPLE,
+                type: EMarkdownType.PRE,
                 s: 0,
                 e: textDailyCancelSuccess.length,
               },
@@ -2115,10 +2115,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (data.user_id !== authId) return;
 
       if (typeButtonRes === EmbebButtonType.CANCEL) {
-        const textCancel = '```Cancel request successful!```';
+        const textCancel = 'Cancel request successful!';
         const msgCancel = {
           t: textCancel,
-          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textCancel.length }],
         };
         const channel = await this.client.channels.fetch(data.channel_id);
         const message = await channel.messages.fetch(data.message_id);
@@ -2127,10 +2127,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (!value) return;
       if (typeButtonRes === EmbebButtonType.CONFIRM) {
         const textConfirm =
-          '```Transaction is pending. KOMU sent you a message, please check!```';
+          'Transaction is pending. KOMU sent you a message, please check!';
         const msgConfirm = {
           t: textConfirm,
-          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textConfirm.length }],
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
         };
         const channel = await this.client.channels.fetch(data.channel_id);
         const message = await channel.messages.fetch(data.message_id);
@@ -2214,23 +2214,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (typeButtonRes === EmbebButtonType.CANCEL) {
         if (data.user_id !== authId) {
           const content =
-            '```' +
+            '' +
             `[Poll] - ${title}\n❌You have no permission to cancel this poll!` +
-            '```';
+            '';
           const messageToUser: ReplyMezonMessage = {
             userId: data.user_id,
             textContent: content,
             messOptions: {
-              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: content.length }],
+              mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
             },
           };
           this.messageQueue.addMessage(messageToUser);
           return;
         }
-        const textCancel = '```Cancel poll successful!```';
+        const textCancel = 'Cancel poll successful!';
         const msgCancel = {
           t: textCancel,
-          mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textCancel.length }],
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textCancel.length }],
         };
         await this.mezonBotMessageRepository.update(
           {
@@ -2326,14 +2326,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (typeButtonRes === EmbebButtonType.FINISH) {
         if (data.user_id !== authId) {
           const content =
-            '```' +
+            '' +
             `[Poll] - ${title}\n❌You have no permission to finish this poll!` +
-            '```';
+            '';
           const messageToUser: ReplyMezonMessage = {
             userId: data.user_id,
             textContent: content,
             messOptions: {
-              mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: content.length }],
+              mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
             },
           };
           this.messageQueue.addMessage(messageToUser);

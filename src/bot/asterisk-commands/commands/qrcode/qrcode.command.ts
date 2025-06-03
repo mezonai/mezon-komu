@@ -68,7 +68,7 @@ export class QRCodeCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EUserError.INVALID_USER,
-          mk: [{ type: 't', s: 0, e: EUserError.INVALID_USER.length }],
+          mk: [{ type: 'pre', s: 0, e: EUserError.INVALID_USER.length }],
         },
         message,
       );

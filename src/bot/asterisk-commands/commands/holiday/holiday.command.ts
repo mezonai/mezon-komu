@@ -33,7 +33,7 @@ export class HolidayCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EHolidayCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EHolidayCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EHolidayCommand.HELP.length }],
         },
         message,
       );
@@ -49,7 +49,7 @@ export class HolidayCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EHolidayCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EHolidayCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EHolidayCommand.HELP.length }],
         },
         message,
       );

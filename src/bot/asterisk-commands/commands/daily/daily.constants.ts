@@ -1,5 +1,5 @@
 export const messageHelp =
-  '```' +
+  '' +
   'Please daily follow this template' +
   '\n' +
   '*daily [projectCode] [date]' +
@@ -9,10 +9,10 @@ export const messageHelp =
   "today: what you're going to to today; 2h" +
   '\n' +
   'block: thing that block you ' +
-  '```';
+  '';
 
 export const dailyHelp =
-  '```' +
+  '' +
   'Daily meeting note, recap your daily work items and log timesheet automatically.' +
   '\n' +
   'Please daily follow this template:' +
@@ -44,4 +44,4 @@ export const dailyHelp =
   '- You can log multiple task for a project splitting by +' +
   '\n' +
   '- If you want to daily for multiple project please use *daily multiple times' +
-  '```';
+  '';

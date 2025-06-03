@@ -269,10 +269,10 @@ export class PollService {
         },
       };
       this.messageQueue.addMessage(replyMessage);
-      const textConfirm = '```This poll has finished!```';
+      const textConfirm = 'This poll has finished!';
       const msgFinish = {
         t: textConfirm,
-        mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: textConfirm.length }],
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
       };
       const channel = await this.client.channels.fetch(
         findMessagePoll.channelId,

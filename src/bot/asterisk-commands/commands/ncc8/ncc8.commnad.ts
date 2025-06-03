@@ -30,18 +30,18 @@ export class Ncc8Command extends CommandMessage {
   async execute(args: string[], message: ChannelMessage) {
     if (message.sender_id !== '1827994776956309504') return;
     const messageContent =
-      '```' +
+      '' +
       'Command: *ncc8 play ID' +
       '\n' +
       'Example: *ncc8 play 190' +
-      '```';
+      '';
     
     if (args[0] === 'play') {
       if (!args[1])
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -87,11 +87,11 @@ export class Ncc8Command extends CommandMessage {
       if (!dataMp3) {
         return;
       } else if (Array.isArray(dataMp3) && dataMp3.length === 0) {
-        const mess = '```' + 'Không có NCC nào' + '```';
+        const mess = '' + 'Không có NCC nào' + '';
         return this.replyMessageGenerate(
           {
             messageContent: mess,
-            mk: [{ type: 't', s: 0, e: mess.length }],
+            mk: [{ type: 'pre', s: 0, e: mess.length }],
           },
           message,
         );
@@ -100,20 +100,20 @@ export class Ncc8Command extends CommandMessage {
         for (let i = 0; i <= Math.ceil(dataMp3.length / 50); i += 1) {
           if (dataMp3.slice(i * 50, (i + 1) * 50).length === 0) break;
           const mess =
-            '```Danh sách NCC8\n' +
+            'Danh sách NCC8\n' +
             dataMp3
               .slice(i * 50, (i + 1) * 50)
               .filter((item) => item.episode)
               .map((list) => `NCC8 số ${list.episode}`)
               .join('\n') +
-            '```';
+            '';
           listReplyMessage.push(mess);
         }
         return listReplyMessage.map((mess) => {
           return this.replyMessageGenerate(
             {
               messageContent: mess,
-              mk: [{ type: 't', s: 0, e: mess.length }],
+              mk: [{ type: 'pre', s: 0, e: mess.length }],
             },
             message,
           );
@@ -127,20 +127,20 @@ export class Ncc8Command extends CommandMessage {
           `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
         );
         if (!res || !res?.data?.url) {
-          const messageContent = '```NCC8 not found```';
+          const messageContent = 'NCC8 not found';
           return this.replyMessageGenerate(
             {
               messageContent: messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
         }
-        const messageWatting = '```Summarizing...```';
+        const messageWatting = 'Summarizing...';
         const dataSendWatting = this.replyMessageGenerate(
           {
             messageContent: messageWatting,
-            mk: [{ type: 't', s: 0, e: messageWatting.length }],
+            mk: [{ type: 'pre', s: 0, e: messageWatting.length }],
           },
           message,
         );
@@ -156,7 +156,7 @@ export class Ncc8Command extends CommandMessage {
           {
             color: getRandomColor(),
             title: `NCC8 SUMARY SỐ ${args[1]}`,
-            description: '```' + `${data?.response}` + '```',
+            description: '' + `${data?.response}` + '',
             timestamp: new Date().toISOString(),
             footer: {
               text: 'Powered by Mezon',
@@ -173,11 +173,11 @@ export class Ncc8Command extends CommandMessage {
         );
       } catch (error) {
         const messageContent =
-          '```Ncc8 not found or getting error when trying summary!```';
+          'Ncc8 not found or getting error when trying summary!';
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -187,7 +187,7 @@ export class Ncc8Command extends CommandMessage {
     return this.replyMessageGenerate(
       {
         messageContent: messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
+        mk: [{ type: 'pre', s: 0, e: messageContent.length }],
       },
       message,
     );

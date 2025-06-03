@@ -148,13 +148,13 @@ export class EventClanEventCreated extends BaseHandleEvent {
           { status: BetStatus.WIN },
         );
         const messageUser =
-          '```' +
+          '' +
           `[BET - ${dataBetWin[i].id}]\n🎉You Won! KOMU just sent ${+dataBetWin[i].amount * 2} token for you. Please check your wallet!` +
-          '```';
+          '';
         const messageToUser: ReplyMezonMessage = {
           userId: dataBetWin[i].userId,
           textContent: messageUser,
-          messOptions: { mk: [{ type: 't', s: 0, e: messageUser.length }] },
+          messOptions: { mk: [{ type: 'pre', s: 0, e: messageUser.length }] },
         };
         this.messageQueue.addMessage(messageToUser);
       } catch (error) {
@@ -181,7 +181,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
 
     //send message to channel
     let messageText =
-      '```' +
+      '' +
       `Ting Ting Ting\nEvent ${data.title} finised!\nCó 70 người tham gia khi event kết thúc!\nDanh sách số người dự đoán chính xác\n`;
     const userResults = await Promise.all(
       resultTotalBet.map(async (item) => {
@@ -194,7 +194,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
     messageText += userResults.length
       ? userResults.join('')
       : '(không có ai đúng cả)';
-    messageText += '```';
+    messageText += '';
     const replyMessage = {
       clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
       channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
@@ -203,7 +203,7 @@ export class EventClanEventCreated extends BaseHandleEvent {
       mode: EMessageMode.THREAD_MESSAGE,
       msg: {
         t: messageText,
-        mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: messageText.length }],
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: messageText.length }],
       },
     };
     this.messageQueue.addMessage(replyMessage);

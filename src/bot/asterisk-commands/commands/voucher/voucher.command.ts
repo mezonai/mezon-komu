@@ -142,11 +142,11 @@ export class VoucherCommand extends CommandMessage {
       };
       this.messageQueue.addMessage(messageToUser);
       const messageContent =
-        '```' + `Komu sent to you a message. Please check!` + '```';
+        '' + `Komu sent to you a message. Please check!` + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -175,7 +175,7 @@ export class VoucherCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: EUserError.INVALID_USER,
-            mk: [{ type: 't', s: 0, e: EUserError.INVALID_USER.length }],
+            mk: [{ type: 'pre', s: 0, e: EUserError.INVALID_USER.length }],
           },
           message,
         );
@@ -228,8 +228,8 @@ export class VoucherCommand extends CommandMessage {
         }
         return this.replyMessageGenerate(
           {
-            messageContent: '```' + messageContent + '```',
-            mk: [{ type: 't', s: 0, e: messageContent.length + 6 }],
+            messageContent: '' + messageContent + '',
+            mk: [{ type: 'pre', s: 0, e: messageContent.length + 6 }],
           },
           message,
         );
@@ -275,7 +275,7 @@ export class VoucherCommand extends CommandMessage {
     }
 
     const messageContent =
-      '```' +
+      '' +
       '1. Command: *voucher balance' +
       '\n' +
       '2. Command: *voucher balance username' +
@@ -283,11 +283,11 @@ export class VoucherCommand extends CommandMessage {
       `   Example: *voucher balance a.nguyenvan` +
       '\n' +
       '3. Command: *voucher exchange' +
-      '```';
+      '';
     return this.replyMessageGenerate(
       {
         messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
+        mk: [{ type: 'pre', s: 0, e: messageContent.length }],
       },
       message,
     );

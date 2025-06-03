@@ -26,8 +26,8 @@ export class ReportTrackerService {
   ) {}
 
   messTrackerHelp =
-    '```' +
-    '*report tracker daily' +
+    '' +
+    'Command *report tracker daily' +
     '\n' +
     '*report tracker daily a.nguyenvan' +
     '\n' +
@@ -42,12 +42,12 @@ export class ReportTrackerService {
     '*report tracker dd/MM/YYYY' +
     '\n' +
     '*report tracker dd/MM/YYYY a.nguyenvan' +
-    '```';
+    '';
 
-  messHelpDaily = '```' + 'Không có bản ghi nào trong ngày hôm qua' + '```';
-  messHelpWeekly = '```' + 'Không có bản ghi nào trong tuần qua' + '```';
-  messHelpDate = '```' + 'Không có bản ghi nào trong ngày này' + '```';
-  messHelpTime = '```' + 'Không có bản ghi nào' + '```';
+  messHelpDaily = '' + 'Không có bản ghi nào trong ngày hôm qua' + '';
+  messHelpWeekly = '' + 'Không có bản ghi nào trong tuần qua' + '';
+  messHelpDate = '' + 'Không có bản ghi nào trong ngày này' + '';
+  messHelpTime = '' + 'Không có bản ghi nào' + '';
 
   async reportTracker(args, returnMsg = true) {
     try {

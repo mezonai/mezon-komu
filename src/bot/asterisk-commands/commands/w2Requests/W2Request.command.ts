@@ -43,7 +43,7 @@ export class W2RequestCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: ERequestW2Type.HELP,
-            mk: [{ type: 't', s: 0, e: ERequestW2Type.HELP.length }],
+            mk: [{ type: 'pre', s: 0, e: ERequestW2Type.HELP.length }],
           },
           message,
         );
@@ -71,7 +71,7 @@ export class W2RequestCommand extends CommandMessage {
           return this.replyMessageGenerate(
             {
               messageContent: 'Invalid command type',
-              mk: [{ type: 't', s: 0, e: 'Invalid command type'.length }],
+              mk: [{ type: 'pre', s: 0, e: 'Invalid command type'.length }],
             },
             message,
           );

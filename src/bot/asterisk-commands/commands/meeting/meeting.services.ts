@@ -89,13 +89,13 @@ export class MeetingService {
 
     let mess;
     if (!list || list.length === 0) {
-      return '```✅ No scheduled meeting.```';
+      return '✅ No scheduled meeting.';
     }
 
     for (let i = 0; i <= Math.ceil(list.length / 50); i += 1) {
       if (list.slice(i * 50, (i + 1) * 50).length === 0) break;
       mess =
-        '```' +
+        '' +
         'Calendar' +
         '\n' +
         list
@@ -112,7 +112,7 @@ export class MeetingService {
             }
           })
           .join('\n') +
-        '```';
+        '';
       return mess;
     }
   }

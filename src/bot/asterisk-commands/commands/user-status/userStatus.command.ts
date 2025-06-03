@@ -28,7 +28,7 @@ export class UserStatusCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EUserStatusCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EUserStatusCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EUserStatusCommand.HELP.length }],
         },
         message,
       );

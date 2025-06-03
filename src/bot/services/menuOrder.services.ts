@@ -116,9 +116,9 @@ export class MenuOrderService {
       },
     });
     const newMessageContent =
-      '```' +
+      '' +
       `A new report message has been created by <${findUserClick.clan_nick || findUserClick.username}> below!` +
-      '```';
+      '';
     if (findMessageOrderExist.length > 0) {
       for (const {
         id,
@@ -133,7 +133,7 @@ export class MenuOrderService {
         await message.update({
           t: newMessageContent,
           mk: [
-            { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+            { type: EMarkdownType.PRE, s: 0, e: newMessageContent.length },
           ],
         });
 
@@ -170,12 +170,12 @@ export class MenuOrderService {
       ].includes(userId)
     ) {
       const content =
-        '```' + `❌You have no permission to finish this menu!` + '```';
+        '' + `❌You have no permission to finish this menu!` + '';
       const messageToUser: ReplyMezonMessage = {
         userId: userId,
         textContent: content,
         messOptions: {
-          mk: [{ type: 't', s: 0, e: content.length }],
+          mk: [{ type: 'pre', s: 0, e: content.length }],
         },
       };
       this.messageQueue.addMessage(messageToUser);
@@ -285,9 +285,9 @@ export class MenuOrderService {
       });
       if (findMessageOrderExist.length > 0) {
         const newMessageContent =
-          '```' +
+          '' +
           'This menu has been closed, create another menu using *menu!' +
-          '```';
+          '';
         for (const {
           id,
           clanId,
@@ -301,7 +301,7 @@ export class MenuOrderService {
           await message.update({
             t: newMessageContent,
             mk: [
-              { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+              { type: EMarkdownType.PRE, s: 0, e: newMessageContent.length },
             ],
           });
 

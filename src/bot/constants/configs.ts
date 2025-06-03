@@ -145,8 +145,7 @@ export enum ERequestAbsenceDayType {
   ONSITE = 'ONSITE',
   REMOTE = 'REMOTE',
   OFFCUSTOM = 'OFFCUSTOM',
-  HELP = '```' +
-    'request remote\n' +
+  HELP = 'request remote\n' +
     'command: *ts remote\n' +
     '\n' +
     'request off\n' +
@@ -156,8 +155,7 @@ export enum ERequestAbsenceDayType {
     'command: *ts onsite\n' +
     '\n' +
     'request Đi muộn/ Về sớm\n' +
-    'command: *ts offcustom ' +
-    '```',
+    'command: *ts offcustom ',
 }
 
 export enum EValueTypeOfWork {
@@ -181,7 +179,7 @@ export enum ERequestW2Type {
   OFFICEEQUIPMENT = 'officeequipment',
   PROBATIONARYCONFIRMATION = 'probationaryconfirmation',
   WFH = 'wfh',
-  HELP = '```' +
+  HELP = '' +
     'Change Office Request\n' +
     'command: *w2request changeoffice\n' +
     '\n' +
@@ -196,7 +194,7 @@ export enum ERequestW2Type {
     '\n' +
     'WFH Request\n' +
     'command: *w2request wfh' +
-    '```',
+    '',
 }
 
 export enum EPMRequestAbsenceDay {

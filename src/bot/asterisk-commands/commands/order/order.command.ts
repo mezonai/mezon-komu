@@ -96,10 +96,10 @@ export class OrderCommand extends CommandMessage {
         return listMessage.map((mess) =>
           this.replyMessageGenerate(
             {
-              messageContent: '```' + messageContent + mess + '```',
+              messageContent: '' + messageContent + mess + '',
               mk: [
                 {
-                  type: 't',
+                  type: 'pre',
                   s: 0,
                   e: (messageContent + mess).length + 6,
                 },

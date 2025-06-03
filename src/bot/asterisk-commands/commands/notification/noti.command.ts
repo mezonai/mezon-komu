@@ -46,8 +46,8 @@ export class NotificationCommand extends CommandMessage {
     if (!messageContent) {
       return this.replyMessageGenerate(
         {
-          messageContent: '```Please add your text```',
-          mk: [{ type: 't', s: 0, e: '```Please add your text```'.length }],
+          messageContent: 'Please add your text',
+          mk: [{ type: 'pre', s: 0, e: 'Please add your text'.length }],
         },
         message,
       );
@@ -109,8 +109,8 @@ export class NotificationCommand extends CommandMessage {
       if (channelId === message.channel_id) {
         return this.replyMessageGenerate(
           {
-            messageContent: '```✅ Notification saved.```',
-            mk: [{ type: 't', s: 0, e: '```✅ Notification saved.```'.length }],
+            messageContent: '✅ Notification saved.',
+            mk: [{ type: 'pre', s: 0, e: '✅ Notification saved.'.length }],
           },
           message,
         );

@@ -31,11 +31,11 @@ export class OpentalkCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (!args?.length) {
-      const messageContent = '```Command *opt dd/MM/yyyy```';
+      const messageContent = 'Command *opt dd/MM/yyyy';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -48,13 +48,13 @@ export class OpentalkCommand extends CommandMessage {
       this.opentalkService.saveValidChannelIdsToFile();
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
-        '```' +
+        '' +
         `List channel: ${channelsList}\nSet list channel opentalk valid success! Current channel: ${listChannelValid.join(', ')}` +
-        '```';
+        '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -66,13 +66,13 @@ export class OpentalkCommand extends CommandMessage {
       this.opentalkService.addValidChannelIds(channelsList);
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
-        '```' +
+        '' +
         `List add channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
-        '```';
+        '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -84,13 +84,13 @@ export class OpentalkCommand extends CommandMessage {
       this.opentalkService.removeValidChannelIds(channelsList[0]);
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
-        '```' +
+        '' +
         `List remove channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
-        '```';
+        '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -100,11 +100,11 @@ export class OpentalkCommand extends CommandMessage {
       if (message.sender_id !== '1827994776956309504') return;
       const listChannelValid = this.opentalkService.getValidChannelIds();
       const messageContent =
-        '```' + `Current channels: ${listChannelValid ?? 'empty'}` + '```';
+        '' + `Current channels: ${listChannelValid ?? 'empty'}` + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -113,11 +113,11 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'removeAll') {
       if (message.sender_id !== '1827994776956309504') return;
       this.opentalkService.removeAllValidChannelIds();
-      const messageContent = '```' + `Romove all channel success!` + '```';
+      const messageContent = '' + `Romove all channel success!` + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -135,11 +135,11 @@ export class OpentalkCommand extends CommandMessage {
     const chunks = this.chunkArray(messageArray, 50);
     const messagesSend = [];
     chunks.map((messages) => {
-      const messageContent = '```' + messages.join('\n') + '```';
+      const messageContent = '' + messages.join('\n') + '';
       const messageReply = this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );

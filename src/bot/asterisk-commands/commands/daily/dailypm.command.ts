@@ -55,7 +55,7 @@ export class DailyPmCommand extends CommandMessage {
     });
     if (checkDaily) return dailyHelp;
     if (!daily || daily == undefined) {
-      return '```please add your daily text```';
+      return 'Please add your daily text';
     }
     return false;
   }
@@ -81,7 +81,7 @@ export class DailyPmCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: messageValidate,
-          mk: [{ type: 't', s: 0, e: messageValidate.length }],
+          mk: [{ type: 'pre', s: 0, e: messageValidate.length }],
         },
         message,
       );

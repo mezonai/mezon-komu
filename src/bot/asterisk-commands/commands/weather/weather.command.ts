@@ -105,7 +105,6 @@ export class WeatherCommand extends CommandMessage {
     try {
       if (!args[0]) {
         const messageContent =
-          '```' +
           '- Command: *weather location -> current weather in location' +
           '\n' +
           `  Example: *weather vinh\n` +
@@ -114,12 +113,11 @@ export class WeatherCommand extends CommandMessage {
           `  Example: *weather forecast 05/11/2024 vinh\n` +
           '- Command: *weather forecast dd/mm/yyyy hh:mm location -> forecast weather in location at dd/mm/yyyy hh:mm' +
           '\n' +
-          `  Example: *weather forecast 05/11/2024 09:00 vinh` +
-          '```';
+          `  Example: *weather forecast 05/11/2024 09:00 vinh`;
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -130,11 +128,11 @@ export class WeatherCommand extends CommandMessage {
           ['today', 'tomorrow', 'thenextday'].includes(args[1]) ||
           args[1].length === 10;
         if (!checkArg) {
-          const messageContent = '```Invalid date!```';
+          const messageContent = 'Invalid date!';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -150,15 +148,15 @@ export class WeatherCommand extends CommandMessage {
         if (day < 0 || day > 3) {
           let messageContent = '';
           if (day < 0) {
-            messageContent = '```Can not forecast past time!```';
+            messageContent = 'Can not forecast past time!';
           }
           if (day > 3) {
-            messageContent = '```Cannot forecast more than 3 days```';
+            messageContent = 'Cannot forecast more than 3 days';
           }
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -175,11 +173,11 @@ export class WeatherCommand extends CommandMessage {
         if (hasHour) {
           const hourTimeStamp = new Date(format);
           if (hourTimeStamp.getTime() - Date.now() <= 0) {
-            const messageContent = '```Can not forecast past time!```';
+            const messageContent = 'Can not forecast past time!';
             return this.replyMessageGenerate(
               {
                 messageContent,
-                mk: [{ type: 't', s: 0, e: messageContent.length }],
+                mk: [{ type: 'pre', s: 0, e: messageContent.length }],
               },
               message,
             );
@@ -198,8 +196,8 @@ export class WeatherCommand extends CommandMessage {
         }
         return this.replyMessageGenerate(
           {
-            messageContent: '```' + messageContent + '```',
-            mk: [{ type: 't', s: 0, e: messageContent.length + 6 }],
+            messageContent: '' + messageContent + '',
+            mk: [{ type: 'pre', s: 0, e: messageContent.length + 6 }],
             // attachments,
           },
           message,
@@ -246,18 +244,18 @@ export class WeatherCommand extends CommandMessage {
 
       return this.replyMessageGenerate(
         {
-          messageContent: '```' + messageContent + '```',
-          mk: [{ type: 't', s: 0, e: messageContent.length + 6 }],
+          messageContent: '' + messageContent + '',
+          mk: [{ type: 'pre', s: 0, e: messageContent.length + 6 }],
           // attachments,
         },
         message,
       );
     } catch (error) {
-      const messageContent = '```' + `Can't get data from ${location}` + '```';
+      const messageContent = '' + `Can't get data from ${location}` + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );

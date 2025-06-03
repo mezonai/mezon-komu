@@ -17,11 +17,7 @@ export class ToggleActiveCommand extends CommandMessage {
   }
 
   messHelp =
-    '```' +
-    '*toggleactivation username' +
-    '\n' +
-    '*toggleactivation id' +
-    '```';
+    'Command *toggleactivation username' + '\n' + '*toggleactivation id';
 
   async execute(args: string[], message: ChannelMessage) {
     if (args[0] === 'check') {
@@ -37,7 +33,9 @@ export class ToggleActiveCommand extends CommandMessage {
       let i = 0;
       let mess = findUser
         .slice(i * 50, (i + 1) * 50)
-        .map((user) => `${user.email}(${user.userId}) deactive: ${user.deactive}`)
+        .map(
+          (user) => `${user.email}(${user.userId}) deactive: ${user.deactive}`,
+        )
         .join('\n');
       return this.replyMessageGenerate({ messageContent: mess }, message);
     } else {
