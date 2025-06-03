@@ -133,7 +133,7 @@ export class MenuOrderService {
         await message.update({
           t: newMessageContent,
           mk: [
-            { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+            { type: EMarkdownType.PRE, s: 0, e: newMessageContent.length },
           ],
         });
 
@@ -301,7 +301,7 @@ export class MenuOrderService {
           await message.update({
             t: newMessageContent,
             mk: [
-              { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+              { type: EMarkdownType.PRE, s: 0, e: newMessageContent.length },
             ],
           });
 

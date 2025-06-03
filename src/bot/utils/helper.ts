@@ -190,7 +190,7 @@ export function createReplyMessage(
       t: messageText,
       mk: [
         {
-          type: EMarkdownType.TRIPLE,
+          type: EMarkdownType.PRE,
           s: 0,
           e: messageText.length,
         },
@@ -255,7 +255,7 @@ export function parseMarkDownText(str) {
   });
 
   cleanText.replace(codeRegex, (match, p1, offset) => {
-    matches.push({ type: 't', s: offset, e: offset + match.length });
+    matches.push({ type: 'pre', s: offset, e: offset + match.length -6 });
     return match;
   });
 

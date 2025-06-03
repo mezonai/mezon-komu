@@ -294,7 +294,7 @@ export class KomubotrestService {
     const channelId = sendMessageToChannelDTO.channelid;
     const options = sendMessageToChannelDTO.options ?? {};
     const newMessage = parseMarkDownText(message);
-    message = newMessage?.t ?? '';
+    message = (newMessage?.t)?.replaceAll('```', '') ?? '';
     options.mk = newMessage.mk;
 
     // get mentions in text
