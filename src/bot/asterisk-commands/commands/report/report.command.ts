@@ -44,7 +44,7 @@ export class ReportCommand extends CommandMessage {
             return this.replyMessageGenerate(
               {
                 messageContent: messHelpDaily,
-                mk: [{ type: 't', s: 0, e: messHelpDaily.length }],
+                mk: [{ type: 'pre', s: 0, e: messHelpDaily.length }],
               },
               message,
             );
@@ -54,8 +54,8 @@ export class ReportCommand extends CommandMessage {
             return mess.map((m) => {
               return this.replyMessageGenerate(
                 {
-                  messageContent: '```' + m + '```',
-                  mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                  messageContent: '' + m + '',
+                  mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
                 },
                 message,
               );
@@ -67,8 +67,8 @@ export class ReportCommand extends CommandMessage {
             return mess.map((m) => {
               return this.replyMessageGenerate(
                 {
-                  messageContent: '```' + m + '```',
-                  mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                  messageContent: '' + m + '',
+                  mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
                 },
                 message,
               );
@@ -81,8 +81,8 @@ export class ReportCommand extends CommandMessage {
           await this.reportHolidayService.reportHoliday();
         return this.replyMessageGenerate(
           {
-            messageContent: '```' + textContentHoliday + '```',
-            mk: [{ type: 't', s: 0, e: textContentHoliday.length + 6 }],
+            messageContent: '' + textContentHoliday + '',
+            mk: [{ type: 'pre', s: 0, e: textContentHoliday.length + 6 }],
           },
           message,
         );
@@ -93,8 +93,8 @@ export class ReportCommand extends CommandMessage {
           return textContentOrder.map((m) => {
             return this.replyMessageGenerate(
               {
-                messageContent: '```' + m + '```',
-                mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                messageContent: '' + m + '',
+                mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
               },
               message,
             );
@@ -107,8 +107,8 @@ export class ReportCommand extends CommandMessage {
           return textContentMention.map((m) => {
             return this.replyMessageGenerate(
               {
-                messageContent: '```' + m + '```',
-                mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                messageContent: '' + m + '',
+                mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
               },
               message,
             );
@@ -121,8 +121,8 @@ export class ReportCommand extends CommandMessage {
           return textContentWfh.map((m) => {
             return this.replyMessageGenerate(
               {
-                messageContent: '```' + m + '```',
-                mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                messageContent: '' + m + '',
+                mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
               },
               message,
             );
@@ -136,8 +136,8 @@ export class ReportCommand extends CommandMessage {
           return textContentTracker.map((m) => {
             return this.replyMessageGenerate(
               {
-                messageContent: '```' + m + '```',
-                mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                messageContent: '' + m + '',
+                mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
               },
               message,
             );
@@ -152,13 +152,13 @@ export class ReportCommand extends CommandMessage {
             )
           ) {
             const messageContent =
-              '```' + '*report trackernot dd/MM/YYYY' + '```';
+              '' + 'Command *report trackernot dd/MM/YYYY' + '';
             return this.replyMessageGenerate(
               {
                 messageContent,
                 mk: [
                   {
-                    type: 't',
+                    type: 'pre',
                     s: 0,
                     e: messageContent.length,
                   },
@@ -173,8 +173,8 @@ export class ReportCommand extends CommandMessage {
             return textContentTrackerNot.map((m) => {
               return this.replyMessageGenerate(
                 {
-                  messageContent: '```' + m + '```',
-                  mk: [{ type: 't', s: 0, e: m.length + 6 }],
+                  messageContent: '' + m + '',
+                  mk: [{ type: 'pre', s: 0, e: m.length + 6 }],
                 },
                 message,
               );
@@ -182,13 +182,13 @@ export class ReportCommand extends CommandMessage {
           }
         } else {
           const messageContent =
-            '```' + '*report trackernot dd/MM/YYYY' + '```';
+            '' + 'Command *report trackernot dd/MM/YYYY' + '';
           return this.replyMessageGenerate(
             {
               messageContent,
               mk: [
                 {
-                  type: 't',
+                  type: 'pre',
                   s: 0,
                   e: messageContent.length,
                 },
@@ -246,13 +246,13 @@ export class ReportCommand extends CommandMessage {
         }
         if (finalResult.length) {
           return finalResult.map((data) => {
-            const messageContent = '```' + data.join('\n') + '```';
+            const messageContent = '' + data.join('\n') + '';
             return this.replyMessageGenerate(
               {
                 messageContent,
                 mk: [
                   {
-                    type: 't',
+                    type: 'pre',
                     s: 0,
                     e: messageContent.length,
                   },
@@ -263,13 +263,13 @@ export class ReportCommand extends CommandMessage {
           });
         } else {
           const messageContent =
-            '```Mọi người đều đã join NCC8 đầy đủ và đúng giờ!```';
+            'Mọi người đều đã join NCC8 đầy đủ và đúng giờ!';
           return this.replyMessageGenerate(
             {
               messageContent,
               mk: [
                 {
-                  type: 't',
+                  type: 'pre',
                   s: 0,
                   e: messageContent.length,
                 },
@@ -301,13 +301,13 @@ export class ReportCommand extends CommandMessage {
             )
           ) {
             const messageContent =
-              '```' + '*report saodo dd/MM/YYYY sheet-id(optional)' + '```';
+              '' + 'Command *report saodo dd/MM/YYYY sheet-id(optional)' + '';
             return this.replyMessageGenerate(
               {
                 messageContent,
                 mk: [
                   {
-                    type: 't',
+                    type: 'pre',
                     s: 0,
                     e: messageContent.length,
                   },
@@ -327,13 +327,13 @@ export class ReportCommand extends CommandMessage {
           );
         } else {
           const messageContent =
-            '```' + '*report saodo dd/MM/YYYY sheet-id(optional)' + '```';
+            '' + 'Command *report saodo dd/MM/YYYY sheet-id(optional)' + '';
           return this.replyMessageGenerate(
             {
               messageContent,
               mk: [
                 {
-                  type: 't',
+                  type: 'pre',
                   s: 0,
                   e: messageContent.length,
                 },

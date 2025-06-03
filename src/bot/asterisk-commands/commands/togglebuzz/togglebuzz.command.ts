@@ -17,11 +17,11 @@ export class ToggleBuzzCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     let messageContent =
-      '```' +
+      '' +
       'Command: *togglebuzz daily' +
       '\n' +
       'Command: *togglebuzz ncc8' +
-      '```';
+      '';
     if (args[0] === 'daily') {
       const findUser = await this.userRepository.findOne({
         where: { userId: message.sender_id, user_type: EUserType.MEZON },
@@ -31,11 +31,11 @@ export class ToggleBuzzCommand extends CommandMessage {
         { buzzDaily: !findUser?.buzzDaily },
       );
       messageContent =
-        '```' +
+        '' +
         (findUser?.buzzDaily
           ? 'Disable BUZZ daily successful!'
           : 'Enable BUZZ daily successful!') +
-        '```';
+        '';
     }
     if (args[0] === 'ncc8') {
       const findUser = await this.userRepository.findOne({
@@ -46,17 +46,17 @@ export class ToggleBuzzCommand extends CommandMessage {
         { buzzNcc8: !findUser?.buzzNcc8 },
       );
       messageContent =
-        '```' +
+        '' +
         (findUser?.buzzNcc8
           ? 'Disable BUZZ ncc8 successful!'
           : 'Enable BUZZ ncc8 successful!') +
-        '```';
+        '';
     }
 
     return this.replyMessageGenerate(
       {
         messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
+        mk: [{ type: 'pre', s: 0, e: messageContent.length }],
       },
       message,
     );

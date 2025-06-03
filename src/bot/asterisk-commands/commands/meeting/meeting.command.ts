@@ -27,7 +27,7 @@ export class MeetingCommand extends CommandMessage {
       const messageContent =
         await this.meetingService.handleMeetingNoArgs(message);
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 't', s: 0, e: messageContent.length }] },
+        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
         message,
       );
     }
@@ -152,7 +152,7 @@ export class MeetingCommand extends CommandMessage {
       if (!args[1])
         return this.replyMessageGenerate(
           {
-            messageContent: '```' + '*report help' + '```',
+            messageContent: '' + '*report help' + '',
           },
           message,
         );
@@ -202,7 +202,7 @@ export class MeetingCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: messHelp,
-            mk: [{ type: 't', s: 0, e: messHelp.length }],
+            mk: [{ type: 'pre', s: 0, e: messHelp.length }],
           },
           message,
         );
@@ -223,7 +223,7 @@ export class MeetingCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: messHelp,
-            mk: [{ type: 't', s: 0, e: messHelp.length }],
+            mk: [{ type: 'pre', s: 0, e: messHelp.length }],
           },
           message,
         );
@@ -244,7 +244,7 @@ export class MeetingCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: messHelp,
-          mk: [{ type: 't', s: 0, e: messHelp.length }],
+          mk: [{ type: 'pre', s: 0, e: messHelp.length }],
         },
         message,
       );

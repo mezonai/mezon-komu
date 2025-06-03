@@ -55,7 +55,7 @@ export class DailyCommand extends CommandMessage {
     if (checkDaily) return dailyHelp;
 
     if (!daily || daily == undefined) {
-      return '```please add your daily text```';
+      return 'please add your daily text';
     }
 
     return false;
@@ -63,11 +63,11 @@ export class DailyCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (message.username === 'Anonymous') {
-      const messageContent = "```Anonymous can't use this command!```";
+      const messageContent = "Anonymous can't use this command!";
       return this.replyMessageGenerate(
         {
           messageContent: messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -90,7 +90,7 @@ export class DailyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: messageValidate,
-          mk: [{ type: 't', s: 0, e: messageValidate.length }],
+          mk: [{ type: 'pre', s: 0, e: messageValidate.length }],
         },
         message,
       );

@@ -44,17 +44,17 @@ export class MovieCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     const messageContent =
-      '```' +
+      '' +
       'Command: *movie play ID' +
       '\n' +
       'Example: *movie play 1' +
-      '```';
+      '';
     if (args[0] === 'play') {
       if (!args[1])
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -125,11 +125,11 @@ export class MovieCommand extends CommandMessage {
       if (!dataMp3) {
         return;
       } else if (Array.isArray(dataMp3) && dataMp3.length === 0) {
-        const mess = '```' + 'Không có movie nào' + '```';
+        const mess = '' + 'Không có movie nào' + '';
         return this.replyMessageGenerate(
           {
             messageContent: mess,
-            mk: [{ type: 't', s: 0, e: mess.length }],
+            mk: [{ type: 'pre', s: 0, e: mess.length }],
           },
           message,
         );
@@ -138,7 +138,7 @@ export class MovieCommand extends CommandMessage {
         for (let i = 0; i <= Math.ceil(dataMp3.length / 50); i += 1) {
           if (dataMp3.slice(i * 50, (i + 1) * 50).length === 0) break;
           const mess =
-            '```Danh sách movie\n' +
+            'Danh sách movie\n' +
             dataMp3
               .slice(i * 50, (i + 1) * 50)
               .filter((item) => item.episode)
@@ -147,14 +147,14 @@ export class MovieCommand extends CommandMessage {
                   `Id: ${list.episode}, name: ${this.removeFileNameExtension(list.fileName)}`,
               )
               .join('\n') +
-            '```';
+            '';
           listReplyMessage.push(mess);
         }
         return listReplyMessage.map((mess) => {
           return this.replyMessageGenerate(
             {
               messageContent: mess,
-              mk: [{ type: 't', s: 0, e: mess.length }],
+              mk: [{ type: 'pre', s: 0, e: mess.length }],
             },
             message,
           );
@@ -166,11 +166,11 @@ export class MovieCommand extends CommandMessage {
     // if (args[0] === 'stop') {
     //   this.ffmpegService.killCurrentStream(FileType.FILM);
     //   await sleep(1000);
-    //   const messageEply = '```Stop film successful!```';
+    //   const messageEply = 'Stop film successful!';
     //   return this.replyMessageGenerate(
     //     {
     //       messageContent: messageEply,
-    //       mk: [{ type: 't', s: 0, e: messageEply.length }],
+    //       mk: [{ type: 'pre', s: 0, e: messageEply.length }],
     //     },
     //     message,
     //   );
@@ -179,7 +179,7 @@ export class MovieCommand extends CommandMessage {
     return this.replyMessageGenerate(
       {
         messageContent: messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
+        mk: [{ type: 'pre', s: 0, e: messageContent.length }],
       },
       message,
     );

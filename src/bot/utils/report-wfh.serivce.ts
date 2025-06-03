@@ -61,7 +61,7 @@ export class ReportWFHService {
     if (!wfhFullday) {
       return;
     } else if (Array.isArray(wfhFullday) && wfhFullday.length === 0) {
-      mess = ['```' + 'Không có ai vi phạm trong ngày' + '```'];
+      mess = ['' + 'Không có ai vi phạm trong ngày' + ''];
       return mess;
     } else {
       const listMessage = [];
@@ -119,7 +119,7 @@ export class ReportWFHService {
   //   if (!wfhFullday) {
   //     return;
   //   } else if (Array.isArray(wfhFullday) && wfhFullday.length === 0) {
-  //     mess = "```" + "Không có ai được approved trong ngày" + "```";
+  //     mess = "" + "Không có ai được approved trong ngày" + "";
   //     return message.reply(mess).catch((err) => {
   //       this.komubotrestService.sendErrorToDevTest(client, authorId, err);
   //     });

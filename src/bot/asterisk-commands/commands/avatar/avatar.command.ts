@@ -70,17 +70,17 @@ export class AvatarCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EUserError.INVALID_USER,
-          mk: [{ type: 't', s: 0, e: EUserError.INVALID_USER.length }],
+          mk: [{ type: 'pre', s: 0, e: EUserError.INVALID_USER.length }],
         },
         message,
       );
     if (!findUser.avatar) {
       const messageContent =
-        '```Not found or this person has not uploaded an avatar yet!```';
+        'Not found or this person has not uploaded an avatar yet!';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );

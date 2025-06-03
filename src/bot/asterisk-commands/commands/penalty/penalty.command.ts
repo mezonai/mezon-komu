@@ -15,7 +15,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.HELP.length }],
         },
         message,
       );
@@ -31,11 +31,11 @@ export class PenaltyCommand extends CommandMessage {
           .map((item) => `${item.username} : ${item.ammount} vnd`)
           .join('\n');
       }
-      const messageContent = '```' + 'Top bị phạt:' + '\n' + mess + '```';
+      const messageContent = '' + 'Top bị phạt:' + '\n' + mess + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -49,7 +49,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.CLEAR_PENALTY,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.CLEAR_PENALTY.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.CLEAR_PENALTY.length }],
         },
         message,
       );
@@ -60,7 +60,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.HELP.length }],
         },
         message,
       );
@@ -78,7 +78,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.HELP.length }],
         },
         message,
       );
@@ -90,7 +90,7 @@ export class PenaltyCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: EPenaltyCommand.HELP,
-            mk: [{ type: 't', s: 0, e: EPenaltyCommand.HELP.length }],
+            mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.HELP.length }],
           },
           message,
         );
@@ -112,7 +112,7 @@ export class PenaltyCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: EPenaltyCommand.NO_RESULT,
-            mk: [{ type: 't', s: 0, e: EPenaltyCommand.NO_RESULT.length }],
+            mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.NO_RESULT.length }],
           },
           message,
         );
@@ -121,11 +121,11 @@ export class PenaltyCommand extends CommandMessage {
         .map((item, index) => `${index + 1} - ${item.reason} (${item.ammount})`)
         .join('\n');
       const messageContent =
-        '```' + `Lý do ${dataPen[0].username} bị phạt` + '\n' + mess + '```';
+        '' + `Lý do ${dataPen[0].username} bị phạt` + '\n' + mess + '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );
@@ -135,7 +135,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.HELP,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.HELP.length }],
         },
         message,
       );
@@ -156,7 +156,7 @@ export class PenaltyCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: EPenaltyCommand.NO_RESULT,
-          mk: [{ type: 't', s: 0, e: EPenaltyCommand.NO_RESULT.length }],
+          mk: [{ type: 'pre', s: 0, e: EPenaltyCommand.NO_RESULT.length }],
         },
         message,
       );

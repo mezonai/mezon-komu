@@ -24,26 +24,26 @@ export class DynamicCommand extends CommandMessage {
   async execute(args: string[], message: ChannelMessage) {
     try {
       if (message.username === 'Anonymous') {
-        const messageContent = "```Anonymous can't use this command!```";
+        const messageContent = "Anonymous can't use this command!";
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
       }
       if (!args[0] || !args[1]) {
         const messageContent =
-          '```' +
+          '' +
           'Command: *register commandname url' +
           '\n' +
           'Example: *register ncc https://ncc.asia/assets/images/logo.png' +
-          '```';
+          '';
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -53,11 +53,11 @@ export class DynamicCommand extends CommandMessage {
       const allCommands = CommandStorage.getAllCommands();
       const allCommandKeys = Array.from(allCommands.keys());
       if ([...allCommandKeys, ...custCommandList].includes(args[0])) {
-        const messageContent = '```This command existed!```';
+        const messageContent = 'This command existed!';
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -71,11 +71,11 @@ export class DynamicCommand extends CommandMessage {
 
         if (!findCommand) {
           const messageContent =
-            '```' + `Can't find command ${args[1]}` + '```';
+            '' + `Can't find command ${args[1]}` + '';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -94,22 +94,22 @@ export class DynamicCommand extends CommandMessage {
               .where('command = :command', { command: args[1] })
               .execute();
             const messageContent =
-              '```' + `Delete ${args[1]} successful!` + '```';
+              '' + `Delete ${args[1]} successful!` + '';
             this.dynamicCommandService.initDynamicCommandList();
             return this.replyMessageGenerate(
               {
                 messageContent,
-                mk: [{ type: 't', s: 0, e: messageContent.length }],
+                mk: [{ type: 'pre', s: 0, e: messageContent.length }],
               },
               message,
             );
           } else {
             const messageContent =
-              '```' + `You can only delete the command you created.` + '```';
+              '' + `You can only delete the command you created.` + '';
             return this.replyMessageGenerate(
               {
                 messageContent,
-                mk: [{ type: 't', s: 0, e: messageContent.length }],
+                mk: [{ type: 'pre', s: 0, e: messageContent.length }],
               },
               message,
             );
@@ -118,13 +118,13 @@ export class DynamicCommand extends CommandMessage {
 
         if (findUser && args[0] === 'check') {
           const messageContent =
-            '```' +
+            '' +
             `Id: ${findCommand.id}, name: ${findCommand.command}, author: ${findUser.username}` +
-            '```';
+            '';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -161,32 +161,32 @@ export class DynamicCommand extends CommandMessage {
             output: JSON.stringify(output),
           })
           .execute();
-        const messageContent = '```' + '✅ Dynamic saved.' + '```';
+        const messageContent = '' + '✅ Dynamic saved.' + '';
         this.dynamicCommandService.initDynamicCommandList();
 
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
       } else {
-        const messageContent = "```Can't process this attachment!```";
+        const messageContent = "Can't process this attachment!";
         return this.replyMessageGenerate(
           {
             messageContent: messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
       }
     } catch (error) {
-      const messageContent = "```Getting an error when trying to process this attachment!```";
+      const messageContent = "Getting an error when trying to process this attachment!";
       return this.replyMessageGenerate(
         {
           messageContent: messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );

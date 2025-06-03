@@ -40,7 +40,7 @@ export class RequestAbsenceDayCommand extends CommandMessage {
       return this.replyMessageGenerate(
         {
           messageContent: ERequestAbsenceDayType.HELP,
-          mk: [{ type: 't', s: 0, e: ERequestAbsenceDayType.HELP.length }],
+          mk: [{ type: 'pre', s: 0, e: ERequestAbsenceDayType.HELP.length }],
         },
         message,
       );

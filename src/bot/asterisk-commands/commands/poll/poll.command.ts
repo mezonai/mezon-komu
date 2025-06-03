@@ -44,10 +44,10 @@ export class PollCommand extends CommandMessage {
       }
       return this.replyMessageGenerate(
         {
-          messageContent: '```' + messageContent + '```',
+          messageContent: '' + messageContent + '',
           mk: [
             {
-              type: 't',
+              type: 'pre',
               s: 0,
               e: messageContent.length + 6,
             },

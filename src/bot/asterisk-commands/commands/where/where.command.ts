@@ -28,13 +28,13 @@ export class WhereCommand extends CommandMessage {
   async execute(args: string[], message: ChannelMessage) {
     if (!args.length) {
       const messageContent =
-        '```' +
+        '' +
         'Command: *where usermame' +
         '\n' +
         'Example: *where a.nguyenvan' +
-        '```';
+        '';
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 't', s: 0, e: messageContent.length }] },
+        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
         message,
       );
     }
@@ -63,8 +63,8 @@ export class WhereCommand extends CommandMessage {
         if (!findUser) {
           return this.replyMessageGenerate(
             {
-              messageContent: '```Wrong Email!```',
-              mk: [{ type: 't', s: 0, e: '```Wrong Email!```'.length }],
+              messageContent: 'Wrong Email!',
+              mk: [{ type: 'pre', s: 0, e: 'Wrong Email!'.length }],
             },
             message,
           );

@@ -29,25 +29,24 @@ export class CallCommand extends CommandMessage {
     if (args[0] === 'user' && message.sender_id === '1827994776956309504') {
       const clan = this.client.clans.get(message.clan_id);
       const user = clan.users.get(args[1]);
-      let messageContent =
-        '```' + `userId: ${user?.id}, dmId: ${user?.dmChannelId}` + '```';
+      let messageContent = `userId: ${user?.id}, dmId: ${user?.dmChannelId}`;
       if (!user) {
-        messageContent = '```Not found user```';
+        messageContent = 'Not found user';
       }
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 't', s: 0, e: messageContent.length }] },
+        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
         message,
       );
     }
     if (!args.length) {
       const messageContent =
-        '```' +
+        '' +
         'Command: *call usermame' +
         '\n' +
         'Example: *call a.nguyenvan' +
-        '```';
+        '';
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 't', s: 0, e: messageContent.length }] },
+        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
         message,
       );
     }
@@ -76,8 +75,8 @@ export class CallCommand extends CommandMessage {
         if (!findUser) {
           return this.replyMessageGenerate(
             {
-              messageContent: '```Wrong Email!```',
-              mk: [{ type: 't', s: 0, e: '```Wrong Email!```'.length }],
+              messageContent: 'Wrong Email!',
+              mk: [{ type: 'pre', s: 0, e: 'Wrong Email!'.length }],
             },
             message,
           );

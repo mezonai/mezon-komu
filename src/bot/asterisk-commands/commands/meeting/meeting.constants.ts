@@ -1,6 +1,6 @@
 export const messHelp =
-  '```' +
-  '*meeting' +
+  '' +
+  'Command *meeting' +
   '\n' +
   '*meeting cancel' +
   '\n' +
@@ -13,4 +13,4 @@ export const messHelp =
   '*meeting task dd/MM/YYYY HH:mm daily' +
   '\n' +
   '*meeting task dd/MM/YYYY HH:mm weekly' +
-  '```';
+  '';

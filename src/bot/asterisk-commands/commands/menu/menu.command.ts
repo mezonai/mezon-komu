@@ -68,18 +68,18 @@ export class MenuCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     let messageContent =
-      '```' +
+      '' +
       '- Command: *menu corner (address)\n- In case no address: *menu corner -> using default address!\n- *menu corner list //To check corner list address or default address' +
-      +'```';
+      +'';
     const currentCorner = this.getCorrectName(args[0]);
     if (args[0]) {
       if (!currentCorner) {
-        messageContent = '```' + 'Not found this corner!' + '```';
+        messageContent = '' + 'Not found this corner!' + '';
 
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -107,7 +107,7 @@ export class MenuCommand extends CommandMessage {
             footer: MEZON_EMBED_FOOTER,
           },
         ];
-        messageContent = '```' + messageList.join('\n') + '```';
+        messageContent = '' + messageList.join('\n') + '';
         return this.replyMessageGenerate(
           {
             embed,
@@ -130,13 +130,13 @@ export class MenuCommand extends CommandMessage {
           this.defaultMenuCorner[currentCorner] !== args[1]
         ) {
           messageContent =
-            '```' +
+            '' +
             `Ordering menu <${this.defaultMenuCorner[currentCorner]}>. Please finish this menu if you want to change to another menu!` +
-            '```';
+            '';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -145,9 +145,9 @@ export class MenuCommand extends CommandMessage {
       }
 
       const newMessageContent =
-        '```' +
+        '' +
         'A new menu has been created below, please order from that menu!' +
-        '```';
+        '';
       if (findMessageOrderExist.length > 0) {
         for (const {
           id,
@@ -162,7 +162,7 @@ export class MenuCommand extends CommandMessage {
           await message.update({
             t: newMessageContent,
             mk: [
-              { type: EMarkdownType.TRIPLE, s: 0, e: newMessageContent.length },
+              { type: EMarkdownType.PRE, s: 0, e: newMessageContent.length },
             ],
           });
 
@@ -181,11 +181,11 @@ export class MenuCommand extends CommandMessage {
       });
 
       if (!menuList.length) {
-        messageContent = '```Menu not found!```';
+        messageContent = 'Menu not found!';
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -304,7 +304,7 @@ export class MenuCommand extends CommandMessage {
     return this.replyMessageGenerate(
       {
         messageContent,
-        mk: [{ type: 't', s: 0, e: messageContent.length }],
+        mk: [{ type: 'pre', s: 0, e: messageContent.length }],
       },
       message,
     );

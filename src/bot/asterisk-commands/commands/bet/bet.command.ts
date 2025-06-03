@@ -47,11 +47,11 @@ export class BetCommand extends CommandMessage {
   async execute(args: string[], message: ChannelMessage) {
     try {
       if (!args[0] || !args[1]) {
-        const messageContent = '```Missing data to bet!```';
+        const messageContent = 'Missing data to bet!';
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -64,23 +64,23 @@ export class BetCommand extends CommandMessage {
       });
       if (!findEvent || !this.isNumber(args[1]) || +args[1] < 0) {
         const messageContent = !findEvent
-          ? '```Bet fail. Cannot found BET id!```'
-          : '```Bet fail. User number only take number!```';
+          ? 'Bet fail. Cannot found BET id!'
+          : 'Bet fail. User number only take number!';
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
       }
       const timestampNow = new Date().getTime() + this.TIME_UTC; // utc +7
       if (!findEvent.activeBet || findEvent.timeStart < timestampNow) {
-        const messageContent = '```Event was finished!```';
+        const messageContent = 'Event was finished!';
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -103,13 +103,13 @@ export class BetCommand extends CommandMessage {
         JSON.stringify(sendTokenData),
       );
       const messageUser =
-        '```' +
+        '' +
         `[BET - ${saveData.id}]\nPlease use your phone to scan to confirm and transfer token to event '${findEvent.title}'\n` +
-        '```';
+        '';
       const messageToUser: ReplyMezonMessage = {
         userId: message.sender_id,
         textContent: messageUser,
-        messOptions: { mk: [{ type: 't', s: 0, e: messageUser.length }] },
+        messOptions: { mk: [{ type: 'pre', s: 0, e: messageUser.length }] },
         attachments: [
           {
             url: qrCodeImage + '',
@@ -119,13 +119,13 @@ export class BetCommand extends CommandMessage {
       };
       this.messageQueue.addMessage(messageToUser);
       const messageContent =
-        '```' +
+        '' +
         `[BET - ${saveData.id}]\n🔄Transaction is pending! Komu sent to you a message. Please check!` +
-        '```';
+        '';
       return this.replyMessageGenerate(
         {
           messageContent,
-          mk: [{ type: 't', s: 0, e: messageContent.length }],
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
         },
         message,
       );

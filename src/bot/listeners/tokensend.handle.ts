@@ -137,20 +137,20 @@ export class EventTokenSend extends BaseHandleEvent {
         );
         // send to user
         const messageTextDM =
-          '```' +
+          '' +
           `[BET - ${findEvent[0].id}]\n✅You just paid ${data.amount} token successfully. Let's wait for the results!` +
-          '```';
+          '';
         const messageToUser: ReplyMezonMessage = {
           userId: findEvent[0].userId,
           textContent: messageTextDM,
-          messOptions: { mk: [{ type: 't', s: 0, e: messageTextDM.length }] },
+          messOptions: { mk: [{ type: 'pre', s: 0, e: messageTextDM.length }] },
         };
         this.messageQueue.addMessage(messageToUser);
         // send to channel
         const messageText =
-          '```' +
+          '' +
           `[BET - ${findEvent[0].id}]\n✅${findUser.username} just paid successfully!` +
-          '```';
+          '';
         const replyMessage = {
           clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
           channel_id: process.env.MEZON_BET_CHANNEL_ID || '1840655908913287168',
@@ -159,7 +159,7 @@ export class EventTokenSend extends BaseHandleEvent {
           mode: EMessageMode.THREAD_MESSAGE,
           msg: {
             t: messageText,
-            mk: [{ type: EMarkdownType.TRIPLE, s: 0, e: messageText.length }],
+            mk: [{ type: EMarkdownType.PRE, s: 0, e: messageText.length }],
           },
         };
         this.messageQueue.addMessage(replyMessage);

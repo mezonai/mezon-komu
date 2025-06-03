@@ -1,8 +1,8 @@
 export const messHelpDaily =
-  '```' +
-  '*report daily' +
+  '' +
+  'Command *report daily' +
   '\n' +
   '*report weekly' +
   '\n' +
   '*report daily dd/MM/YYYY' +
-  '```';
+  '';

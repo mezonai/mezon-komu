@@ -6,15 +6,15 @@ import { EventService } from './event.service';
 import { UtilsService } from 'src/bot/services/utils.services';
 
 const messHelp =
-  '```' +
-  '*event' +
+  '' +
+  'Command *event' +
   '\n' +
   '*event help' +
   '\n' +
   '*event dd/MM/YYYY HH:mm title [users] Note: some text note' +
   '\n' +
   '*event cancel' +
-  '```';
+  '';
 
 @Command('event')
 export class EventCommand extends CommandMessage {
@@ -37,7 +37,7 @@ export class EventCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
@@ -45,7 +45,7 @@ export class EventCommand extends CommandMessage {
         for (let i = 0; i <= Math.ceil(list.length / 50); i += 1) {
           if (list.slice(i * 50, (i + 1) * 50).length === 0) break;
           mess =
-            '```' +
+            '' +
             '\n' +
             (
               await Promise.all(
@@ -69,14 +69,14 @@ export class EventCommand extends CommandMessage {
                 }),
               )
             ).join('\n') +
-            '```';
+            '';
           replyMessageList.push(mess);
         }
         return replyMessageList.map((reply) => {
           return this.replyMessageGenerate(
             {
               messageContent: reply,
-              mk: [{ type: 't', s: 0, e: reply.length }],
+              mk: [{ type: 'pre', s: 0, e: reply.length }],
             },
             message,
           );
@@ -85,11 +85,11 @@ export class EventCommand extends CommandMessage {
     } else {
       if (args[0] === 'cancel') {
         if (!args[1]) {
-          const messageContent = '```' + '*report help' + '```';
+          const messageContent = '' + 'Command *report help' + '';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -104,11 +104,11 @@ export class EventCommand extends CommandMessage {
             message,
           );
         } else {
-          const messageContent = '```✅ Cancel successfully.```';
+          const messageContent = '✅ Cancel successfully.';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -117,7 +117,7 @@ export class EventCommand extends CommandMessage {
         return this.replyMessageGenerate(
           {
             messageContent: messHelp,
-            mk: [{ type: 't', s: 0, e: messHelp.length }],
+            mk: [{ type: 'pre', s: 0, e: messHelp.length }],
           },
           message,
         );
@@ -146,7 +146,7 @@ export class EventCommand extends CommandMessage {
           return this.replyMessageGenerate(
             {
               messageContent: messHelp,
-              mk: [{ type: 't', s: 0, e: messHelp.length }],
+              mk: [{ type: 'pre', s: 0, e: messHelp.length }],
             },
             message,
           );
@@ -210,11 +210,11 @@ export class EventCommand extends CommandMessage {
           note
         );
         if (!createEvent) {
-          const messageContent = '```This event already exists!```';
+          const messageContent = 'This event already exists!';
           return this.replyMessageGenerate(
             {
               messageContent,
-              mk: [{ type: 't', s: 0, e: messageContent.length }],
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
             },
             message,
           );
@@ -228,11 +228,11 @@ export class EventCommand extends CommandMessage {
           title,
           note
         );
-        const messageContent = '```✅ Event saved.```';
+        const messageContent = '✅ Event saved.';
         return this.replyMessageGenerate(
           {
             messageContent,
-            mk: [{ type: 't', s: 0, e: messageContent.length }],
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
           },
           message,
         );
