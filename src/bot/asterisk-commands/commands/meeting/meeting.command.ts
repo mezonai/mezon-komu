@@ -152,7 +152,7 @@ export class MeetingCommand extends CommandMessage {
       if (!args[1])
         return this.replyMessageGenerate(
           {
-            messageContent: '' + '*report help' + '',
+            messageContent: '' + 'Command *report help' + '',
           },
           message,
         );
