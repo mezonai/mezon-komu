@@ -429,9 +429,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               'Transaction pending! KOMU was sent to you a message, please check!';
             replyMessage['msg'] = {
               t: messageContent,
-              mk: [
-                { type: EMarkdownType.PRE, s: 0, e: messageContent.length },
-              ],
+              mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
             };
             break;
           default:
@@ -628,9 +626,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '';
           const msgDailySuccess = {
             t: textDailySuccess,
-            mk: [
-              { type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length },
-            ],
+            mk: [{ type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length }],
           };
           const channel = await this.client.channels.fetch(channelId);
           const message = await channel.messages.fetch(data.message_id);
@@ -1581,7 +1577,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             {
               headers: {
                 'Content-Type': 'application/json',
-                'x-secret-key': 'your-secret-key',
+                'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
               },
             },
           );
@@ -1675,7 +1671,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'x-secret-key': 'your-secret-key',
+              'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
             },
           },
         );
@@ -1728,7 +1724,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'x-secret-key': 'your-secret-key',
+              'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
             },
           },
         );
@@ -1782,7 +1778,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'x-secret-key': 'your-secret-key',
+              'x-secret-key': process.env.W2_REQUEST_X_SECRET_KEY,
             },
           },
         );
@@ -2070,9 +2066,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '';
           const msgDailySuccess = {
             t: textDailySuccess,
-            mk: [
-              { type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length },
-            ],
+            mk: [{ type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length }],
           };
           const channelSucces = await this.client.channels.fetch(channelId);
           const messageSucces = await channelSucces.messages.fetch(
