@@ -239,3 +239,11 @@ export enum UserType {
   Intern,
   Staff,
 }
+
+export enum TransferType {
+  REGULAR = 'regular',
+  API = 'api',
+  VOUCHER = 'voucher',
+  UNLOCKTS = 'unlockTs',
+  REWARD = 'reward',
+}

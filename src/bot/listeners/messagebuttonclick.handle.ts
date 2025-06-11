@@ -29,6 +29,7 @@ import {
   FFmpegImagePath,
   FileType,
   MEZON_EMBED_FOOTER,
+  TransferType,
   UserType,
   VoucherExchangeType,
 } from '../constants/configs';
@@ -379,6 +380,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
                   ? EUnlockTimeSheetPayment.PM_PAYMENT
                   : EUnlockTimeSheetPayment.STAFF_PAYMENT, // check pm or staff to get payment value
               note: `[UNLOCKTS - ${findUnlockTsData.id}]`,
+              extra_attribute: JSON.stringify({
+                type: TransferType.UNLOCKTS,
+              }),
             };
             // update status active
             await this.unlockTimeSheetRepository.update(

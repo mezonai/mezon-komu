@@ -12,6 +12,7 @@ import {
   EUserType,
   MEZON_EMBED_FOOTER,
   MEZON_IMAGE_URL,
+  TransferType,
 } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
@@ -113,6 +114,7 @@ export class VoucherCommand extends CommandMessage {
         extra_attribute: JSON.stringify({
           sessionId: 'buy_NccSoft_voucher',
           appId: 'buy_NccSoft_voucher',
+          type: TransferType.VOUCHER
         }),
       };
       const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));
