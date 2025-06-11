@@ -9,11 +9,13 @@ import { DataSource, Repository } from 'typeorm';
 import {
   Application,
   BetEventMezon,
+  TokenTransfer,
   Transaction,
   UnlockTimeSheet,
   User,
   VoucherEntiTy,
 } from '../models';
+import { TransferType } from '../models/tokenTransfer.entity';
 import {
   EmbedProps,
   EMessageMode,
@@ -28,7 +30,6 @@ import { generateEmail, getRandomColor } from '../utils/helper';
 import { FStore_TransactionRepository } from '../../firebase/repositories/transactions.repository';
 import { extractBranchCodeByTaphoaRemark } from '../utils/extract-text';
 
-
 @Injectable()
 export class EventTokenSend extends BaseHandleEvent {
   constructor(
@@ -42,6 +43,8 @@ export class EventTokenSend extends BaseHandleEvent {
     private unlockTimeSheetRepository: Repository<UnlockTimeSheet>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(TokenTransfer)
+    private tokenTransferRepository: Repository<TokenTransfer>,
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
     @InjectRepository(VoucherEntiTy)
@@ -476,5 +479,31 @@ export class EventTokenSend extends BaseHandleEvent {
       amount: +amount,
     };
     await this.client.sendToken(dataSendToken);
+  }
+
+  @OnEvent(Events.TokenSend)
+  async saveAllTransactions(data: TokenSentEvent) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const tokenTransfer = new TokenTransfer();
+      tokenTransfer.id =
+        data.transaction_id || `transfer_${Date.now()}_${data.sender_id}`;
+      tokenTransfer.senderId = data.sender_id;
+      tokenTransfer.receiverId = data.receiver_id;
+      tokenTransfer.amount = data.amount;
+      tokenTransfer.note = data?.note || null;
+      tokenTransfer.transferType = TransferType.REGULAR;
+      tokenTransfer.createdAt = Date.now();
+
+      await queryRunner.manager.save(TokenTransfer, tokenTransfer);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

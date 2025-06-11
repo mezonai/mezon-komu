@@ -42,6 +42,7 @@ import { PayoutApplication } from '../dto/payoutApplication';
 import moment from 'moment';
 import { ReportTrackerService } from '../services/reportTracker.sevicer';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
+import { GetTransactionsDTO } from '../dto/getTransactions';
 
 @ApiTags('Komu')
 @Controller()
@@ -387,7 +388,12 @@ export class KomubotrestController {
 
   @Get('/getAllOpentalkTime')
   async getAllOpentalkTime(@Query('date') date: string) {
-    console.log('getAllOpentalkTime', date)
+    console.log('getAllOpentalkTime', date);
     return await this.komubotrestService.getAllOpentalkTime(date);
+  }
+
+  @Get('/getAllTransactions')
+  async getAllTransactions(@Query() query: GetTransactionsDTO) {
+    return await this.komubotrestService.getAllTransactions(query);
   }
 }

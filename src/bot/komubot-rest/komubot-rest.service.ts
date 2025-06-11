@@ -7,6 +7,7 @@ import {
   Application,
   ChannelMezon,
   Daily,
+  TokenTransfer,
   Transaction,
   Uploadfile,
   User,
@@ -27,6 +28,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
 import { parseMarkDownText } from '../utils/helper';
 import { OpentalkService } from '../services/opentalk.services';
+import { GetTransactionsDTO } from '../dto/getTransactions';
 
 @Injectable()
 export class KomubotrestService {
@@ -47,6 +49,8 @@ export class KomubotrestService {
     private channelRepository: Repository<ChannelMezon>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(TokenTransfer)
+    private tokenTransferRepository: Repository<TokenTransfer>,
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
     private clientService: MezonClientService,
@@ -75,7 +79,6 @@ export class KomubotrestService {
       .andWhere('user_type = :userType', { userType: EUserType.MEZON })
       .getOne();
   }
-
   async getUserNotDaily() {
     return await this.dailyRepository
       .createQueryBuilder('daily')
@@ -294,7 +297,7 @@ export class KomubotrestService {
     const channelId = sendMessageToChannelDTO.channelid;
     const options = sendMessageToChannelDTO.options ?? {};
     const newMessage = parseMarkDownText(message);
-    message = (newMessage?.t)?.replaceAll('```', '') ?? '';
+    message = newMessage?.t?.replaceAll('```', '') ?? '';
     options.mk = newMessage.mk;
 
     // get mentions in text
@@ -635,5 +638,78 @@ export class KomubotrestService {
 
   async getAllOpentalkTime(time: string) {
     return await this.opentalkService.getAllUsersVoiceTime(time);
+  }
+
+  async getAllTransactions(query: GetTransactionsDTO) {
+    const {
+      from,
+      to,
+      minAmount,
+      maxAmount,
+      transferType,
+      fromDate,
+      toDate,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 10,
+    } = query;
+
+    const finalLimit = Math.min(limit, 100);
+
+    const queryBuilder = this.tokenTransferRepository
+      .createQueryBuilder('transfer')
+      .orderBy(`transfer.${sortBy}`, sortOrder as 'ASC' | 'DESC');
+
+    if (from) {
+      queryBuilder.andWhere('transfer.senderId = :from', { from });
+    }
+
+    if (to) {
+      queryBuilder.andWhere('transfer.receiverId = :to', { to });
+    }
+
+    if (minAmount !== undefined) {
+      queryBuilder.andWhere('transfer.amount >= :minAmount', { minAmount });
+    }
+
+    if (maxAmount !== undefined) {
+      queryBuilder.andWhere('transfer.amount <= :maxAmount', { maxAmount });
+    }
+
+    if (transferType) {
+      queryBuilder.andWhere('transfer.transferType = :transferType', {
+        transferType,
+      });
+    }
+
+    if (fromDate) {
+      const fromTimestamp = new Date(fromDate).getTime();
+      queryBuilder.andWhere('transfer.createdAt >= :fromTimestamp', {
+        fromTimestamp,
+      });
+    }
+
+    if (toDate) {
+      const toTimestamp = new Date(toDate).getTime();
+      queryBuilder.andWhere('transfer.createdAt <= :toTimestamp', {
+        toTimestamp,
+      });
+    }
+
+    const offset = (page - 1) * finalLimit;
+    queryBuilder.skip(offset).take(finalLimit);
+
+    const [tokenTransfers, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: tokenTransfers,
+      pagination: {
+        current_page: page,
+        per_page: finalLimit,
+        total_items: total,
+        total_pages: Math.ceil(total / finalLimit),
+      },
+    };
   }
 }

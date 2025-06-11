@@ -59,3 +59,4 @@ export { InvoiceOrder } from './invoiceOrder.entity';
 export { MenuOrder } from './menuOrder.entity';
 export { MenuOrderMessage } from './menuOrderMessage.entity';
 export { MenuAddress } from './menuAddress.entity';
+export { TokenTransfer } from './tokenTransfer.entity';
