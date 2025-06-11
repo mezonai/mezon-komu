@@ -571,11 +571,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             .where(`"userId" = :userId`, { userId: senderId })
             .andWhere(`"deactive" IS NOT true`)
             .select('*')
-            .getRawOne();
+            .getOne();
 
           if (!findUser) return;
 
-          const authorUsername = findUser.email;
+          const authorUsername = findUser.clan_nick || findUser.username;
           const emailAddress = generateEmail(authorUsername);
 
           const wfhResult = await this.timeSheetService.findWFHUser();
