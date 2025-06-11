@@ -570,7 +570,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             .createQueryBuilder()
             .where(`"userId" = :userId`, { userId: senderId })
             .andWhere(`"deactive" IS NOT true`)
-            .select('*')
             .getOne();
 
           if (!findUser) return;
