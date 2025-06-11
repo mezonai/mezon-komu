@@ -16,9 +16,8 @@ export enum SortOrder {
 
 export enum TransferType {
   REGULAR = 'regular',
-  API = 'api',
   VOUCHER = 'voucher',
-  REWARD = 'reward',
+  UNLOCKTS = 'unlockTs',
 }
 
 export class GetTransactionsDTO {

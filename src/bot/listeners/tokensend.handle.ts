@@ -487,6 +487,10 @@ export class EventTokenSend extends BaseHandleEvent {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    const extra_attribute = data.extra_attribute
+      ? JSON.parse(data.extra_attribute)
+      : {};
+
     try {
       const tokenTransfer = new TokenTransfer();
       tokenTransfer.id =
@@ -495,7 +499,7 @@ export class EventTokenSend extends BaseHandleEvent {
       tokenTransfer.receiverId = data.receiver_id;
       tokenTransfer.amount = data.amount;
       tokenTransfer.note = data?.note || null;
-      tokenTransfer.transferType = TransferType.REGULAR;
+      tokenTransfer.transferType = extra_attribute.type || TransferType.REGULAR;
       tokenTransfer.createdAt = Date.now();
 
       await queryRunner.manager.save(TokenTransfer, tokenTransfer);
