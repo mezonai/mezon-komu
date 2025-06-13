@@ -228,7 +228,7 @@ export class KomubotrestService {
       res.status(400).send({ message: 'Message can not be empty!' });
       return;
     }
-    let message = sendMessageToChannelDTO.message;
+    const message = sendMessageToChannelDTO.message;
     const channelId = sendMessageToChannelDTO.channelId;
 
     try {
@@ -640,7 +640,11 @@ export class KomubotrestService {
     return await this.opentalkService.getAllUsersVoiceTime(time);
   }
 
-  async getAllTransactions(query: GetTransactionsDTO) {
+  async getAllTransactions(query: GetTransactionsDTO, apiKey: string, res) {
+    if (apiKey !== process.env.GET_TRANSACTIONS_X_SECRET_KEY) {
+      res.status(400).send({ message: 'Wrong api key!' });
+      return;
+    }
     const { fromDate, toDate, type } = query;
 
     const queryBuilder = this.tokenTransferRepository
