@@ -64,6 +64,7 @@ import {
   MenuOrderMessage,
   InvoiceOrder,
   MenuAddress,
+  TokenTransfer,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -246,7 +247,8 @@ import { OpentalkService } from './services/opentalk.services';
       InvoiceOrder,
       MenuOrderMessage,
       MenuAddress,
-      VoiceSession
+      VoiceSession,
+      TokenTransfer,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
@@ -350,7 +352,7 @@ import { OpentalkService } from './services/opentalk.services';
     EventVoiceJoined,
     EventVoiceLeaved,
     OpentalkService,
-    OpentalkCommand
+    OpentalkCommand,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

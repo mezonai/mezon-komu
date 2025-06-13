@@ -60,6 +60,7 @@ export const TABLE = {
   W2_REQUEST: 'komu_w2Request',
   APPLICATION: 'komu_application',
   TRANSACTION: 'komu_transaction',
+  TOKEN_TRANSFER: 'komu_token_transfer',
   VOUCHER: 'komu_voucher',
   INTERVIEWER_REPLY: 'komu_interviewerReply',
   MENU_ORDER: 'komu_menuOrder',
