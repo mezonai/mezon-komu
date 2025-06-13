@@ -5,8 +5,6 @@ export enum TransferType {
   REGULAR = 'regular',
   VOUCHER = 'voucher',
   UNLOCKTS = 'unlockTS',
-  REWARD = 'reward',
-  API = 'api',
   COBA = 'coBa',
 }
 
