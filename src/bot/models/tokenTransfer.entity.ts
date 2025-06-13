@@ -1,4 +1,9 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { TABLE } from '../constants/table';
 
 export enum TransferType {
@@ -10,8 +15,8 @@ export enum TransferType {
 
 @Entity(TABLE.TOKEN_TRANSFER)
 export class TokenTransfer {
-  @PrimaryColumn({ type: 'text' })
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'text', comment: 'Mezon user ID of sender' })
   senderId: string;

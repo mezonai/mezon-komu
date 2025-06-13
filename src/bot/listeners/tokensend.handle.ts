@@ -493,8 +493,6 @@ export class EventTokenSend extends BaseHandleEvent {
 
     try {
       const tokenTransfer = new TokenTransfer();
-      tokenTransfer.id =
-        data.transaction_id || `transfer_${Date.now()}_${data.sender_id}`;
       tokenTransfer.senderId = data.sender_id;
       tokenTransfer.receiverId = data.receiver_id;
       tokenTransfer.amount = data.amount;
