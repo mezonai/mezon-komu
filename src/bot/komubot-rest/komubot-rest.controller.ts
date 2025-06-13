@@ -388,7 +388,6 @@ export class KomubotrestController {
 
   @Get('/getAllOpentalkTime')
   async getAllOpentalkTime(@Query('date') date: string) {
-    console.log('getAllOpentalkTime', date);
     return await this.komubotrestService.getAllOpentalkTime(date);
   }
 
