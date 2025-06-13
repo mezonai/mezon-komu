@@ -640,11 +640,7 @@ export class KomubotrestService {
     return await this.opentalkService.getAllUsersVoiceTime(time);
   }
 
-  async getAllTransactions(query: GetTransactionsDTO, apiKey: string, res) {
-    if (apiKey !== process.env.GET_TRANSACTIONS_X_SECRET_KEY) {
-      res.status(400).send({ message: 'Wrong api key!' });
-      return;
-    }
+  async getAllTransactions(query: GetTransactionsDTO) {
     const { fromDate, toDate, type } = query;
 
     const queryBuilder = this.tokenTransferRepository
