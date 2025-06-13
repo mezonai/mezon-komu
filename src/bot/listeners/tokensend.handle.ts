@@ -500,7 +500,6 @@ export class EventTokenSend extends BaseHandleEvent {
       tokenTransfer.amount = data.amount;
       tokenTransfer.note = data?.note || null;
       tokenTransfer.transferType = extra_attribute.type || TransferType.REGULAR;
-      tokenTransfer.createdAt = Date.now();
 
       await queryRunner.manager.save(TokenTransfer, tokenTransfer);
       await queryRunner.commitTransaction();

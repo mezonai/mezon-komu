@@ -641,75 +641,39 @@ export class KomubotrestService {
   }
 
   async getAllTransactions(query: GetTransactionsDTO) {
-    const {
-      from,
-      to,
-      minAmount,
-      maxAmount,
-      transferType,
-      fromDate,
-      toDate,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
-      page = 1,
-      limit = 10,
-    } = query;
-
-    const finalLimit = Math.min(limit, 100);
+    const { fromDate, toDate, type } = query;
 
     const queryBuilder = this.tokenTransferRepository
       .createQueryBuilder('transfer')
-      .orderBy(`transfer.${sortBy}`, sortOrder as 'ASC' | 'DESC');
-
-    if (from) {
-      queryBuilder.andWhere('transfer.senderId = :from', { from });
-    }
-
-    if (to) {
-      queryBuilder.andWhere('transfer.receiverId = :to', { to });
-    }
-
-    if (minAmount !== undefined) {
-      queryBuilder.andWhere('transfer.amount >= :minAmount', { minAmount });
-    }
-
-    if (maxAmount !== undefined) {
-      queryBuilder.andWhere('transfer.amount <= :maxAmount', { maxAmount });
-    }
-
-    if (transferType) {
-      queryBuilder.andWhere('transfer.transferType = :transferType', {
-        transferType,
-      });
-    }
+      .orderBy('transfer.createdTimestamp', 'DESC');
 
     if (fromDate) {
-      const fromTimestamp = new Date(fromDate).getTime();
-      queryBuilder.andWhere('transfer.createdAt >= :fromTimestamp', {
-        fromTimestamp,
+      const fromDate_timestamp = new Date(fromDate);
+      queryBuilder.andWhere('transfer.createdTimestamp >= :fromTimestamp', {
+        fromTimestamp: fromDate_timestamp,
       });
     }
 
     if (toDate) {
-      const toTimestamp = new Date(toDate).getTime();
-      queryBuilder.andWhere('transfer.createdAt <= :toTimestamp', {
-        toTimestamp,
+      const toDate_timestamp = new Date(toDate);
+      queryBuilder.andWhere('transfer.createdTimestamp <= :toTimestamp', {
+        toTimestamp: toDate_timestamp,
       });
     }
 
-    const offset = (page - 1) * finalLimit;
-    queryBuilder.skip(offset).take(finalLimit);
+    if (type) {
+      queryBuilder.andWhere('transfer.transferType = :type', { type });
+    }
 
-    const [tokenTransfers, total] = await queryBuilder.getManyAndCount();
+    const tokenTransfers = await queryBuilder.getMany();
+    const total = tokenTransfers.reduce(
+      (sum, transfer) => sum + Number(transfer.amount),
+      0,
+    );
 
     return {
-      data: tokenTransfers,
-      pagination: {
-        current_page: page,
-        per_page: finalLimit,
-        total_items: total,
-        total_pages: Math.ceil(total / finalLimit),
-      },
+      total,
+      items: tokenTransfers,
     };
   }
 }

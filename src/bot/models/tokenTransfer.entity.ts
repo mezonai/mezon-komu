@@ -1,16 +1,15 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 import { TABLE } from '../constants/table';
 
 export enum TransferType {
   REGULAR = 'regular',
-  API = 'api',
   VOUCHER = 'voucher',
+  UNLOCKTS = 'unlockTS',
   REWARD = 'reward',
+  API = 'api',
+  COBA = 'coBa',
 }
 
-@Index(['senderId', 'receiverId', 'createdAt'])
-@Index(['transferType', 'createdAt'])
-@Index(['createdAt'])
 @Entity(TABLE.TOKEN_TRANSFER)
 export class TokenTransfer {
   @PrimaryColumn({ type: 'text' })
@@ -45,13 +44,7 @@ export class TokenTransfer {
   })
   transferType: TransferType;
 
-  @Column({
-    type: 'bigint',
-    comment: 'Timestamp in milliseconds when transfer occurred',
-  })
-  createdAt: number;
-
-  @Column({
+  @CreateDateColumn({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
     comment: 'Database timestamp for record creation',
