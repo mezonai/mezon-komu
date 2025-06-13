@@ -392,11 +392,7 @@ export class KomubotrestController {
   }
 
   @Get('/getAllTransactions')
-  async getAllTransactions(
-    @Query() query: GetTransactionsDTO,
-    @Headers('X-Secret-Key') apiKey,
-    @Res() res: Response,
-  ) {
-    return await this.komubotrestService.getAllTransactions(query, apiKey, res);
+  async getAllTransactions(@Query() query: GetTransactionsDTO) {
+    return await this.komubotrestService.getAllTransactions(query);
   }
 }
