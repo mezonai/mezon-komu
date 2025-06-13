@@ -482,7 +482,7 @@ export class EventTokenSend extends BaseHandleEvent {
   }
 
   @OnEvent(Events.TokenSend)
-  async saveAllTransactions(data: TokenSentEvent) {
+  async saveTransactions(data: TokenSentEvent) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -498,6 +498,8 @@ export class EventTokenSend extends BaseHandleEvent {
       tokenTransfer.amount = data.amount;
       tokenTransfer.note = data?.note || null;
       tokenTransfer.transferType = extra_attribute.type || TransferType.REGULAR;
+      tokenTransfer.transactionId = data.transaction_id;
+      tokenTransfer.senderName = data.sender_name;
 
       await queryRunner.manager.save(TokenTransfer, tokenTransfer);
       await queryRunner.commitTransaction();

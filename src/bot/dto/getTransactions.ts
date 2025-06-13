@@ -4,7 +4,7 @@ import { TransferType } from '../models/tokenTransfer.entity';
 
 export class GetTransactionsDTO {
   @ApiProperty({
-    description: 'Type filter (voucher/unlockTS/coBa/null for all)',
+    description: 'Type filter (voucher/unlockTS/regular) (Optional)',
     required: false,
     enum: TransferType,
     example: TransferType.VOUCHER,

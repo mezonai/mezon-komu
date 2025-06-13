@@ -10,7 +10,6 @@ export enum TransferType {
   REGULAR = 'regular',
   VOUCHER = 'voucher',
   UNLOCKTS = 'unlockTS',
-  COBA = 'coBa',
 }
 
 @Entity(TABLE.TOKEN_TRANSFER)
@@ -43,9 +42,23 @@ export class TokenTransfer {
     type: 'enum',
     enum: TransferType,
     default: TransferType.REGULAR,
-    comment: 'Type of transfer: regular, api, voucher, reward',
+    comment: 'Type of transfer: regular, voucher, unlockTS',
   })
   transferType: TransferType;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+    comment: 'Transaction ID',
+  })
+  transactionId: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+    comment: 'Sender name',
+  })
+  senderName: string;
 
   @CreateDateColumn({
     type: 'timestamp',
