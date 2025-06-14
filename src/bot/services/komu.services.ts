@@ -41,7 +41,6 @@ export class KomuService {
         })
         .andWhere('(user.deactive IS NULL OR user.deactive = false)')
         .getOne();
-      console.log('userdb send question', !!userdb)
       if (!userdb) {
         return null;
       }
@@ -49,11 +48,8 @@ export class KomuService {
       let newMessage;
       try {
         const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
-        console.log('clan send question', clan.id)
-        console.log('userId DMM', userId);
         const user = await clan.users.fetch(userId);
         if (!user) return;
-        console.log('useruseruseruser DMM', user.id, user.dmChannelId);
         sent = await user.sendDM({
           components,
           embed,

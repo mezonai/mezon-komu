@@ -75,6 +75,9 @@ export class WFHSchedulerService {
           .where('"clan_nick" IN (:...names)', {
             names: Array.from(username),
           })
+          .orWhere('"username" IN (:...names)', {
+            names: Array.from(username),
+          })
           .getMany();
         useridJoining = userIds.map((user) => user?.userId);
       }
@@ -89,57 +92,47 @@ export class WFHSchedulerService {
         )
         .where(
           userOff && userOff.length > 0
-            ? 'user.clan_nick NOT IN (:...userOff)'
-            : 'true',
-          {
-            userOff: userOff,
-          },
+            ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
+            : '1=1',
+          { userOff },
         )
         .andWhere(
           useridJoining && useridJoining.length > 0
             ? 'user.userId NOT IN (:...useridJoining)'
-            : 'true',
-          {
-            useridJoining: useridJoining,
-          },
+            : '1=1',
+          { useridJoining },
         )
         .andWhere('user.user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
-        .andWhere('user.deactive IS NOT True')
-        .andWhere('user.last_message_id IS Not Null')
+        .andWhere('user.deactive IS NOT TRUE')
+        .andWhere('user.last_message_id IS NOT NULL')
         .andWhere(
-          '(m_bot.createAt <= :thirtyMinutesAgo or m_bot.createAt is null)',
-          {
-            thirtyMinutesAgo: thirtyMinutesAgo,
-          },
+          '(m_bot.createAt <= :thirtyMinutesAgo OR m_bot.createAt IS NULL)',
+          { thirtyMinutesAgo },
         )
-        .select('DISTINCT user.userId, user.clan_nick')
+        .select(['DISTINCT user.userId', 'user.clan_nick', 'user.username'])
         .execute();
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
         .createQueryBuilder('user')
         .where(
           userLastSendIds && userLastSendIds.length > 0
-            ? '"userId" IN (:...userIds)'
-            : 'true',
-          {
-            userIds: userLastSendIds,
-          },
+            ? 'user.userId IN (:...userIds)'
+            : '1=1',
+          { userIds: userLastSendIds },
         )
         .andWhere('user.user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.clan_nick IN (:...wfhUserEmail)'
-            : 'true',
-          {
-            wfhUserEmail: wfhUserEmail,
-          },
+            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            : '1=1',
+          { wfhUserEmail },
         )
         .andWhere(
-          '(last_message_time <= :thirtyMinutesAgo OR last_message_time is null)',
+          '(user.last_message_time <= :thirtyMinutesAgo OR user.last_message_time IS NULL)',
           { thirtyMinutesAgo },
         )
         .select('*')
@@ -177,18 +170,16 @@ export class WFHSchedulerService {
         )
         .where(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.clan_nick IN (:...wfhUserEmail)'
-            : 'true',
+            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            : '1=1',
           {
-            wfhUserEmail: wfhUserEmail,
+            wfhUserEmail,
           },
         )
-        .andWhere('user.deactive IS NOT True')
+        .andWhere('user.deactive IS NOT TRUE')
         .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .andWhere('user.botPing = :botPing', {
-          botPing: true,
-        })
-        .andWhere('user.last_bot_message_id IS NOT Null')
+        .andWhere('user.botPing = :botPing', { botPing: true })
+        .andWhere('user.last_bot_message_id IS NOT NULL')
         .andWhere(
           '(m_bot.createAt <= :thirtyMinutesAgo and m_bot.createAt >= :firstTime and m_bot.createAt <= :lastTime)',
           {
@@ -296,40 +287,35 @@ export class WFHSchedulerService {
         )
         .where(
           userOff && userOff.length > 0
-            ? 'user.clan_nick NOT IN (:...userOff)'
-            : 'true',
-          {
-            userOff: userOff,
-          },
+            ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
+            : '1=1',
+          { userOff },
         )
         .andWhere(
           useridJoining && useridJoining.length > 0
             ? 'user.userId NOT IN (:...useridJoining)'
-            : 'true',
-          {
-            useridJoining: useridJoining,
-          },
+            : '1=1',
+          { useridJoining },
         )
         .andWhere('user.user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
-        .andWhere('user.deactive IS NOT True')
-        .andWhere('user.last_message_id IS Not Null')
+        .andWhere('user.deactive IS NOT TRUE')
+        .andWhere('user.last_message_id IS NOT NULL')
         .andWhere(
-          '(m_bot.createAt <= :thirtyMinutesAgo or m_bot.createAt is null)',
+          '(m_bot.createAt <= :thirtyMinutesAgo OR m_bot.createAt IS NULL)',
           {
-            thirtyMinutesAgo: thirtyMinutesAgo,
+            thirtyMinutesAgo,
           },
         )
-        .select('DISTINCT user.userId, user.clan_nick')
-        .execute();
+        .getMany();
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
         .createQueryBuilder('user')
         .where(
           userLastSendIds && userLastSendIds.length > 0
-            ? '"userId" IN (:...userIds)'
-            : 'true',
+            ? 'user.userId IN (:...userIds)'
+            : '1=1',
           {
             userIds: userLastSendIds,
           },
@@ -339,17 +325,17 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? 'user.clan_nick NOT IN (:...wfhUserEmail)'
-            : 'true',
+            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            : '1=1',
           {
-            wfhUserEmail: wfhUserEmail,
+            wfhUserEmail,
           },
         )
         .andWhere(
-          '(last_message_time <= :thirtyMinutesAgo OR last_message_time is null)',
+          '(user.last_message_time <= :thirtyMinutesAgo OR user.last_message_time IS NULL)',
           { thirtyMinutesAgo },
         )
-        .andWhere('user.deactive IS NOT True')
+        .andWhere('user.deactive IS NOT TRUE')
         .select('*')
         .execute();
       await this.sendQuizzesWithLimit(userSend, false);

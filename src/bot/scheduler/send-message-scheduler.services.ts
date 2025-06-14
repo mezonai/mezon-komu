@@ -137,14 +137,17 @@ export class SendMessageSchedulerService {
             .andWhere('"user_type" = :userType', { userType: EUserType.MEZON })
             .select()
             .getOne();
-          if (!checkUser || checkUser.user_type !== EUserType.MEZON) return;
-          usernameList.push(checkUser.username);
-          const messageToUser: ReplyMezonMessage = {
-            userId: checkUser.userId,
-            textContent:
-              'Nhớ submit timesheet cuối tuần tránh bị phạt bạn nhé!!! Nếu bạn có tham gia opentalk bạn hãy log timesheet vào project company activities nhé.',
-          };
-          this.messageQueue.addMessage(messageToUser);
+          if (
+            !checkUser ||
+            !checkUser.userId ||
+            checkUser.user_type !== EUserType.MEZON
+          )
+            return;
+          const clan = this.client.clans.get('0');
+          const user = await clan.users.fetch(checkUser.userId);
+          await user.sendDM({
+            t: 'Nhớ submit timesheet cuối tuần tránh bị phạt bạn nhé!!! Nếu bạn có tham gia opentalk bạn hãy log timesheet vào project company activities nhé.',
+          });
         }),
       );
       console.log('sendSubmitTimesheet', usernameList);
@@ -262,17 +265,11 @@ export class SendMessageSchedulerService {
             checkUser.userId &&
             checkUser.user_type === EUserType.MEZON
           ) {
-            usernameList.push(checkUser.username);
-            const messageToUser: ReplyMezonMessage = {
-              userId: checkUser.userId,
-              textContent:
-                'Nhớ tắt máy trước khi ra về nếu không dùng nữa nhé!!!',
-            };
-            this.messageQueue.addMessage(messageToUser);
-            // await this.client.sendMessageUser(
-            //   checkUser.userId,
-            //   'Nhớ tắt máy trước khi ra về nếu không dùng nữa nhé!!!',
-            // );
+            const clan = this.client.clans.get('0');
+            const user = await clan.users.fetch(checkUser.userId);
+            await user.sendDM({
+              t: 'Nhớ tắt máy trước khi ra về nếu không dùng nữa nhé!!!',
+            });
           }
         }),
       );
@@ -319,16 +316,14 @@ export class SendMessageSchedulerService {
 
           const checkUser = await query.select('user').getOne();
           if (checkUser?.userId && checkUser.user_type === EUserType.MEZON) {
-            usernameList.push(checkUser.username);
-            const messageToUser: ReplyMezonMessage = {
-              userId: checkUser.userId,
-              textContent: 'Đừng quên checkout trước khi ra về nhé!!!',
-            };
-            this.messageQueue.addMessage(messageToUser);
+            const clan = this.client.clans.get('0');
+            const user = await clan.users.fetch(checkUser?.userId);
+            await user.sendDM({
+              t: 'Đừng quên checkout trước khi ra về nhé!!!',
+            });
           }
         }),
       );
-      console.log('remindCheckout', usernameList);
     } catch (error) {
       console.error('Error in remindCheckout:', error);
     }
@@ -361,24 +356,29 @@ export class SendMessageSchedulerService {
               })
               .getOne();
 
-            if (userdb && userdb.user_type === EUserType.MEZON) {
-              usernameList.push(userdb.username);
-              const messageToUser: ReplyMezonMessage = {
-                userId: userdb.userId,
-                textContent:
-                  type === 'last'
-                    ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
-                    : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.",
-                code: type === 'last' && userdb.buzzDaily ? 8 : undefined,
-              };
-              this.messageQueue.addMessage(messageToUser);
+            if (
+              userdb &&
+              userdb.userId &&
+              userdb.user_type === EUserType.MEZON
+            ) {
+              const clan = this.client.clans.get('0');
+              const user = await clan.users.fetch(userdb?.userId);
+              const textContent =
+                type === 'last'
+                  ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
+                  : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.";
+              await user.sendDM(
+                {
+                  t: textContent,
+                },
+                type === 'last' && userdb.buzzDaily ? 8 : undefined,
+              );
             }
           } catch (error) {
             console.error(error);
           }
         }),
       );
-      console.log(`remindDaily ${type}`, usernameList);
     } catch (error) {
       console.log(error);
     }
