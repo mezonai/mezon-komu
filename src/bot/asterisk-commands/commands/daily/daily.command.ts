@@ -62,6 +62,16 @@ export class DailyCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    if (message.mode === 4 || message.mode === 3) {
+      const messageContent = '[WARNING] KHÔNG ĐƯỢC DAILY Ở DM MESSAGE!';
+      return this.replyMessageGenerate(
+        {
+          messageContent: messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
+        message,
+      );
+    }
     if (message.username === 'Anonymous') {
       const messageContent = "Anonymous can't use this command!";
       return this.replyMessageGenerate(
