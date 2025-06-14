@@ -7,6 +7,7 @@ import {
   Application,
   ChannelMezon,
   Daily,
+  TokenTransfer,
   Transaction,
   Uploadfile,
   User,
@@ -27,6 +28,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
 import { parseMarkDownText } from '../utils/helper';
 import { OpentalkService } from '../services/opentalk.services';
+import { GetTransactionsDTO } from '../dto/getTransactions';
 
 @Injectable()
 export class KomubotrestService {
@@ -47,6 +49,8 @@ export class KomubotrestService {
     private channelRepository: Repository<ChannelMezon>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(TokenTransfer)
+    private tokenTransferRepository: Repository<TokenTransfer>,
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
     private clientService: MezonClientService,
@@ -75,7 +79,6 @@ export class KomubotrestService {
       .andWhere('user_type = :userType', { userType: EUserType.MEZON })
       .getOne();
   }
-
   async getUserNotDaily() {
     return await this.dailyRepository
       .createQueryBuilder('daily')
@@ -225,7 +228,7 @@ export class KomubotrestService {
       res.status(400).send({ message: 'Message can not be empty!' });
       return;
     }
-    let message = sendMessageToChannelDTO.message;
+    const message = sendMessageToChannelDTO.message;
     const channelId = sendMessageToChannelDTO.channelId;
 
     try {
@@ -294,7 +297,7 @@ export class KomubotrestService {
     const channelId = sendMessageToChannelDTO.channelid;
     const options = sendMessageToChannelDTO.options ?? {};
     const newMessage = parseMarkDownText(message);
-    message = (newMessage?.t)?.replaceAll('```', '') ?? '';
+    message = newMessage?.t?.replaceAll('```', '') ?? '';
     options.mk = newMessage.mk;
 
     // get mentions in text
@@ -635,5 +638,42 @@ export class KomubotrestService {
 
   async getAllOpentalkTime(time: string) {
     return await this.opentalkService.getAllUsersVoiceTime(time);
+  }
+
+  async getAllTransactions(query: GetTransactionsDTO) {
+    const { fromDate, toDate, type } = query;
+
+    const queryBuilder = this.tokenTransferRepository
+      .createQueryBuilder('transfer')
+      .orderBy('transfer.createdTimestamp', 'DESC');
+
+    if (fromDate) {
+      const fromDate_timestamp = new Date(fromDate);
+      queryBuilder.andWhere('transfer.createdTimestamp >= :fromTimestamp', {
+        fromTimestamp: fromDate_timestamp,
+      });
+    }
+
+    if (toDate) {
+      const toDate_timestamp = new Date(toDate);
+      queryBuilder.andWhere('transfer.createdTimestamp <= :toTimestamp', {
+        toTimestamp: toDate_timestamp,
+      });
+    }
+
+    if (type) {
+      queryBuilder.andWhere('transfer.transferType = :type', { type });
+    }
+
+    const tokenTransfers = await queryBuilder.getMany();
+    const total = tokenTransfers.reduce(
+      (sum, transfer) => sum + Number(transfer.amount),
+      0,
+    );
+
+    return {
+      total,
+      items: tokenTransfers,
+    };
   }
 }
