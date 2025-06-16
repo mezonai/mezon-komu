@@ -111,8 +111,8 @@ export class WFHSchedulerService {
           '(m_bot.createAt <= :thirtyMinutesAgo OR m_bot.createAt IS NULL)',
           { thirtyMinutesAgo },
         )
-        .select(['DISTINCT user.userId', 'user.clan_nick', 'user.username'])
-        .execute();
+        .distinct(true)
+        .getMany();
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
         .createQueryBuilder('user')
@@ -127,7 +127,7 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            ? '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))'
             : '1=1',
           { wfhUserEmail },
         )
@@ -135,8 +135,7 @@ export class WFHSchedulerService {
           '(user.last_message_time <= :thirtyMinutesAgo OR user.last_message_time IS NULL)',
           { thirtyMinutesAgo },
         )
-        .select('*')
-        .execute();
+        .getMany();
       await this.sendQuizzesWithLimit(userSend);
     } catch (error) {
       console.log(error);
@@ -170,7 +169,7 @@ export class WFHSchedulerService {
         )
         .where(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            ? '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))'
             : '1=1',
           {
             wfhUserEmail,
@@ -198,11 +197,11 @@ export class WFHSchedulerService {
             { botPing: false },
           );
 
-          const content = `@${user?.clan_nick} không trả lời tin nhắn WFH lúc ${moment(
+          const content = `@${user?.clan_nick || user?.username} không trả lời tin nhắn WFH lúc ${moment(
             parseInt(user.createAt.toString()),
           )
             .utcOffset(420)
-            .format('YYYY-MM-DD HH:mm:ss')} !\n`;
+            .format('YYYY-MM-DD HH:mm:ss')}!\n`;
 
           await this.wfhRepository.save({
             userId: user.userId,

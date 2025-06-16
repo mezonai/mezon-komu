@@ -143,8 +143,8 @@ export function getRandomColor(): string {
 
 export function convertName(fullName: string): string {
   const parts = fullName?.toLowerCase()?.split(' ');
-  const firstLetter = parts[0];
-  const lastName = parts.slice(1).join('');
+  const firstLetter = parts?.[0] ?? '';
+  const lastName = parts?.slice(1)?.join('') ?? '';
   const username = `${firstLetter}.${lastName}`;
   return username;
 }

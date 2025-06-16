@@ -361,6 +361,7 @@ export class SendMessageSchedulerService {
               userdb.userId &&
               userdb.user_type === EUserType.MEZON
             ) {
+              usernameList.push(userdb?.clan_nick || userdb?.username);
               const clan = this.client.clans.get('0');
               const user = await clan.users.fetch(userdb?.userId);
               const textContent =
@@ -374,8 +375,9 @@ export class SendMessageSchedulerService {
                 type === 'last' && userdb.buzzDaily ? 8 : undefined,
               );
             }
+            console.log('usernameList', usernameList);
           } catch (error) {
-            console.error(error);
+            console.error('remindDaily', error);
           }
         }),
       );
