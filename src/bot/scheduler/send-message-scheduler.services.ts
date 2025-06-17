@@ -375,7 +375,6 @@ export class SendMessageSchedulerService {
                 type === 'last' && userdb.buzzDaily ? 8 : undefined,
               );
             }
-            console.log('usernameList', usernameList);
           } catch (error) {
             console.error('remindDaily', error);
           }

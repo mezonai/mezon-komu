@@ -89,41 +89,42 @@ export class QuizService {
 
   async sendQuizToSingleUser(userInput, botPing = false, roleSelect = null) {
     if (!userInput) return;
-    const userId = userInput.userId;
-    const channelDm = await this.channelDmMezonRepository.findOne({
-      where: { user_id: userId },
-    });
-    let channelDmId = channelDm?.channel_id;
-    if (!channelDmId) {
-      const newDmChannel = await this.clientService.createDMchannel(userId);
-      if (!newDmChannel) {
-        console.log('userId missed', userId);
-      }
-      channelDmId = newDmChannel?.channel_id;
-    }
-    const username = userInput.username;
+    try {
+      const client = this.clientService.getClient();
+      const userId = userInput.userId;
+      const clan = client?.clans?.get('0');
+      if (!clan) return;
+      const user = await clan.users.fetch(userId);
+      const q = await this.randomQuiz(userInput, roleSelect);
+      if (!q) return;
 
-    const q = await this.randomQuiz(userInput, roleSelect);
-
-    if (!q) return;
-
-    let { mess, components, embed } = this.generateQuestion(q, channelDmId);
-    mess = `${mess}\n(Chọn đáp án đúng tương ứng phía bên dưới!)`;
-    const sendMess = await this.komubotrestService.sendMessageKomuToUser(
-      mess,
-      userId,
-      botPing,
-      true,
-      components,
-      embed,
-    );
-
-    if (sendMess) {
-      await this.saveQuestion(
+      let { mess, components, embed } = this.generateQuestion(
+        q,
+        user.dmChannelId,
+      );
+      mess = `${mess}\n(Chọn đáp án đúng tương ứng phía bên dưới!)`;
+      const sendMess = await this.komubotrestService.sendMessageKomuToUser(
+        mess,
         userId,
-        q.id,
-        sendMess.message_id,
-        sendMess.channel_id,
+        botPing,
+        true,
+        components,
+        embed,
+      );
+
+      if (sendMess) {
+        await this.saveQuestion(
+          userId,
+          q.id,
+          sendMess.message_id,
+          sendMess.channel_id,
+        );
+      }
+    } catch (error) {
+      console.log('Error sendQuizToSingleUser', userInput.userId)
+      await this.userRepository.update(
+        { userId: userInput.userId },
+        { botPing: false, user_type: null, deactive: true },
       );
     }
   }

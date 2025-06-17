@@ -45,7 +45,6 @@ export class KomuService {
         return null;
       }
       let sent: ChannelMessageAck;
-      let newMessage;
       try {
         const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
         const user = await clan.users.fetch(userId);
@@ -55,16 +54,22 @@ export class KomuService {
           embed,
         });
       } catch (error) {
-        await this.userRepository.update({ userId }, { botPing: false });
+        const clan = this.client.clans.get('0');
+        const user = await clan.users.fetch('1827994776956309504');
+        user.sendDM({ t: `Không SEND DM WFH ĐC CHO user ${userId}` });
+        await this.userRepository.update(
+          { userId: userId },
+          { botPing: false, user_type: null, deactive: true },
+        );
         switch (error) {
           case ErrorSocketType.TIME_OUT:
-            console.log('Message wfh get error', newMessage);
+            console.log('Message wfh get error', userId);
             break;
           // case ErrorSocketType.NOT_ESTABLISHED:
           //   this.messageQueue.addMessage(newMessage);
           //   break;
           default:
-            console.log('error send wfh', error, newMessage);
+            console.log('error send wfh', error, userId);
             break;
         }
       }

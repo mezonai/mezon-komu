@@ -57,30 +57,15 @@ export class WFHSchedulerService {
       const clan = await this.client.clans.fetch(
         process.env.KOMUBOTREST_CLAN_NCC_ID,
       );
-      const userClans = await clan.listChannelVoiceUsers(
-        '',
-        ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-      );
-      const username = new Set();
-      if ('voice_channel_users' in userClans) {
-        userClans.voice_channel_users.forEach((user) =>
-          username.add(convertName(user.participant)),
-        );
-      }
+      const listChannelVoiceUsers = (
+        await clan.listChannelVoiceUsers(
+          '',
+          ChannelType.CHANNEL_TYPE_GMEET_VOICE,
+        )
+      )?.voice_channel_users;
 
-      let useridJoining = [];
-      if (username.size > 0) {
-        const userIds = await this.userRepository
-          .createQueryBuilder()
-          .where('"clan_nick" IN (:...names)', {
-            names: Array.from(username),
-          })
-          .orWhere('"username" IN (:...names)', {
-            names: Array.from(username),
-          })
-          .getMany();
-        useridJoining = userIds.map((user) => user?.userId);
-      }
+      const useridJoining = listChannelVoiceUsers.map((user) => user?.user_id) || [];
+
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
 
       const userLastSend = await this.userRepository
@@ -254,70 +239,13 @@ export class WFHSchedulerService {
       const clan = await this.client.clans.fetch(
         process.env.KOMUBOTREST_CLAN_NCC_ID,
       );
-      const userClans = await clan.listChannelVoiceUsers(
-        '',
-        ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-      );
-      const username = new Set();
-      if ('voice_channel_users' in userClans) {
-        userClans.voice_channel_users.forEach((user) =>
-          username.add(convertName(user.participant)),
-        );
-      }
-
-      let useridJoining = [];
-      if (username.size > 0) {
-        const userIds = await this.userRepository
-          .createQueryBuilder()
-          .where('"clan_nick" IN (:...names)', {
-            names: Array.from(username),
-          })
-          .getMany();
-        useridJoining = userIds.map((user) => user?.userId);
-      }
-      const thirtyMinutesAgo = Date.now() - 1 * 60 * 1000;
-
-      const userLastSend = await this.userRepository
+      const userSend = await this.userRepository
         .createQueryBuilder('user')
-        .leftJoin(
-          'komu_userQuiz',
-          'm_bot',
-          'user.last_bot_message_id = "m_bot"."message_id" AND user.userId = "m_bot"."userId"',
-        )
         .where(
           userOff && userOff.length > 0
             ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
             : '1=1',
           { userOff },
-        )
-        .andWhere(
-          useridJoining && useridJoining.length > 0
-            ? 'user.userId NOT IN (:...useridJoining)'
-            : '1=1',
-          { useridJoining },
-        )
-        .andWhere('user.user_type = :userType', {
-          userType: EUserType.MEZON.toString(),
-        })
-        .andWhere('user.deactive IS NOT TRUE')
-        .andWhere('user.last_message_id IS NOT NULL')
-        .andWhere(
-          '(m_bot.createAt <= :thirtyMinutesAgo OR m_bot.createAt IS NULL)',
-          {
-            thirtyMinutesAgo,
-          },
-        )
-        .getMany();
-      const userLastSendIds = userLastSend.map((user) => user?.userId);
-      const userSend = await this.userRepository
-        .createQueryBuilder('user')
-        .where(
-          userLastSendIds && userLastSendIds.length > 0
-            ? 'user.userId IN (:...userIds)'
-            : '1=1',
-          {
-            userIds: userLastSendIds,
-          },
         )
         .andWhere('user.user_type = :userType', {
           userType: EUserType.MEZON.toString(),
@@ -329,10 +257,6 @@ export class WFHSchedulerService {
           {
             wfhUserEmail,
           },
-        )
-        .andWhere(
-          '(user.last_message_time <= :thirtyMinutesAgo OR user.last_message_time IS NULL)',
-          { thirtyMinutesAgo },
         )
         .andWhere('user.deactive IS NOT TRUE')
         .select('*')

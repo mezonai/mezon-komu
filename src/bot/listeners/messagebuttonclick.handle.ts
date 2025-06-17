@@ -309,7 +309,18 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       await message.update({ embed });
       this.messageQueue.addMessage(messageToUser);
     } catch (error) {
-      console.log('handleMessageButtonClicked', error);
+      await this.userRepository.update(
+        { userId: data.user_id },
+        {
+          botPing: false,
+        },
+      );
+      const clan = this.client.clans.get('0');
+      const user = await clan.users.fetch(data.user_id);
+      await user.sendDM({
+        t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này!',
+      });
+      console.log('Error handleMessageButtonClicked');
     }
   }
 
