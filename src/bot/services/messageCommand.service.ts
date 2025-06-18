@@ -57,7 +57,7 @@ export class MessageCommand {
           );
         } catch (error) {
           const clan = this.client.clans.get('0')
-          const user = await clan.users.fetch('1827994776956309504')
+          const user = await clan?.users?.fetch('1827994776956309504')
           user.sendDM({t: `Không fetch đc user ${message.userId}`})
           await this.userRepository.update(
             { userId: message.userId },
