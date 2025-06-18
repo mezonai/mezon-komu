@@ -37,7 +37,7 @@ export class ExtendersService {
       findUser.flags = 0;
       findUser.last_message_id = message.message_id;
       findUser.last_message_time = Date.now();
-      findUser.deactive = findUser.deactive;
+      findUser.deactive = false;
       findUser.botPing = findUser.botPing;
       findUser.scores_workout = 0;
       findUser.not_workout = 0;
