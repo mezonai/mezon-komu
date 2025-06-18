@@ -59,7 +59,7 @@ export class KomuService {
         user.sendDM({ t: `Không SEND DM WFH ĐC CHO user ${userId}` });
         await this.userRepository.update(
           { userId: userId },
-          { botPing: false, user_type: null, deactive: true },
+          { botPing: false, user_type: null },
         );
         switch (error) {
           case ErrorSocketType.TIME_OUT:

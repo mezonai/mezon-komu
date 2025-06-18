@@ -124,7 +124,7 @@ export class QuizService {
       console.log('Error sendQuizToSingleUser', userInput.userId)
       await this.userRepository.update(
         { userId: userInput.userId },
-        { botPing: false, user_type: null, deactive: true },
+        { botPing: false, user_type: null },
       );
     }
   }

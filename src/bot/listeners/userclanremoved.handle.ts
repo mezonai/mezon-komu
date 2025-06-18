@@ -21,7 +21,7 @@ export class EventUserClanRemoved extends BaseHandleEvent {
   }
 
   @OnEvent(Events.UserClanRemoved)
-  async handleAddClanUser(data: UserClanRemovedEvent) {
+  async handleRemoveClanUser(data: UserClanRemovedEvent) {
     try {
       if (
         data?.user_ids?.length &&
