@@ -184,17 +184,17 @@ export class InterviewSchedulerService {
     const interviewerName =
       interviewInfo.interviewer.interviewerEmail.split('@')[0];
     const interviewId = uuidv4();
-    const btnId = `interview_${interviewId}_${interviewerName}_${interviewInfo.hrEmail}_${interviewTimeLocalFormat}_${candidateFulName}_${branchName}_${userType}_${positionName}_${cvId}_${interviewInfo.interviewUrl}`;
+    const btnId = `interview_${interviewId}|${interviewerName}|${interviewTimeLocalFormat}|${candidateFulName}|${branchName}|${userType}|${positionName}|${cvId}|${interviewInfo.interviewUrl}`;
     const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
     const buttons = [
       {
         type: EMessageComponentType.BUTTON,
-        id: `${btnId}_btnAccept`,
+        id: `${btnId}|btnAccept`,
         component: { label: 'Có', style: EButtonMessageStyle.PRIMARY },
       },
       {
         type: EMessageComponentType.BUTTON,
-        id: `${btnId}_btnReject`,
+        id: `${btnId}|btnReject`,
         component: { label: 'Không', style: EButtonMessageStyle.PRIMARY },
       },
     ];

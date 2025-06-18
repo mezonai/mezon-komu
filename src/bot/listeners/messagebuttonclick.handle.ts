@@ -2356,17 +2356,17 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   async sendAnswerOfInterviewerToHr(data) {
     try {
-      const interviewId = data.button_id.split('_')[1];
-      const interviewerName = data.button_id.split('_')[2];
-      const hrEmail = data.button_id.split('_')[3];
-      const interviewTime = data.button_id.split('_')[4];
-      const candidateFulName = data.button_id.split('_')[5];
-      const branchName = data.button_id.split('_')[6];
-      const userType = data.button_id.split('_')[7];
-      const positionName = data.button_id.split('_')[8];
-      const cvId = data.button_id.split('_')[9];
-      const interviewUrl = data.button_id.split('_')[10];
-      const isAccept = data.button_id.split('_')[11] === 'btnAccept';
+      const dataBtn = data.button_id.split('_')[1];      
+      const interviewId = dataBtn.split('|')[0];      
+      const interviewerName = dataBtn.split('|')[1];
+      const interviewTime = dataBtn.split('|')[2];
+      const candidateFulName = dataBtn.split('|')[3];
+      const branchName = dataBtn.split('|')[4];
+      const userType = dataBtn.split('|')[5];
+      const positionName = dataBtn.split('|')[6];
+      const cvId = dataBtn.split('|')[7];
+      const interviewUrl = dataBtn.split('|')[8];
+      const isAccept = dataBtn.split('|')[9] === 'btnAccept';
 
       await this.interviewRepository
         .createQueryBuilder()
