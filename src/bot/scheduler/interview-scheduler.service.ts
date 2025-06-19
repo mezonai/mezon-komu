@@ -185,6 +185,7 @@ export class InterviewSchedulerService {
       interviewInfo.interviewer.interviewerEmail.split('@')[0];
     const interviewId = uuidv4();
     const btnId = `interview_${interviewId}|${interviewerName}|${interviewTimeLocalFormat}|${candidateFulName}|${branchName}|${userType}|${positionName}|${cvId}|${interviewInfo.interviewUrl}`;
+    this.logger.log('Interview button ID:', btnId);
     const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
     const buttons = [
       {
