@@ -2356,18 +2356,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   async sendAnswerOfInterviewerToHr(data) {
     try {
-      const dataBtn = data.button_id.split('_')[1];      
-      const interviewId = dataBtn.split('|')[0];      
-      const interviewerName = dataBtn.split('|')[1];
-      const interviewTime = dataBtn.split('|')[2];
-      const candidateFulName = dataBtn.split('|')[3];
-      const branchName = dataBtn.split('|')[4];
-      const userType = dataBtn.split('|')[5];
-      const positionName = dataBtn.split('|')[6];
-      const cvId = dataBtn.split('|')[7];
-      const interviewUrl = dataBtn.split('|')[8];
-      const isAccept = dataBtn.split('|')[9] === 'btnAccept';
+      console.log('Received interview data for button ID:', data);
+      const rawData = data.button_id.replace(/^interview_/, "");
+      const [
+        interviewId,
+        interviewerName,
+        interviewTime,
+        candidateFulName,
+        branchName,
+        userType,
+        positionName,
+        cvId,
+        interviewUrl,
+        buttonAction,
+      ] = rawData.split("|");
 
+      const isAccept = buttonAction === 'btnAccept';
+      console.log('Received interview select button', isAccept);
       await this.interviewRepository
         .createQueryBuilder()
         .update(InterviewerReply)
