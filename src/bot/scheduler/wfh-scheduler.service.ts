@@ -64,7 +64,8 @@ export class WFHSchedulerService {
         )
       )?.voice_channel_users;
 
-      const useridJoining = listChannelVoiceUsers.map((user) => user?.user_id) || [];
+      const useridJoining =
+        listChannelVoiceUsers.map((user) => user?.user_id) || [];
 
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
 
@@ -212,7 +213,7 @@ export class WFHSchedulerService {
               {
                 user_id: user?.userId,
                 s: 0,
-                e: user.clan_nick.length + 1,
+                e: (user?.clan_nick || user?.username).length + 1,
               },
             ],
           };

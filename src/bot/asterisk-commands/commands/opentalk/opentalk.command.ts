@@ -4,7 +4,10 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import { OpentalkService } from 'src/bot/services/opentalk.services';
+import {
+  OpentalkService,
+  UpdateTimeType,
+} from 'src/bot/services/opentalk.services';
 
 @Command('opt')
 export class OpentalkCommand extends CommandMessage {
@@ -87,6 +90,36 @@ export class OpentalkCommand extends CommandMessage {
         '' +
         `List remove channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
         '';
+      return this.replyMessageGenerate(
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
+        message,
+      );
+    }
+
+    if (args[0] === 'up') {
+      if (message.sender_id !== '1827994776956309504') return;
+      const userId = args[1];
+      const min = +args[2];
+      await this.opentalkService.updateLeftAt(userId, min, UpdateTimeType.UP);
+      const messageContent = `Tăng ${min} success! ${userId}`;
+      return this.replyMessageGenerate(
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
+        message,
+      );
+    }
+
+    if (args[0] === 'down') {
+      if (message.sender_id !== '1827994776956309504') return;
+      const userId = args[1];
+      const min = +args[2];
+      await this.opentalkService.updateLeftAt(userId, min, UpdateTimeType.DOWN);
+      const messageContent = `Giảm ${min} success! ${userId}`;
       return this.replyMessageGenerate(
         {
           messageContent,

@@ -3,8 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
   In,
+  IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
+  Not,
   Repository,
 } from 'typeorm';
 import { VoiceSession } from '../models/voiceSession.entity';
@@ -14,6 +16,11 @@ import { Cron } from '@nestjs/schedule';
 import { User } from '../models';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname, join } from 'path';
+
+export enum UpdateTimeType {
+  DOWN = 'down',
+  UP = 'up',
+}
 
 @Injectable()
 export class OpentalkService {
@@ -128,7 +135,7 @@ export class OpentalkService {
         parsed.getFullYear(),
         parsed.getMonth(),
         parsed.getDate(),
-        5, // 12 - 7 = 5 (UTC)
+        16, // 12 - 7 = 5 (UTC)
         30,
         0,
         0,
@@ -178,6 +185,28 @@ export class OpentalkService {
     }
     
     return result;
+  }
+
+  async updateLeftAt(userId: string, min: number, type: UpdateTimeType) {
+    const latestSession = await this.sessionRepository.findOne({
+      where: {
+        user_id: userId,
+        left_at: Not(IsNull()),
+      },
+      order: {
+        left_at: 'DESC',
+      },
+    });
+
+    if (!latestSession) return;
+
+    const direction = type === UpdateTimeType.DOWN ? -1 : 1;
+
+    latestSession.left_at = new Date(
+      latestSession.left_at.getTime() + direction * min * 60 * 1000,
+    );
+
+    await this.sessionRepository.save(latestSession);
   }
 
   @Cron('0 8 * * 1', { timeZone: 'Asia/Ho_Chi_Minh' })
