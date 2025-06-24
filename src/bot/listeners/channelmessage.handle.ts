@@ -81,11 +81,6 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
-      if (
-        (await this.isWebhookUser(message)) ||
-        (await this.utilsService.checkHoliday())
-      )
-        return;
       const client = await this.userRepository
         .createQueryBuilder('user')
         .where('(:role = ANY(user.roles) AND user.user_type = :userType)', {
@@ -127,6 +122,12 @@ export class EventListenerChannelMessage {
           .andWhere(`"reactionTimestamp" IS NULL`)
           .execute(),
       ]);
+
+      if (
+        (await this.isWebhookUser(message)) ||
+        (await this.utilsService.checkHoliday())
+      )
+        return;
 
       if (
         (!message.content ||
