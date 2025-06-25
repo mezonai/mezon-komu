@@ -81,6 +81,29 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
+      if (!invalidCharacter.includes(message?.content?.t)) {
+        await Promise.all([
+          this.userRepository
+            .createQueryBuilder()
+            .update(User)
+            .set({ last_message_id: message.message_id })
+            .where('"userId" = :userId', { userId: message.sender_id })
+            .execute(),
+          this.mentionedRepository
+            .createQueryBuilder()
+            .update(Mentioned)
+            .set({ confirm: true, reactionTimestamp: Date.now() })
+            .where(`"channelId" = :channelId`, {
+              channelId: message.channel_id,
+            })
+            .andWhere(`"mentionUserId" = :mentionUserId`, {
+              mentionUserId: message.sender_id,
+            })
+            .andWhere(`"confirm" = :confirm`, { confirm: false })
+            .execute(),
+        ]);
+      }
+
       const client = await this.userRepository
         .createQueryBuilder('user')
         .where('(:role = ANY(user.roles) AND user.user_type = :userType)', {
@@ -97,31 +120,9 @@ export class EventListenerChannelMessage {
       if (
         message.sender_id === this.clientConfigService.botKomuId ||
         message.sender_id === '0' ||
-        !findChannel ||
-        invalidCharacter.includes(message?.content?.t)
+        !findChannel
       )
         return;
-
-      await Promise.all([
-        this.userRepository
-          .createQueryBuilder()
-          .update(User)
-          .set({ last_message_id: message.message_id })
-          .where('"userId" = :userId', { userId: message.sender_id })
-          .andWhere(`deactive IS NOT True`)
-          .execute(),
-        this.mentionedRepository
-          .createQueryBuilder()
-          .update(Mentioned)
-          .set({ confirm: true, reactionTimestamp: Date.now() })
-          .where(`"channelId" = :channelId`, { channelId: message.channel_id })
-          .andWhere(`"mentionUserId" = :mentionUserId`, {
-            mentionUserId: message.sender_id,
-          })
-          .andWhere(`"confirm" = :confirm`, { confirm: false })
-          .andWhere(`"reactionTimestamp" IS NULL`)
-          .execute(),
-      ]);
 
       if (
         (await this.isWebhookUser(message)) ||
