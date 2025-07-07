@@ -2393,7 +2393,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             `Link candidate: ${process.env.TALENT_FE_URL}app/candidate/${userType === UserType.Intern ? 'intern-list' : 'staff-list'}/${cvId}?userType=${Number(userType)}&tab=3 \n` +
             `Link phỏng vấn: ${interviewUrl} \n` +
             '```' +
-            '\n(Trả lời bằng cách chọn đáp án bên dưới)',
+            '\n(Cảm ơn bạn đã trả lời tin nhắn.)',
         },
       ];
 
