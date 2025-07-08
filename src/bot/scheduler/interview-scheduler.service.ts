@@ -138,37 +138,47 @@ export class InterviewSchedulerService {
     );
     const reminderTime = interviewTime.clone().subtract(30, 'minutes');
 
-    if (reminderTime.isBefore(moment().tz('Asia/Ho_Chi_Minh'))) {
+    interview.interviewers.forEach((interviewer) => {
+      if (reminderTime.isBefore(moment().tz('Asia/Ho_Chi_Minh'))) {
+        this.logger.warn(
+          `Skipping past interview for ${interviewer?.interviewerName}`,
+        );
+        return;
+      }
+
+      const cronTime = `${reminderTime.minute()} ${reminderTime.hour()} * * *`;
+      const jobName = `interview_${interviewer?.id}_${interview.cvInfo?.cvId}`;
+
+      if (this.schedulerRegistry.doesExist('cron', jobName)) {
+        this.logger.warn(`Skipping duplicate cron job for ${jobName}`);
+        return;
+      }
+
+      this.addCronJob(jobName, cronTime, () =>
+        this.sendInterviewReminder(interview, interviewer),
+      );
+
+      this.logger.log(
+        `Scheduled interview reminder for ${interviewer?.interviewerName} at ${reminderTime.format('YYYY-MM-DD HH:mm:ss')}`,
+      );
+    });
+  }
+
+  async sendInterviewReminder(interviewInfo, interviewer) {
+    const interviewUser = await this.userRepository.findOne({
+      where: {
+        username: interviewer.interviewerEmail.split('@')[0],
+        user_type: EUserType.MEZON,
+      },
+    });
+
+    if (!interviewUser) {
       this.logger.warn(
-        `Skipping past interview for ${interview.interviewer?.interviewerName}`,
+        `User not found for email: ${interviewer.interviewerEmail}`,
       );
       return;
     }
 
-    const cronTime = `${reminderTime.minute()} ${reminderTime.hour()} * * *`;
-    const jobName = `interview_${interview.interviewer?.id}`;
-
-    if (this.schedulerRegistry.doesExist('cron', jobName)) {
-      this.logger.warn(`Skipping duplicate cron job for ${jobName}`);
-      return;
-    }
-
-    this.addCronJob(jobName, cronTime, () =>
-      this.sendInterviewReminder(interview),
-    );
-
-    this.logger.log(
-      `Scheduled interview reminder for ${interview.interviewer?.interviewerName} at ${reminderTime.format('YYYY-MM-DD HH:mm:ss')}`,
-    );
-  }
-
-  async sendInterviewReminder(interviewInfo) {
-    const interviewUser = await this.userRepository.findOne({
-      where: {
-        username: interviewInfo.interviewer.interviewerEmail.split('@')[0],
-        user_type: EUserType.MEZON,
-      },
-    });
     const userId = interviewUser.userId;
     const botPing = true;
     const interviewTimeLocal = moment.tz(
@@ -181,12 +191,14 @@ export class InterviewSchedulerService {
     );
     const { cvId, userType, branchName, positionName, candidateFulName } =
       interviewInfo.cvInfo;
-    const interviewerName =
-      interviewInfo.interviewer.interviewerEmail.split('@')[0];
+    const interviewerName = interviewer.interviewerEmail.split('@')[0];
     const interviewId = uuidv4();
     const btnId = `interview_${interviewId}|${interviewerName}|${interviewTimeLocalFormat}|${candidateFulName}|${branchName}|${userType}|${positionName}|${cvId}|${interviewInfo.interviewUrl}`;
+
     this.logger.log('Interview button ID:', btnId);
+
     const interviewDescription = `${candidateFulName} - ${branchName} - ${UserType[userType]} - ${positionName} lúc ${interviewTimeLocalFormat}`;
+
     const buttons = [
       {
         type: EMessageComponentType.BUTTON,
@@ -199,6 +211,7 @@ export class InterviewSchedulerService {
         component: { label: 'Không', style: EButtonMessageStyle.PRIMARY },
       },
     ];
+
     const embed = [
       {
         color: getRandomColor(),
@@ -222,20 +235,22 @@ export class InterviewSchedulerService {
       [{ components: buttons }],
       embed,
     );
+
     const interviewerReply = this.interviewRepository.create({
       id: interviewId,
       interviewerId: userId,
       interviewerName,
-      interviewerEmail: interviewInfo.interviewer.interviewerEmail,
+      interviewerEmail: interviewer.interviewerEmail,
       hrEmailProcess: interviewInfo.hrEmail,
       timeSendMessage: moment().format('YYYY-MM-DD HH:mm:ss'),
       isReply: false,
       interviewDescription,
     });
+
     await this.interviewRepository.save(interviewerReply);
 
     this.logger.log(
-      `Sent interview reminder to ${interviewInfo.interviewer?.interviewerName} for ${interviewTimeLocal.format('YYYY-MM-DD HH:mm:ss')}`,
+      `Sent interview reminder to ${interviewer?.interviewerName} for ${interviewTimeLocal.format('YYYY-MM-DD HH:mm:ss')}`,
     );
   }
 
