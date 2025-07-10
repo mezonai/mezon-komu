@@ -33,7 +33,7 @@ export class StreamingEvent extends BaseHandleEvent {
     if (
       hours < 11 ||
       (hours === 11 && minutes < 25) ||
-      (hours === 12 && minutes > 0) ||
+      (hours === 12 && minutes > 5) ||
       hours > 12
     ) {
       return true;
@@ -43,11 +43,16 @@ export class StreamingEvent extends BaseHandleEvent {
 
   @OnEvent(Events.StreamingJoinedEvent)
   async handleJoinNCC8(data: StreamingJoinedEvent) {
+    console.log('data joined', data);
+    if (
+      data.user_id === process.env.BOT_KOMU_ID ||
+      data.streaming_channel_id !== process.env.MEZON_NCC8_CHANNEL_ID
+    )
+      return;
     try {
       const dateNow = Date.now();
 
       if (this.isOutsideTimeRangeNcc8(dateNow)) return; //check time ncc8
-      console.log('handleJoinNCC8', data)
       const wfhResult = await this.timeSheetService.findWFHUser();
       const wfhUserEmail = wfhResult
         .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
@@ -68,38 +73,67 @@ export class StreamingEvent extends BaseHandleEvent {
         .getMany();
       const userIdList = findUserWfh.map((user) => user.userId);
 
+      const clan = this.client.clans.get(data.clan_id);
+      const user = await clan.users.fetch(data.user_id);
+      user.sendDM({ t: '🎉Tuyệt vời, hãy cùng nhau chill với NCC8 nào!' });
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
-      const findNcc8 = await this.mezonTrackerStreamingRepository.findOne({
-        where: { id: data.id },
+      const existing = await this.mezonTrackerStreamingRepository.findOne({
+        where: {
+          userId: data.user_id,
+          channelId: data.streaming_channel_id,
+          leaveAt: IsNull(),
+        },
       });
-      if (findNcc8) return;
-      const dataInsert = new MezonTrackerStreaming();
-      dataInsert.id = data.id;
-      dataInsert.channelId = data.streaming_channel_id;
-      dataInsert.clanId = data.clan_id;
-      dataInsert.userId = data.user_id;
-      dataInsert.joinAt = dateNow;
-      await this.mezonTrackerStreamingRepository.save(dataInsert);
+
+      if (!existing) {
+        const dataInsert = new MezonTrackerStreaming();
+        dataInsert.id = data.id || `${data.user_id}-${dateNow}`;
+        dataInsert.channelId = data.streaming_channel_id;
+        dataInsert.clanId = data.clan_id;
+        dataInsert.userId = data.user_id;
+        dataInsert.joinAt = dateNow;
+        await this.mezonTrackerStreamingRepository.save(dataInsert);
+      } else {
+        console.log(`User ${data.user_id} đã trong một session chưa đóng.`);
+      }
     } catch (error) {
-      console.log('handleJoinNCC8', error);
+      console.error('handleJoinNCC8 error:', error);
     }
   }
 
   @OnEvent(Events.StreamingLeavedEvent)
   async handleLeaveNCC8(data: StreamingLeavedEvent) {
+    console.log('handleLeaveNCC8', data);
+    if (
+      data.streaming_user_id === process.env.BOT_KOMU_ID ||
+      data.streaming_channel_id !== process.env.MEZON_NCC8_CHANNEL_ID
+    )
+      return;
     try {
       const dateNow = Date.now();
       if (this.isOutsideTimeRangeNcc8(dateNow)) return;
 
-      const findNcc8 = await this.mezonTrackerStreamingRepository.findOne({
-        where: { id: data.id, userId: data.streaming_user_id },
+      const existing = await this.mezonTrackerStreamingRepository.findOne({
+        where: {
+          userId: data.streaming_user_id,
+          channelId: data.streaming_channel_id,
+          leaveAt: null,
+        },
+        order: { joinAt: 'DESC' },
       });
-      if (!findNcc8) return;
-      await this.mezonTrackerStreamingRepository.update(
-        { id: findNcc8.id },
-        { ...findNcc8, leaveAt: dateNow - 40000 },
-      );
+      if (existing) {
+        existing.leaveAt = dateNow;
+        await this.mezonTrackerStreamingRepository.save(existing);
+        console.log(`Session của user ${data.streaming_user_id} đã được đóng.`);
+      } else {
+        console.warn(
+          `Không tìm thấy session đang mở cho user ${data.streaming_user_id}.`,
+        );
+      }
+      const clan = this.client.clans.get(data.clan_id);
+      const user = await clan.users.fetch(data.streaming_user_id);
+      user.sendDM({ t: '❗Bạn đã rời khỏi channel NCC8-Radio!' });
     } catch (error) {
       console.log('handleLeaveNCC8', error);
     }

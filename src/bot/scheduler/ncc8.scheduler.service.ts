@@ -49,7 +49,7 @@ export class Ncc8SchedulerService {
       .getOne();
   }
 
-  @Cron('25 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8JoinScheduler() {
     const wfhResult = await this.timeSheetService.findWFHUser();
     const wfhUserEmail = wfhResult
@@ -69,7 +69,7 @@ export class Ncc8SchedulerService {
         userType: EUserType.MEZON,
       })
       .getMany();
-    const text = '[WARNING] Ncc8 will play in 5 minutes, please go to ';
+    const text = '[WARNING] Ncc8 will play in 1 minute, please go to ';
     const channelLabel = '#ncc8-radio';
     findUserWfh.map((user) => {
       const messageToUser: ReplyMezonMessage = {

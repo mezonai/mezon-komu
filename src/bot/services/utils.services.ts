@@ -150,7 +150,7 @@ export class UtilsService {
   }
 
   formatDate(time, isShowSecond?) {
-    const today = new Date(time);
+    const today = new Date(+time);
     const dd = String(today.getDate()).padStart(2, '0');
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const yyyy = today.getFullYear();

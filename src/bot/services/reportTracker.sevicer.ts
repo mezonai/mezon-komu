@@ -365,11 +365,20 @@ export class ReportTrackerService {
     const wfhResult = await this.timeSheetService.findWFHUser(fridayTimestamp);
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
-      .map((item) => {
-        return getUserNameByEmail(item.emailAddress);
-      });
+      .map((item) => getUserNameByEmail(item.emailAddress));
     const findUserWfh = await this.userRepository.find({
-      where: { username: In(wfhUserEmail), user_type: EUserType.MEZON },
+      where: [
+        {
+          clan_nick: In(wfhUserEmail),
+          user_type: EUserType.MEZON,
+          deactive: false,
+        },
+        {
+          username: In(wfhUserEmail),
+          user_type: EUserType.MEZON,
+          deactive: false,
+        },
+      ],
     });
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
@@ -380,100 +389,90 @@ export class ReportTrackerService {
         channelId: process.env.MEZON_NCC8_CHANNEL_ID,
       },
     });
-    const sortedFindUserTracker = findUserTracker.sort(
-      (a, b) => a.joinAt - b.joinAt,
-    );
-    const userTracking = sortedFindUserTracker.reduce((acc, curr) => {
-      const existingUser = acc.find((item) => item.userId === curr.userId);
+    const userSessionMap = new Map<
+      string,
+      { totalTime: number; firstJoin: number | null }
+    >();
 
-      if (existingUser) {
-        existingUser.joinAt.push(curr.joinAt);
-        existingUser.leaveAt.push(curr.leaveAt);
+    for (const session of findUserTracker) {
+      if (!session.userId || session.leaveAt === null) continue;
+
+      const timeSpent = session.leaveAt - session.joinAt;
+      const prev = userSessionMap.get(session.userId);
+
+      if (prev) {
+        userSessionMap.set(session.userId, {
+          totalTime: prev.totalTime + timeSpent,
+          firstJoin: Math.min(prev.firstJoin ?? session.joinAt, session.joinAt),
+        });
       } else {
-        acc.push({
-          userId: curr.userId,
-          joinAt: [curr.joinAt],
-          leaveAt: [curr.leaveAt],
+        userSessionMap.set(session.userId, {
+          totalTime: timeSpent,
+          firstJoin: session.joinAt,
         });
       }
-      return acc;
-    }, []);
-    console.log('userTracking', userTracking);
+    }
+
+    const userIdJoinNcc8: string[] = [];
+    const lateTextArray: string[] = [];
+    const timeTextArray: string[] = [];
+    const fifteenMinutes = 15 * 60 * 1000;
+
+    for (const [userId, session] of userSessionMap.entries()) {
+      const findUser = await this.userRepository.findOne({
+        where: { userId, user_type: EUserType.MEZON },
+      });
+      if (!findUser) continue;
+
+      userIdJoinNcc8.push(userId);
+      // check total time
+      if (session.totalTime < fifteenMinutes) {
+        const totalTimeInMinutes = Math.round(session.totalTime / 60000);
+        const remainingTimeInMinutes = Math.round(
+          (fifteenMinutes - session.totalTime) / 60000,
+        );
+
+        timeTextArray.push(
+          `${findUser.username} - tham gia tổng ${totalTimeInMinutes} phút -> thiếu ${remainingTimeInMinutes} phút`,
+        );
+      }
+
+      // check join late
+      if (session.firstJoin && session.firstJoin > timestampNcc8) {
+        const lateSeconds = (session.firstJoin - timestampNcc8) / 1000;
+        const lateText =
+          lateSeconds > 60
+            ? `${Math.round(lateSeconds / 60)} phút`
+            : `${Math.round(lateSeconds)} giây`;
+        const timeString = this.utilsService.formatDate(
+          session.firstJoin,
+          true,
+        );
+
+        lateTextArray.push(
+          `${findUser.username} - join lúc ${timeString} → vào muộn ${lateText}`,
+        );
+      }
+    }
+
+    const userIdNotJoin = userIdWfhList.filter(
+      (id) => !userIdJoinNcc8.includes(id),
+    );
+    const userNotJoin = await Promise.all(
+      userIdNotJoin.map(async (id) => {
+        const user = await this.userRepository.findOne({
+          where: { userId: id, user_type: EUserType.MEZON },
+        });
+        return user?.username;
+      }),
+    );
+
     const now = new Date();
     const textToday = formatDate
       ? `ngày ${formatDate}`
       : now.getDay() === 5
         ? 'hôm nay'
         : 'thứ 6 tuần trước';
-    const lateTextArray = [];
-    const timeTextArray = [];
-    const fifteenMinutes = 15 * 60 * 1000;
-    const userIdJoinNcc8 = [];
-    await Promise.all(
-      userTracking.map(async (user) => {
-        if (!user.userId) return;
-        const findUser = await this.userRepository.findOne({
-          where: { userId: user.userId, user_type: EUserType.MEZON },
-        });
-        if (!findUser) return;
-        console.log('findUser', findUser.username);
-        userIdJoinNcc8.push(user.userId);
-        // check join not enough time
-        let totalJoinTime = 0;
-        user.joinAt.map((time, index) => {
-          totalJoinTime += user.leaveAt[index] - time;
-        });
-
-        if (totalJoinTime < fifteenMinutes) {
-          const totalTimeInSeconds = Math.round(totalJoinTime / 1000);
-          const totalTimeInMinutes = Math.round(totalTimeInSeconds / 60);
-          const remainingTime = fifteenMinutes - totalJoinTime;
-          const remainingTimeInSeconds = Math.round(remainingTime / 1000);
-          const remainingTimeInMinutes = Math.round(
-            remainingTimeInSeconds / 60,
-          );
-
-          timeTextArray.push(
-            `${findUser?.username} - join tổng: ${
-              totalTimeInSeconds < 60
-                ? `${totalTimeInSeconds} giây`
-                : `${totalTimeInMinutes} phút`
-            } -> thiếu ${
-              remainingTimeInSeconds < 60
-                ? `${remainingTimeInSeconds} giây`
-                : `${remainingTimeInMinutes} phút`
-            }`,
-          );
-        }
-
-        // check join late
-        const fisrtTimeJoined = user.joinAt[0];
-        if (fisrtTimeJoined > timestampNcc8) {
-          const timelate = (fisrtTimeJoined - timestampNcc8) / 1000;
-          const dateTime = this.utilsService.formatDate(
-            new Date(Number(fisrtTimeJoined)),
-            true,
-          );
-          lateTextArray.push(
-            `${findUser?.username} - join lần đầu lúc ${dateTime} -> Vào muộn ${timelate > 60 ? `${Math.round(timelate / 60)} phút` : `${Math.round(timelate)} giây`}`,
-          );
-        }
-      }),
-    );
-
-    const userIdNotJoin = userIdWfhList.filter(
-      (id) => !userIdJoinNcc8.includes(id),
-    );
-    console.log('userIdNotJoin', userIdNotJoin);
-    const userNotJoin = await Promise.all(
-      userIdNotJoin.map(async (id) => {
-        const findUser = await this.userRepository.findOne({
-          where: { userId: id, user_type: EUserType.MEZON },
-        });
-        if (!findUser) return;
-        return findUser.username;
-      }),
-    );
 
     this.prependMessage(
       userNotJoin,
