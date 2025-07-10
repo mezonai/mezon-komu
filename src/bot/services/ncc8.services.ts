@@ -5,23 +5,25 @@ import ffprobePath from 'ffprobe-static';
 import ffmpegPath from 'ffmpeg-static';
 import * as fs from 'fs';
 import WebSocket from 'ws';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class NCC8Service {
   private ws: WebSocket;
 
-  constructor() {
+  constructor(private clientService: MezonClientService) {
     ffmpeg.setFfmpegPath(ffmpegPath);
     ffmpeg.setFfprobePath(ffprobePath.path);
   }
 
   getSocket() {
-    return this.ws
+    return this.ws;
   }
 
   connectSocket() {
+    const token = this.clientService.getToken();
     this.ws = new WebSocket(
-      `wss://stn.mezon.ai/ws?token=${process.env.BOT_TOKEN}`,
+      `wss://stn.mezon.ai/ws?token=${token ?? process.env.BOT_TOKEN}`,
     );
   }
 
@@ -40,8 +42,8 @@ export class NCC8Service {
     };
 
     const json = JSON.stringify({ ...messageSocket, ...key });
-    console.log('json', json)
-    if (this.ws.readyState === WebSocket.OPEN) {
+    console.log('json', json);
+    if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(json);
     } else {
       console.debug('ws: send not ready, skipping...', json);

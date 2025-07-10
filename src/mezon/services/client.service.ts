@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ApiMessageAttachment, ApiMessageRef, MezonClient } from 'mezon-sdk';
+import { MezonClient } from 'mezon-sdk';
 import { MezonClientConfig } from '../dtos/MezonClientConfig';
 import {
   ReactMessageChannel,
@@ -10,15 +10,22 @@ import {
 export class MezonClientService {
   private readonly logger = new Logger(MezonClientService.name);
   private client: MezonClient;
+  public token: string;
 
   constructor(clientConfigs: MezonClientConfig) {
     this.client = new MezonClient(clientConfigs.token);
+  }
+
+  getToken() {
+    return this.token;
   }
 
   async initializeClient() {
     try {
       const result = await this.client.login();
       this.logger.log('authenticated.', result);
+      const data = JSON.parse(result);
+      this.token = data?.token;
     } catch (error) {
       this.logger.error('error authenticating.', error);
       throw error;

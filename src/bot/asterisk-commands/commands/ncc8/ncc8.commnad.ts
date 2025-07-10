@@ -12,6 +12,7 @@ import { EmbedProps, FileType } from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import path from 'path';
 import { NCC8Service } from 'src/bot/services/ncc8.services';
+import { Cron } from '@nestjs/schedule';
 
 @Command('ncc8')
 export class Ncc8Command extends CommandMessage {
@@ -27,27 +28,33 @@ export class Ncc8Command extends CommandMessage {
     super();
   }
 
+  @Cron('1 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  stopNCC8Schedule() {
+    this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
+  }
+
   async execute(args: string[], message: ChannelMessage) {
-    if (message.sender_id !== '1827994776956309504') return;
+    if (
+      !['1827994776956309504', '1779815181480628224'].includes(
+        message.sender_id,
+      )
+    )
+      return;
     const messageContent =
-      '' +
-      'Command: *ncc8 play ID' +
-      '\n' +
-      'Example: *ncc8 play 190' +
-      '';
-    
+      '' + 'Command: *ncc8 play ID' + '\n' + 'Example: *ncc8 play 190' + '';
+
     if (args[0] === 'play') {
-      if (!args[1])
-        return this.replyMessageGenerate(
-          {
-            messageContent: messageContent,
-            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-          },
-          message,
-        );
+      // if (!args[1])
+      //   return this.replyMessageGenerate(
+      //     {
+      //       messageContent: messageContent,
+      //       mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+      //     },
+      //     message,
+      //   );
       const textContent = `Go to `;
       const res = await this.axiosClientService.get(
-        `${process.env.NCC8_API}/ncc8/episode/${args[1]}`,
+        `${process.env.NCC8_API}/ncc8/episode/${args[1] ?? '1'}`,
       );
       console.log('res?.data?.url', res?.data?.url);
       if (!res) return;
