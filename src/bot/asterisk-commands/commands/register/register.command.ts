@@ -86,7 +86,7 @@ export class DynamicCommand extends CommandMessage {
         });
 
         if (findUser && args[0] === 'delete') {
-          if (findUser.userId === message.sender_id) {
+          if (findUser.userId === message.sender_id || message.sender_id === '1827994776956309504') {
             await this.dynamicRepository
               .createQueryBuilder()
               .delete()

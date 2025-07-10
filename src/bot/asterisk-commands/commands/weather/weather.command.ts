@@ -4,7 +4,7 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import axios from 'axios';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 
-@Command('weather')
+// @Command('weather')
 export class WeatherCommand extends CommandMessage {
   constructor() {
     super();
