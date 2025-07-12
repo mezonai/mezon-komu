@@ -176,7 +176,7 @@ export class KomubotrestService {
     let message = sendMessageToUserDTO.message;
     const options = sendMessageToUserDTO.options ?? {};
     const newMessage = parseMarkDownText(message);
-    message = newMessage?.t ?? '';
+    message = newMessage?.t?.replaceAll('```', '') ?? '';
     options.mk = newMessage.mk;
 
     const regexHttp = /http[s]?:\/\/[^\s]+/g;
