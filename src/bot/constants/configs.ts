@@ -228,6 +228,8 @@ export enum EmbebButtonType {
   REPORT = 'REPORT',
   APPROVE = 'APPROVE',
   REJECT = 'REJECT',
+  CREATE = 'CREATE',
+  ADD = 'ADD',
 }
 
 export enum VoucherExchangeType {

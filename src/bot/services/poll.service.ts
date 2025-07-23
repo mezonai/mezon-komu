@@ -1,54 +1,36 @@
 import {
-  ChannelType,
   EButtonMessageStyle,
   EMarkdownType,
   EMessageComponentType,
   MezonClient,
 } from 'mezon-sdk';
-import { ChannelMezon, MezonBotMessage, User } from '../models';
+
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  EmbedProps,
-  EMessageMode,
-  MEZON_EMBED_FOOTER,
-} from '../constants/configs';
-import { ClientConfigService } from '../config/client-config.service';
-import { MessageQueue } from './messageQueue.service';
 import { Injectable } from '@nestjs/common';
-import { ReactMessageChannel } from '../asterisk-commands/dto/replyMessage.dto';
+import { User } from 'src/bot/models/user.entity';
+import {
+  EmbebButtonType,
+  EmbedProps,
+  MEZON_EMBED_FOOTER,
+} from 'src/bot/constants/configs';
+import { MezonBotMessage } from 'src/bot/models/mezonBotMessage.entity';
+import { MessageButtonClicked } from 'mezon-sdk/dist/cjs/rtapi/realtime';
+import { getRandomColor, sleep } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { getRandomColor } from '../utils/helper';
 
 @Injectable()
 export class PollService {
   private client: MezonClient;
+  private blockEditedList: string[] = [];
   constructor(
-    @InjectRepository(ChannelMezon)
-    private channelRepository: Repository<ChannelMezon>,
     @InjectRepository(MezonBotMessage)
     private mezonBotMessageRepository: Repository<MezonBotMessage>,
     @InjectRepository(User) private userRepository: Repository<User>,
-    private clientConfig: ClientConfigService,
-    private messageQueue: MessageQueue,
     private clientService: MezonClientService,
   ) {
     this.client = this.clientService.getClient();
   }
-
-  private emojiIdDefault = {
-    '1': '7249623295590321017',
-    '2': '7249624251732854443',
-    '3': '7249624274750507250',
-    '4': '7249624293339259728',
-    '5': '7249624315115336918',
-    '6': '7249624334373657995',
-    '7': '7249624356893400462',
-    '8': '7249624383165932340',
-    '9': '7249624408159143552',
-    '10': '7249624441144979248',
-    checked: '7237751213104827794',
-  };
 
   private iconList = [
     '1️⃣ ',
@@ -63,31 +45,6 @@ export class PollService {
     '🔟 ',
   ];
 
-  getEmojiDefault() {
-    return this.emojiIdDefault;
-  }
-
-  getOptionPoll(pollString: string) {
-    let option;
-    const regex = /\d️⃣:\s*(.*)/g;
-    const options = [];
-    while ((option = regex.exec(pollString)) !== null) {
-      options.push(option[1].trim());
-    }
-
-    return options;
-  }
-
-  getPollTitle(pollString: string) {
-    let pollTitle;
-    const match = pollString.toString().match(/\[Poll\] - (.*)\n/);
-    if (match && match[1]) {
-      pollTitle = match[1];
-    }
-
-    return pollTitle;
-  }
-
   generateEmbedComponents(options, data?) {
     const embedCompoents = options.map((option, index) => {
       const userVoted = data?.[index];
@@ -101,18 +58,18 @@ export class PollService {
     return embedCompoents;
   }
 
-  generateEmbedMessage(
+  generateEmbedMessageVote(
     title: string,
     authorName: string,
     color: string,
     embedCompoents,
+    time,
   ) {
     return [
       {
         color,
         title: `[Poll] - ${title}`,
-        description:
-          'Select option you want to vote.\nThe voting will end in 7 days.\nPoll creater can end the poll forcefully by click Finish button.',
+        description: `Select option you want to vote.\nThe voting will end in ${time ? `${time} hours` : '7 days'} .\nPoll creater can end the poll forcefully by click Finish button.`,
         fields: [
           {
             name: '',
@@ -163,7 +120,7 @@ export class PollService {
     ];
   }
 
-  generateButtonComponents(data) {
+  generateButtonComponentsVote(data) {
     return [
       {
         components: [
@@ -231,7 +188,7 @@ export class PollService {
       const embedCompoents = this.generateEmbedComponentsResult(
         options,
         groupedByValue,
-        findUser?.clan_nick || findUser?.username,
+        findUser?.clan_nick || findUser?.username!,
       );
       const embed: EmbedProps[] = this.generateEmbedMessageResult(
         title,
@@ -245,30 +202,12 @@ export class PollService {
         },
         { deleted: true },
       );
-
-      const findChannel = await this.channelRepository.findOne({
-        where: {
-          channel_id: findMessagePoll.channelId,
-          clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-        },
+      const findChannel = await this.client.channels.fetch(
+        findMessagePoll.channelId,
+      );
+      await findChannel.send({
+        embed,
       });
-      const isThread =
-        findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
-        (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
-      const replyMessage = {
-        clan_id: this.clientConfig.clandNccId,
-        channel_id: findMessagePoll.channelId,
-        is_public: findChannel ? !findChannel?.channel_private : false,
-        is_parent_public: findChannel ? findChannel?.is_parent_public : true,
-        parent_id: '0',
-        mode: isThread
-          ? EMessageMode.THREAD_MESSAGE
-          : EMessageMode.CHANNEL_MESSAGE,
-        msg: {
-          embed,
-        },
-      };
-      this.messageQueue.addMessage(replyMessage);
       const textConfirm = 'This poll has finished!';
       const msgFinish = {
         t: textConfirm,
@@ -288,38 +227,415 @@ export class PollService {
     }
   }
 
-  async handelReactPollMessage(message, messageSent) {
-    if (message.msg.t?.startsWith('```[Poll]') && messageSent.message_id) {
+  generateFieldsCreatePoll(optionCount: number, defaultValues?: string[]) {
+    const titleField = {
+      name: 'Title',
+      value: '',
+      inputs: {
+        id: 'title',
+        type: EMessageComponentType.INPUT,
+        component: {
+          id: 'title',
+          placeholder: 'Input title here',
+          defaultValue: '',
+        },
+      },
+    };
+    const expiredField = {
+      name: 'Expired Time (hour) - Default: 168 hours (7 days)',
+      value: '',
+      inputs: {
+        id: 'expired',
+        type: EMessageComponentType.INPUT,
+        component: {
+          id: 'expired',
+          placeholder: 'Input expired time here',
+          defaultValue: 168,
+          type: 'number',
+        },
+      },
+    };
+
+    const optionFields = Array.from({ length: optionCount }, (_, index) => {
+      const idx = index + 1;
+      return {
+        name: `Option ${this.iconList[index]}`,
+        value: '',
+        inputs: {
+          id: `option_${idx}`,
+          type: EMessageComponentType.INPUT,
+          component: {
+            id: `option_${idx}`,
+            placeholder: `Input option ${idx} here`,
+            defaultValue: defaultValues?.[index] ?? '',
+          },
+        },
+      };
+    });
+
+    return [expiredField, titleField, ...optionFields];
+  }
+
+  generateComponentsCreatePoll(
+    currentOptionsLength: number,
+    color: string,
+    authorName: string,
+    clanId: string,
+    authorId,
+  ) {
+    return [
+      {
+        components: [
+          {
+            id: `pollCreate_CANCEL_${currentOptionsLength}_${color}_${authorName}_${clanId}_${authorId}`,
+            type: EMessageComponentType.BUTTON,
+            component: {
+              label: `Cancel`,
+              style: EButtonMessageStyle.SECONDARY,
+            },
+          },
+          {
+            id: `pollCreate_ADD_${currentOptionsLength}_${color}_${authorName}_${clanId}_${authorId}`,
+            type: EMessageComponentType.BUTTON,
+            component: {
+              label: `Add Option`,
+              style: EButtonMessageStyle.PRIMARY,
+            },
+          },
+          {
+            id: `pollCreate_CREATE_${currentOptionsLength}_${color}_${authorName}_${clanId}_${authorId}`,
+            type: EMessageComponentType.BUTTON,
+            component: {
+              label: `Create`,
+              style: EButtonMessageStyle.SUCCESS,
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  async handleCreatePoll(data: MessageButtonClicked) {
+    const messsageId = data.message_id;
+    const channel = await this.client.channels.fetch(data.channel_id);
+    const message = await channel.messages.fetch(messsageId);
+    const [
+      _,
+      typeButtonRes,
+      currentOptionsLength,
+      color,
+      authorName,
+      clanId,
+      authId,
+    ] = data.button_id.split('_');
+
+    if (data.user_id !== authId) {
+      const user = await channel.clan.users.fetch(data.user_id);
+      const content = `❌You have no permission to edit this poll creation!`;
+      return await user.sendDM({
+        t: content,
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
+      });
+    }
+
+    const extraDataObj = JSON.parse(data.extra_data || '{}');
+    const totalOptions = +currentOptionsLength + 1;
+
+    const optionValues = Array.from(
+      { length: +currentOptionsLength },
+      (_, i) => {
+        const key = `option_${i + 1}`;
+        const val = extraDataObj?.[key];
+        return typeof val === 'string' ? val : '';
+      },
+    );
+    if (typeButtonRes === EmbebButtonType.ADD) {
+      if (+currentOptionsLength > 9) {
+        const textConfirm = 'There are too many options, limit is 10!';
+        const msgCancel = {
+          t: textConfirm,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
+        };
+        await message.reply(msgCancel);
+        return;
+      }
+
+      const embed: EmbedProps[] = [
+        {
+          color,
+          title: `POLL CREATION`,
+          fields: this.generateFieldsCreatePoll(totalOptions, optionValues),
+          timestamp: new Date().toISOString(),
+          footer: MEZON_EMBED_FOOTER,
+        },
+      ];
+      const components = this.generateComponentsCreatePoll(
+        totalOptions,
+        color,
+        authorName,
+        clanId,
+        authId,
+      );
+      await message.update({ embed, components });
+      return;
+    }
+
+    if (typeButtonRes === EmbebButtonType.CANCEL) {
+      const textConfirm = 'Cancel create poll successful!';
+      const msgCancel = {
+        t: textConfirm,
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
+      };
+      await message.update(msgCancel);
+      return;
+    }
+
+    const time = extraDataObj?.expired ? +extraDataObj?.expired : 168;
+    const timeLeftRounded = Math.round(time * 100) / 100;
+    const timeLeftDisplay = Number.isInteger(timeLeftRounded)
+      ? timeLeftRounded
+      : parseFloat(timeLeftRounded.toFixed(2));
+
+    console.log('timeLeftDisplay', timeLeftDisplay);
+
+    if (typeButtonRes === EmbebButtonType.CREATE) {
+      if (timeLeftDisplay < 0.5) {
+        const textConfirm = 'Expired Time is not valid, min 0.5 hour!';
+        const msgCancel = {
+          t: textConfirm,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
+        };
+        await message.reply(msgCancel);
+        return;
+      }
+      const title = extraDataObj?.title;
+      if (!title) {
+        const textConfirm = 'Missing title for this poll. Please add it!';
+        const msgCancel = {
+          t: textConfirm,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
+        };
+        await message.reply(msgCancel);
+        return;
+      }
+      const colorEmbed = getRandomColor();
+      const optionsPoll = optionValues.filter((val) => val !== '');
+      console.log('optionsPoll', optionsPoll);
+      if (optionsPoll.length < 2) {
+        const textConfirm =
+          'Not enough valid options. At least 2 options are required. Please check again!';
+        const msgCancel = {
+          t: textConfirm,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
+        };
+        console.log('msgCancel', msgCancel);
+        await message.reply(msgCancel);
+        return;
+      }
+      const embedCompoents = this.generateEmbedComponents(optionsPoll);
+
+      const embed: EmbedProps[] = this.generateEmbedMessageVote(
+        title,
+        authorName,
+        colorEmbed,
+        embedCompoents,
+        timeLeftDisplay === 168 ? null : timeLeftDisplay,
+      );
+
+      const dataVote = {
+        sender_id: authId,
+        mode: (channel?.channel_type ?? 1) + 1,
+        is_public: !channel.is_private,
+        color,
+        clan_nick: authorName,
+      };
+      const components = this.generateButtonComponentsVote({
+        ...dataVote,
+        color: colorEmbed,
+      });
+
+      const pollMessageSent = await message?.update({
+        embed,
+        components,
+      });
+      if (!pollMessageSent) return;
       const dataMezonBotMessage = {
-        messageId: messageSent.message_id,
-        userId: message.sender_id,
-        channelId: message.channel_id,
-        content: message.msg.t + '',
+        messageId: pollMessageSent.message_id,
+        userId: authId,
+        clanId: clanId,
+        isChannelPublic: !channel.is_private,
+        modeMessage: (channel?.channel_type ?? 1) + 1,
+        channelId: data.channel_id,
+        content: title + '_' + optionsPoll.join('_'),
         createAt: Date.now(),
+        expireAt:
+          Date.now() +
+          (time ? +time * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000),
         pollResult: [],
       };
       await this.mezonBotMessageRepository.insert(dataMezonBotMessage);
-      const options = this.getOptionPoll(message.msg.t);
-      options.push('checked');
-      options.forEach(async (option, index) => {
-        const listEmoji = this.getEmojiDefault();
-        const dataReact: ReactMessageChannel = {
-          clan_id: message.clan_id,
-          channel_id: message.channel_id,
-          is_public: message.is_public,
-          is_parent_public: message.is_parent_public,
-          message_id: messageSent.message_id,
-          emoji_id:
-            option === 'checked'
-              ? listEmoji[option]
-              : listEmoji[index + 1 + ''],
-          emoji: option === 'checked' ? option : index + '',
-          count: 1,
-          mode: message.mode,
-          message_sender_id: process.env.BOT_KOMU_ID,
-        };
-        await this.clientService.reactMessageChannel(dataReact);
-      });
+      return;
     }
+  }
+
+  async handleSelectPoll(data: MessageButtonClicked) {
+    try {
+      if (
+        this.blockEditedList.includes(`${data.message_id}-${data.channel_id}`)
+      )
+        return;
+      const [
+        _,
+        typeButtonRes,
+        authId,
+        clanId,
+        mode,
+        isPublic,
+        color,
+        authorName,
+      ] = data.button_id.split('_');
+      const channel = await this.client.channels.fetch(data.channel_id);
+      const user = await channel.clan.users.fetch(data.user_id);
+      const messsage = await channel.messages.fetch(data.message_id);
+
+      const isPublicBoolean = isPublic === 'true' ? true : false;
+      const findMessagePoll = await this.mezonBotMessageRepository.findOne({
+        where: {
+          messageId: data.message_id,
+          channelId: data.channel_id,
+          deleted: false,
+        },
+      });
+      if (!findMessagePoll) return;
+      let userVoteMessageId =
+        findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
+      const content = findMessagePoll.content.split('_');
+      const [title, ...options] = content;
+      const dataParse = JSON.parse(data.extra_data || '{}');
+      const value = dataParse?.POLL?.[0].split('_')?.[1];
+
+      if (typeButtonRes === EmbebButtonType.CANCEL) {
+        if (data.user_id !== authId) {
+          const content = `[Poll] - ${title}\n❌You have no permission to cancel this poll!`;
+          return await user.sendDM({
+            t: content,
+            mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
+          });
+        }
+        const textCancel = 'Cancel poll successful!';
+        const msgCancel = {
+          t: textCancel,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: textCancel.length }],
+        };
+        await this.mezonBotMessageRepository.update(
+          {
+            id: findMessagePoll.id,
+          },
+          { deleted: true },
+        );
+        await messsage.update(msgCancel);
+      }
+      if (typeButtonRes === EmbebButtonType.VOTE) {
+        const findUser = await this.userRepository.findOne({
+          where: { userId: data.user_id },
+        });
+        const newUserVoteMessage = {
+          username: findUser?.clan_nick || findUser?.username,
+          value,
+        };
+        const exists = userVoteMessageId.some(
+          (item) =>
+            item.username === newUserVoteMessage.username &&
+            item.value === newUserVoteMessage.value,
+        );
+        if (exists) return;
+        let checkExist = false;
+        if (userVoteMessageId.length) {
+          userVoteMessageId = userVoteMessageId.map((user) => {
+            if (user.username === (findUser?.clan_nick || findUser?.username)) {
+              checkExist = true;
+              return { ...user, value }; // update new user option
+            }
+            return user;
+          });
+        }
+        if (!checkExist) {
+          userVoteMessageId.push(newUserVoteMessage);
+        }
+
+        // group username by value
+        const groupedByValue: { [key: string]: any[] } =
+          userVoteMessageId.reduce((acc: any, item) => {
+            const { value } = item;
+            if (!acc[value]) {
+              acc[value] = [];
+            }
+            acc[value].push(item.username);
+            return acc;
+          }, {});
+
+        // display user + value on embed
+        const embedCompoents = this.generateEmbedComponents(
+          options,
+          groupedByValue,
+        );
+
+        const create = findMessagePoll.createAt;
+        const timeLeftInMs = findMessagePoll.expireAt - create;
+        const timeLeftInHoursRaw = timeLeftInMs / (60 * 60 * 1000);
+
+        const timeLeftRounded = Math.round(timeLeftInHoursRaw * 100) / 100;
+
+        const timeLeftDisplay = Number.isInteger(timeLeftRounded)
+          ? timeLeftRounded
+          : parseFloat(timeLeftRounded.toFixed(2));
+        // embed poll
+        const embed: EmbedProps[] = this.generateEmbedMessageVote(
+          title,
+          authorName,
+          color,
+          embedCompoents,
+          timeLeftDisplay === 168 ? null : timeLeftDisplay,
+        );
+        const dataGenerateButtonComponents = {
+          sender_id: authId,
+          clan_id: clanId,
+          mode,
+          is_public: isPublicBoolean,
+          color,
+          username: authorName,
+        };
+
+        // button embed poll
+        const components = this.generateButtonComponentsVote(
+          dataGenerateButtonComponents,
+        );
+
+        // update voted into db
+        await this.mezonBotMessageRepository.update(
+          {
+            messageId: findMessagePoll.messageId,
+            channelId: findMessagePoll.channelId,
+          },
+          { pollResult: userVoteMessageId },
+        );
+
+        // update message
+        await messsage.update({ embed, components });
+      }
+
+      if (typeButtonRes === EmbebButtonType.FINISH) {
+        if (data.user_id !== authId) {
+          const content = `[Poll] - ${title}\n❌You have no permission to finish this poll!`;
+          return await user.sendDM({
+            t: content,
+            mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
+          });
+        }
+        this.blockEditedList.push(`${data.message_id}-${data.channel_id}`);
+        await sleep(700);
+        await this.handleResultPoll(findMessagePoll);
+      }
+    } catch (error) {}
   }
 }

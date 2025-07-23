@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { MezonBotMessage } from '../models';
+import { MezonBotMessage } from 'src/bot/models/mezonBotMessage.entity';
+import { IsNull, LessThanOrEqual, Not, Repository } from 'typeorm';
+import { CronJob } from 'cron';
 import { PollService } from '../services/poll.service';
 
 @Injectable()
@@ -11,25 +11,39 @@ export class PollSchedulerService {
     @InjectRepository(MezonBotMessage)
     private mezonBotMessageRepository: Repository<MezonBotMessage>,
     private pollService: PollService,
-  ) {}
+  ) {
+    this.startCronJobs();
+  }
 
-  private readonly logger = new Logger(PollSchedulerService.name);
-
-  @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
-  async handleResultPollExpire() {
-    this.logger.warn(
-      `time ${CronExpression.EVERY_MINUTE} for job handleResultPollExpire to run!`,
+  startCronJobs(): void {
+    const job = new CronJob(
+      '* * * * *',
+      () => {
+        this.handleResultPollExpire();
+      },
+      null,
+      true,
+      'Asia/Ho_Chi_Minh',
     );
-    const currentTimestamp = Date.now();
-    const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-    const sevenDays = new Date(+currentTimestamp - sevenDaysInMs);
 
-    const findMessagePolls = await this.mezonBotMessageRepository.find({
-      where: { createAt: LessThan(+sevenDays), deleted: false },
+    job.start();
+  }
+
+  async handleResultPollExpire() {
+    const now = Date.now();
+
+    const expiredPolls = await this.mezonBotMessageRepository.find({
+      where: {
+        expireAt: LessThanOrEqual(now),
+        deleted: false,
+        pollResult: Not(IsNull()),
+      },
     });
-    if (!findMessagePolls?.length) return;
-    findMessagePolls.map((findMessagePoll) => {
-      this.pollService.handleResultPoll(findMessagePoll);
+
+    if (!expiredPolls.length) return;
+
+    expiredPolls.forEach((poll) => {
+      this.pollService.handleResultPoll(poll);
     });
   }
 }

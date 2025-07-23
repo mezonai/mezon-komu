@@ -135,6 +135,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const args = data.button_id.split('_');
       const buttonConfirmType = args[0];
       switch (buttonConfirmType) {
+        case 'pollCreate':
+          this.handleCreatePoll(data);
+          break;
         case 'question':
           this.handleAnswerQuestionWFH(data);
           break;
@@ -2295,12 +2298,23 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           groupedByValue,
         );
 
+        const create = findMessagePoll.createAt;
+        const timeLeftInMs = findMessagePoll.expireAt - create;
+        const timeLeftInHoursRaw = timeLeftInMs / (60 * 60 * 1000);
+
+        const timeLeftRounded = Math.round(timeLeftInHoursRaw * 100) / 100;
+
+        const timeLeftDisplay = Number.isInteger(timeLeftRounded)
+          ? timeLeftRounded
+          : parseFloat(timeLeftRounded.toFixed(2));
+
         // embed poll
-        const embed: EmbedProps[] = this.pollService.generateEmbedMessage(
+        const embed: EmbedProps[] = this.pollService.generateEmbedMessageVote(
           title,
           authorName,
           color,
           embedCompoents,
+          timeLeftDisplay === 168 ? null : timeLeftDisplay,
         );
         const dataGenerateButtonComponents = {
           sender_id: authId,
@@ -2312,7 +2326,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         };
 
         // button embed poll
-        const components = this.pollService.generateButtonComponents(
+        const components = this.pollService.generateButtonComponentsVote(
           dataGenerateButtonComponents,
         );
 
@@ -2352,6 +2366,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         this.pollService.handleResultPoll(findMessagePoll);
       }
     } catch (error) {}
+  }
+
+  async handleCreatePoll(data) {
+    try {
+      await this.pollService.handleCreatePoll(data);
+    } catch (error) {
+      console.log('ERORR handleCreatePoll', error);
+    }
   }
 
   async sendAnswerOfInterviewerToHr(data) {

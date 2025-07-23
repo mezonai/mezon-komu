@@ -50,57 +50,6 @@ export class EventListenerMessageReaction extends BaseHandleEvent {
   //     .execute();
   // }
 
-
-  @OnEvent(Events.MessageReaction)
-  async handleReactMessagePoll(messageReaction: ApiMessageReaction) {
-    if (messageReaction.sender_id === this.clientConfig.botKomuId) return;
-    const findMessagePoll = await this.mezonBotMessageRepository.findOne({
-      where: { messageId: messageReaction.message_id, deleted: false },
-    });
-    if (!findMessagePoll) return;
-
-    let userReactMessageId = findMessagePoll.pollResult?.map((item) =>
-      JSON.parse(item),
-    ) || [];
-    const options = this.pollService.getOptionPoll(findMessagePoll.content);
-    let checkExist = false;
-    if (
-      !isNaN(Number(messageReaction.emoji)) &&
-      Number(messageReaction.emoji) <= options.length
-    ) {
-      if (userReactMessageId.length && !messageReaction.action) {
-        userReactMessageId = userReactMessageId.map((user) => {
-          if (user.username === messageReaction.sender_name) {
-            checkExist = true;
-            return { ...user, emoji: messageReaction.emoji };
-          }
-          return user;
-        });
-      }
-
-      if (!checkExist && !messageReaction.action) {
-        userReactMessageId.push({
-          username: messageReaction.sender_name,
-          emoji: messageReaction.emoji,
-        });
-      }
-
-      if (messageReaction.action) {
-        userReactMessageId = userReactMessageId.filter((user) => {
-          return !(
-            user.username === messageReaction.sender_name &&
-            +user.emoji === +messageReaction.emoji
-          );
-        });
-      }
-
-      this.mezonBotMessageRepository.update(
-        { messageId: findMessagePoll.messageId },
-        { pollResult: userReactMessageId },
-      );
-    }
-  }
-
   @OnEvent(Events.MessageReaction)
   async handleResultPoll(messageReaction) {
     const findMessagePoll = await this.mezonBotMessageRepository.findOne({
