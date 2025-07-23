@@ -63,6 +63,7 @@ export class EventAddClanUser extends BaseHandleEvent {
           findUser.user_type = EUserType.MEZON;
           findUser.last_message_time = Date.now();
           findUser.roles = ['user'];
+          findUser.deactive = false;
           await this.userRepository.update(
             { userId: data?.user?.user_id },
             findUser,

@@ -200,7 +200,8 @@ export class SendMessageSchedulerService {
     const result = await this.birthdayUser();
     await Promise.all(
       result.map(async (item) => {
-        if (!item?.user?.userId) return;
+        if (!item?.user?.userId || item?.user?.userId === '1827994776956309504')
+          return;
         const userName =
           item?.user?.clan_nick ||
           item?.user?.display_name ||
