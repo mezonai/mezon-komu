@@ -376,7 +376,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
       const dataParse = JSON.parse(data.extra_data);
-      const value = dataParse?.RADIO[0].split('_')[1]; // (pm or staff)
+      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
       //init reply message
 
       // only process with no status (not confirm or cancel request yet)
@@ -2191,180 +2191,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
 
   async handleSelectPoll(data) {
     try {
-      if (
-        this.blockEditedList.includes(`${data.message_id}-${data.channel_id}`)
-      )
-        return;
-      const [
-        _,
-        typeButtonRes,
-        authId,
-        clanId,
-        mode,
-        isPublic,
-        color,
-        authorName,
-      ] = data.button_id.split('_');
-      const isPublicBoolean = isPublic === 'true' ? true : false;
-      const findMessagePoll = await this.mezonBotMessageRepository.findOne({
-        where: {
-          messageId: data.message_id,
-          channelId: data.channel_id,
-          deleted: false,
-        },
-      });
-      if (!findMessagePoll) return;
-
-      let userVoteMessageId =
-        findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
-      const content = findMessagePoll.content.split('_');
-      const [title, ...options] = content;
-      const dataParse = JSON.parse(data.extra_data || '{}');
-      const value = dataParse?.POLL?.[0].split('_')?.[1];
-
-      if (typeButtonRes === EmbebButtonType.CANCEL) {
-        if (data.user_id !== authId) {
-          const content =
-            '' +
-            `[Poll] - ${title}\n❌You have no permission to cancel this poll!` +
-            '';
-          const messageToUser: ReplyMezonMessage = {
-            userId: data.user_id,
-            textContent: content,
-            messOptions: {
-              mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
-            },
-          };
-          this.messageQueue.addMessage(messageToUser);
-          return;
-        }
-        const textCancel = 'Cancel poll successful!';
-        const msgCancel = {
-          t: textCancel,
-          mk: [{ type: EMarkdownType.PRE, s: 0, e: textCancel.length }],
-        };
-        await this.mezonBotMessageRepository.update(
-          {
-            id: findMessagePoll.id,
-          },
-          { deleted: true },
-        );
-        const channel = await this.client.channels.fetch(data.channel_id);
-        const message = await channel.messages.fetch(data.message_id);
-        await message.update(msgCancel);
-      }
-      if (typeButtonRes === EmbebButtonType.VOTE) {
-        const findUser = await this.userRepository.findOne({
-          where: { userId: data.user_id },
-        });
-        const newUserVoteMessage = {
-          username: findUser.clan_nick || findUser.username,
-          value,
-        };
-        const exists = userVoteMessageId.some(
-          (item) =>
-            item.username === newUserVoteMessage.username &&
-            item.value === newUserVoteMessage.value,
-        );
-        if (exists) return;
-        let checkExist = false;
-        if (userVoteMessageId.length) {
-          userVoteMessageId = userVoteMessageId.map((user) => {
-            if (user.username === (findUser.clan_nick || findUser.username)) {
-              checkExist = true;
-              return { ...user, value }; // update new user option
-            }
-            return user;
-          });
-        }
-        if (!checkExist) {
-          userVoteMessageId.push(newUserVoteMessage);
-        }
-
-        // group username by value
-        const groupedByValue: { [key: string]: any[] } =
-          userVoteMessageId.reduce((acc: any, item) => {
-            const { value } = item;
-            if (!acc[value]) {
-              acc[value] = [];
-            }
-            acc[value].push(item.username);
-            return acc;
-          }, {});
-
-        // display user + value on embed
-        const embedCompoents = this.pollService.generateEmbedComponents(
-          options,
-          groupedByValue,
-        );
-
-        const create = findMessagePoll.createAt;
-        const timeLeftInMs = findMessagePoll.expireAt - create;
-        const timeLeftInHoursRaw = timeLeftInMs / (60 * 60 * 1000);
-
-        const timeLeftRounded = Math.round(timeLeftInHoursRaw * 100) / 100;
-
-        const timeLeftDisplay = Number.isInteger(timeLeftRounded)
-          ? timeLeftRounded
-          : parseFloat(timeLeftRounded.toFixed(2));
-
-        // embed poll
-        const embed: EmbedProps[] = this.pollService.generateEmbedMessageVote(
-          title,
-          authorName,
-          color,
-          embedCompoents,
-          timeLeftDisplay === 168 ? null : timeLeftDisplay,
-        );
-        const dataGenerateButtonComponents = {
-          sender_id: authId,
-          clan_id: clanId,
-          mode,
-          is_public: isPublicBoolean,
-          color,
-          username: authorName,
-        };
-
-        // button embed poll
-        const components = this.pollService.generateButtonComponentsVote(
-          dataGenerateButtonComponents,
-        );
-
-        // update voted into db
-        await this.mezonBotMessageRepository.update(
-          {
-            messageId: findMessagePoll.messageId,
-            channelId: findMessagePoll.channelId,
-          },
-          { pollResult: userVoteMessageId },
-        );
-
-        // update message
-        const channel = await this.client.channels.fetch(data.channel_id);
-        const message = await channel.messages.fetch(data.message_id);
-        await message.update({ embed, components });
-      }
-
-      if (typeButtonRes === EmbebButtonType.FINISH) {
-        if (data.user_id !== authId) {
-          const content =
-            '' +
-            `[Poll] - ${title}\n❌You have no permission to finish this poll!` +
-            '';
-          const messageToUser: ReplyMezonMessage = {
-            userId: data.user_id,
-            textContent: content,
-            messOptions: {
-              mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
-            },
-          };
-          this.messageQueue.addMessage(messageToUser);
-          return;
-        }
-        this.blockEditedList.push(`${data.message_id}-${data.channel_id}`);
-        await sleep(700);
-        this.pollService.handleResultPoll(findMessagePoll);
-      }
+      await this.pollService.handleSelectPoll(data);
     } catch (error) {}
   }
 
@@ -2379,7 +2206,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async sendAnswerOfInterviewerToHr(data) {
     try {
       console.log('Received interview data for button ID:', data);
-      const rawData = data.button_id.replace(/^interview_/, "");
+      const rawData = data.button_id.replace(/^interview_/, '');
       const [
         interviewId,
         interviewerName,
@@ -2391,7 +2218,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         cvId,
         interviewUrl,
         buttonAction,
-      ] = rawData.split("|");
+      ] = rawData.split('|');
 
       const isAccept = buttonAction === 'btnAccept';
       console.log('Received interview select button', isAccept);

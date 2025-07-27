@@ -13,11 +13,12 @@ import {
   EmbebButtonType,
   EmbedProps,
   MEZON_EMBED_FOOTER,
+  PollType,
 } from 'src/bot/constants/configs';
 import { MezonBotMessage } from 'src/bot/models/mezonBotMessage.entity';
 import { MessageButtonClicked } from 'mezon-sdk/dist/cjs/rtapi/realtime';
-import { getRandomColor, sleep } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
+import { getRandomColor, sleep } from '../utils/helper';
 
 @Injectable()
 export class PollService {
@@ -45,13 +46,16 @@ export class PollService {
     '🔟 ',
   ];
 
-  generateEmbedComponents(options, data?) {
+  generateEmbedComponents(options, data?, isMultiple?) {
     const embedCompoents = options.map((option, index) => {
       const userVoted = data?.[index];
       return {
-        label: `${this.iconList[index] + option.trim()} ${userVoted?.length ? `(${userVoted?.length})` : ''}`,
+        ...(isMultiple ? { name: `poll_${index}` } : {}),
+        label: `${this.iconList[index] + option.trim()} ${userVoted?.length ? `(${userVoted.length})` : ''}`,
         value: `poll_${index}`,
-        description: `${userVoted ? `- Voted: ${userVoted.join(', ')}` : `- (no one choose)`}`,
+        description: userVoted?.length
+          ? `- Voted: ${userVoted.join(', ')}`
+          : `- (no one choose)`,
         style: EButtonMessageStyle.SUCCESS,
       };
     });
@@ -64,6 +68,7 @@ export class PollService {
     color: string,
     embedCompoents,
     time,
+    isMultiple?,
   ) {
     return [
       {
@@ -78,6 +83,7 @@ export class PollService {
               id: `POLL`,
               type: EMessageComponentType.RADIO,
               component: embedCompoents,
+              ...(isMultiple ? { max_options: embedCompoents.length } : {}),
             },
           },
           {
@@ -168,23 +174,32 @@ export class PollService {
       let userVoteMessageId =
         findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
       const content = findMessagePoll.content.split('_');
-      const [title, ...options] = content;
+      const [title, type, ...options] = content;
 
       const findUser = await this.userRepository.findOne({
         where: { userId: findMessagePoll.userId },
       });
+      let groupedByValue: { [key: string]: string[] } = {};
 
-      const groupedByValue: { [key: string]: any[] } = userVoteMessageId.reduce(
-        (acc: any, item) => {
-          const { value } = item;
-          if (!acc[value]) {
-            acc[value] = [];
+      const isMultiple = type === PollType.MULTIPLE;
+      if (isMultiple) {
+        for (const user of userVoteMessageId) {
+          for (const val of user.values) {
+            if (!groupedByValue[val]) {
+              groupedByValue[val] = [];
+            }
+            groupedByValue[val].push(user.username);
           }
-          acc[value].push(item.username);
-          return acc;
-        },
-        {},
-      );
+        }
+      } else {
+        for (const item of userVoteMessageId) {
+          if (!groupedByValue[item.value]) {
+            groupedByValue[item.value] = [];
+          }
+          groupedByValue[item.value].push(item.username);
+        }
+      }
+
       const embedCompoents = this.generateEmbedComponentsResult(
         options,
         groupedByValue,
@@ -227,7 +242,12 @@ export class PollService {
     }
   }
 
-  generateFieldsCreatePoll(optionCount: number, defaultValues?: string[]) {
+  generateFieldsCreatePoll(
+    optionCount: number,
+    defaultValues?: string[],
+    isMultiple?: boolean,
+    timeLeftDisplay?: number,
+  ) {
     const titleField = {
       name: 'Title',
       value: '',
@@ -250,8 +270,27 @@ export class PollService {
         component: {
           id: 'expired',
           placeholder: 'Input expired time here',
-          defaultValue: 168,
+          defaultValue: timeLeftDisplay ?? 168,
           type: 'number',
+        },
+      },
+    };
+
+    const pollType = {
+      name: 'Type',
+      value: '',
+      inputs: {
+        id: `type`,
+        type: EMessageComponentType.SELECT,
+        component: {
+          id: `type`,
+          options: [
+            { label: 'Singel choice', value: 'SINGLE' },
+            { label: 'Multiple choice', value: 'MULTIPLE' },
+          ],
+          valueSelected: isMultiple
+            ? { label: 'Multiple choice', value: 'MULTIPLE' }
+            : { label: 'Singel choice', value: 'SINGLE' },
         },
       },
     };
@@ -273,7 +312,7 @@ export class PollService {
       };
     });
 
-    return [expiredField, titleField, ...optionFields];
+    return [titleField, ...optionFields, pollType, expiredField];
   }
 
   generateComponentsCreatePoll(
@@ -331,13 +370,12 @@ export class PollService {
 
     if (data.user_id !== authId) {
       const user = await channel.clan.users.fetch(data.user_id);
-      const content = `❌You have no permission to edit this poll creation!`;
+      const content = `❌You have no permission to edit this poll created by ${authorName}!`;
       return await user.sendDM({
         t: content,
         mk: [{ type: EMarkdownType.PRE, s: 0, e: content.length }],
       });
     }
-
     const extraDataObj = JSON.parse(data.extra_data || '{}');
     const totalOptions = +currentOptionsLength + 1;
 
@@ -349,6 +387,14 @@ export class PollService {
         return typeof val === 'string' ? val : '';
       },
     );
+    const time = extraDataObj?.expired ? +extraDataObj?.expired : 168;
+    const timeLeftRounded = Math.round(time * 100) / 100;
+    const timeLeftDisplay = Number.isInteger(timeLeftRounded)
+      ? timeLeftRounded
+      : parseFloat(timeLeftRounded.toFixed(2));
+
+    const isMultiple = extraDataObj?.type === PollType.MULTIPLE;
+
     if (typeButtonRes === EmbebButtonType.ADD) {
       if (+currentOptionsLength > 9) {
         const textConfirm = 'There are too many options, limit is 10!';
@@ -364,7 +410,12 @@ export class PollService {
         {
           color,
           title: `POLL CREATION`,
-          fields: this.generateFieldsCreatePoll(totalOptions, optionValues),
+          fields: this.generateFieldsCreatePoll(
+            totalOptions,
+            optionValues,
+            isMultiple,
+            timeLeftDisplay,
+          ),
           timestamp: new Date().toISOString(),
           footer: MEZON_EMBED_FOOTER,
         },
@@ -390,14 +441,6 @@ export class PollService {
       return;
     }
 
-    const time = extraDataObj?.expired ? +extraDataObj?.expired : 168;
-    const timeLeftRounded = Math.round(time * 100) / 100;
-    const timeLeftDisplay = Number.isInteger(timeLeftRounded)
-      ? timeLeftRounded
-      : parseFloat(timeLeftRounded.toFixed(2));
-
-    console.log('timeLeftDisplay', timeLeftDisplay);
-
     if (typeButtonRes === EmbebButtonType.CREATE) {
       if (timeLeftDisplay < 0.5) {
         const textConfirm = 'Expired Time is not valid, min 0.5 hour!';
@@ -420,7 +463,6 @@ export class PollService {
       }
       const colorEmbed = getRandomColor();
       const optionsPoll = optionValues.filter((val) => val !== '');
-      console.log('optionsPoll', optionsPoll);
       if (optionsPoll.length < 2) {
         const textConfirm =
           'Not enough valid options. At least 2 options are required. Please check again!';
@@ -428,11 +470,14 @@ export class PollService {
           t: textConfirm,
           mk: [{ type: EMarkdownType.PRE, s: 0, e: textConfirm.length }],
         };
-        console.log('msgCancel', msgCancel);
         await message.reply(msgCancel);
         return;
       }
-      const embedCompoents = this.generateEmbedComponents(optionsPoll);
+      const embedCompoents = this.generateEmbedComponents(
+        optionsPoll,
+        null,
+        isMultiple,
+      );
 
       const embed: EmbedProps[] = this.generateEmbedMessageVote(
         title,
@@ -440,6 +485,7 @@ export class PollService {
         colorEmbed,
         embedCompoents,
         timeLeftDisplay === 168 ? null : timeLeftDisplay,
+        isMultiple,
       );
 
       const dataVote = {
@@ -452,6 +498,7 @@ export class PollService {
       const components = this.generateButtonComponentsVote({
         ...dataVote,
         color: colorEmbed,
+        isMultiple,
       });
 
       const pollMessageSent = await message?.update({
@@ -466,7 +513,7 @@ export class PollService {
         isChannelPublic: !channel.is_private,
         modeMessage: (channel?.channel_type ?? 1) + 1,
         channelId: data.channel_id,
-        content: title + '_' + optionsPoll.join('_'),
+        content: title + '_' + extraDataObj?.type + '_' + optionsPoll.join('_'),
         createAt: Date.now(),
         expireAt:
           Date.now() +
@@ -509,10 +556,16 @@ export class PollService {
       if (!findMessagePoll) return;
       let userVoteMessageId =
         findMessagePoll.pollResult?.map((item) => JSON.parse(item)) || [];
+
       const content = findMessagePoll.content.split('_');
-      const [title, ...options] = content;
+      const [title, type, ...options] = content;
+
+      const isMultiple = type === PollType.MULTIPLE;
+
       const dataParse = JSON.parse(data.extra_data || '{}');
-      const value = dataParse?.POLL?.[0].split('_')?.[1];
+      let value = isMultiple
+        ? dataParse?.POLL?.map((pollId: string) => pollId.split('_')?.[1])
+        : dataParse?.POLL?.split('_')?.[1];
 
       if (typeButtonRes === EmbebButtonType.CANCEL) {
         if (data.user_id !== authId) {
@@ -539,45 +592,78 @@ export class PollService {
         const findUser = await this.userRepository.findOne({
           where: { userId: data.user_id },
         });
-        const newUserVoteMessage = {
-          username: findUser?.clan_nick || findUser?.username,
-          value,
-        };
-        const exists = userVoteMessageId.some(
-          (item) =>
-            item.username === newUserVoteMessage.username &&
-            item.value === newUserVoteMessage.value,
-        );
-        if (exists) return;
-        let checkExist = false;
-        if (userVoteMessageId.length) {
+        if (!findUser) return;
+
+        const username = findUser.clan_nick || findUser.username;
+
+        if (!username || !value) return;
+
+        let groupedByValue: { [key: string]: string[] } = {};
+
+        if (!isMultiple) {
+          // === SINGLE mode ===
+          const newUserVoteMessage = { username, value };
+
+          const exists = userVoteMessageId.some(
+            (item) =>
+              item.username === newUserVoteMessage.username &&
+              item.value === newUserVoteMessage.value,
+          );
+          if (exists) return;
+
+          let checkExist = false;
           userVoteMessageId = userVoteMessageId.map((user) => {
-            if (user.username === (findUser?.clan_nick || findUser?.username)) {
+            if (user.username === username) {
               checkExist = true;
-              return { ...user, value }; // update new user option
+              return { ...user, value };
             }
             return user;
           });
-        }
-        if (!checkExist) {
-          userVoteMessageId.push(newUserVoteMessage);
-        }
+          if (!checkExist) {
+            userVoteMessageId.push(newUserVoteMessage);
+          }
 
-        // group username by value
-        const groupedByValue: { [key: string]: any[] } =
-          userVoteMessageId.reduce((acc: any, item) => {
-            const { value } = item;
-            if (!acc[value]) {
-              acc[value] = [];
+          // Group username by value (SINGLE)
+          for (const item of userVoteMessageId) {
+            if (!groupedByValue[item.value]) {
+              groupedByValue[item.value] = [];
             }
-            acc[value].push(item.username);
-            return acc;
-          }, {});
+            groupedByValue[item.value].push(item.username);
+          }
+        } else {
+          // === MULTIPLE mode ===
+
+          const values: string[] = value;
+          if (!values.length) return;
+
+          let checkExist = false;
+          userVoteMessageId = userVoteMessageId.map((user) => {
+            if (user.username === username) {
+              checkExist = true;
+              return { ...user, values };
+            }
+            return user;
+          });
+          if (!checkExist) {
+            userVoteMessageId.push({ username, values });
+          }
+
+          // Group username by value (MULTIPLE)
+          for (const user of userVoteMessageId) {
+            for (const val of user.values) {
+              if (!groupedByValue[val]) {
+                groupedByValue[val] = [];
+              }
+              groupedByValue[val].push(user.username);
+            }
+          }
+        }
 
         // display user + value on embed
         const embedCompoents = this.generateEmbedComponents(
           options,
           groupedByValue,
+          isMultiple,
         );
 
         const create = findMessagePoll.createAt;
@@ -596,6 +682,7 @@ export class PollService {
           color,
           embedCompoents,
           timeLeftDisplay === 168 ? null : timeLeftDisplay,
+          isMultiple,
         );
         const dataGenerateButtonComponents = {
           sender_id: authId,
@@ -604,6 +691,7 @@ export class PollService {
           is_public: isPublicBoolean,
           color,
           username: authorName,
+          isMultiple,
         };
 
         // button embed poll
