@@ -376,7 +376,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       if (args[0] !== 'unlockTs' || !data?.extra_data || !findUnlockTsData)
         return;
       const dataParse = JSON.parse(data.extra_data);
-      const value = dataParse?.RADIO[0].split('_')[1]; // (pm or staff)
+      const value = dataParse?.RADIO?.split('_')[1]; // (pm or staff)
       //init reply message
 
       // only process with no status (not confirm or cancel request yet)
