@@ -249,3 +249,8 @@ export enum TransferType {
   UNLOCKTS = 'unlockTs',
   REWARD = 'reward',
 }
+
+export enum PollType {
+  SINGLE = 'SINGLE',
+  MULTIPLE = 'MULTIPLE'
+}
