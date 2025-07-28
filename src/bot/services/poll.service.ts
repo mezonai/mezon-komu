@@ -285,7 +285,7 @@ export class PollService {
         component: {
           id: `type`,
           options: [
-            { label: 'Singel choice', value: 'SINGLE' },
+            { label: 'Single choice', value: 'SINGLE' },
             { label: 'Multiple choice', value: 'MULTIPLE' },
           ],
           valueSelected: isMultiple

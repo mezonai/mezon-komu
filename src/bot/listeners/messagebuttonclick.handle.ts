@@ -537,13 +537,13 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const typeOfWorkKey = `daily-${messid}-type-of-work`;
           const taskKey = `daily-${messid}-task`;
 
-          const projectCode = parsedExtraData[projectKey]?.[0];
+          const projectCode = parsedExtraData[projectKey];
           const yesterdayValue = parsedExtraData[yesterdayKey];
           const todayValue = parsedExtraData[todayKey];
           const blockValue = parsedExtraData[blockKey];
           const workingTimeValue = parsedExtraData[workingTimeKey];
-          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
-          const taskValue = parsedExtraData[taskKey]?.[0];
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey];
+          const taskValue = parsedExtraData[taskKey];
 
           const isMissingField =
             !projectCode ||
@@ -1987,21 +1987,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const typeOfWorkKey = `daily-${messid}-type-of-work`;
           const taskKey = `daily-${messid}-task`;
 
-          const projectCodes = parsedExtraData[projectKey];
+          const projectCode = parsedExtraData[projectKey];
           const yesterdayValue = parsedExtraData[yesterdayKey];
           const todayValue = parsedExtraData[todayKey];
           const blockValue = parsedExtraData[blockKey];
           const workingTimeValue = parsedExtraData[workingTimeKey];
-          const typeOfWorkValue = parsedExtraData[typeOfWorkKey]?.[0];
-          const taskValue = parsedExtraData[taskKey]?.[0];
+          const typeOfWorkValue = parsedExtraData[typeOfWorkKey];
+          const taskValue = parsedExtraData[taskKey];
 
           const isMissingField =
-            !projectCodes ||
+            !projectCode ||
             !yesterdayValue ||
             !todayValue ||
             !blockValue ||
             !taskValue;
-          const contentGenerated = `*daily ${projectCodes} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
+          const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
 
           if (!isOwner) {
             return;
@@ -2041,16 +2041,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             authorUsername,
           );
 
-          for (const projectCode of projectCodes) {
-            await this.timeSheetService.logTimeSheetForTask(
-              todayValue,
-              emailAddress,
-              projectCode,
-              typeOfWorkValue,
-              taskValue,
-              workingTimeValue,
-            );
-          }
+          await this.timeSheetService.logTimeSheetForTask(
+            todayValue,
+            emailAddress,
+            projectCode,
+            typeOfWorkValue,
+            taskValue,
+            workingTimeValue,
+          );
           const isValidTimeFrame = checkTimeSheet();
           const isValidWFH = checkTimeNotWFH();
           const baseMessage = '✅ Daily saved.';
