@@ -30,6 +30,12 @@ export class StreamingEvent extends BaseHandleEvent {
     const minutesUTC = currentDate.getUTCMinutes();
     const hours = (hoursUTC + 7) % 24;
     const minutes = minutesUTC;
+
+    const vietnamDate = new Date(currentDate.getTime() + 7 * 60 * 60 * 1000);
+    const day = vietnamDate.getDay();
+
+    if (day !== 5) return true;
+
     if (
       hours < 11 ||
       (hours === 11 && minutes < 25) ||

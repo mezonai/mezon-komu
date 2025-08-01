@@ -90,7 +90,7 @@ export class Ncc8SchedulerService {
     });
   }
 
-  @Cron('30 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('30 11 * * 1,5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
     console.log('ncc8Scheduler');
     if (this.ncc8Service.getSocket()) {
@@ -102,7 +102,7 @@ export class Ncc8SchedulerService {
     );
   }
 
-  @Cron('5 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('5 12 * * 1,5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8SummaryScheduler() {
     const currentNcc8 = await this.findCurrentNcc8Episode(FileType.NCC8);
     const currentNcc8FileName = currentNcc8?.fileName;
