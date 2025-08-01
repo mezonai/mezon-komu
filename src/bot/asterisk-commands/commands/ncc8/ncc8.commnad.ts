@@ -28,7 +28,7 @@ export class Ncc8Command extends CommandMessage {
     super();
   }
 
-  @Cron('1 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('1 12 * * 1,5', { timeZone: 'Asia/Ho_Chi_Minh' })
   stopNCC8Schedule() {
     this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
   }
