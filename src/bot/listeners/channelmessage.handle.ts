@@ -66,7 +66,10 @@ export class EventListenerChannelMessage {
 
   async isWebhookUser(message: ChannelMessage) {
     const webhook = await this.userRepository.find({
-      where: { roles: IsNull(), user_type: EUserType.MEZON },
+      where: [
+        { roles: IsNull(), user_type: EUserType.MEZON },
+        { deactive: true, user_type: EUserType.MEZON },
+      ],
     });
     const webhookId = webhook.map((item) => item.userId);
     return webhookId.includes(message.sender_id);
@@ -80,6 +83,7 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
+    console.log('message', message);
     try {
       if (!invalidCharacter.includes(message?.content?.t)) {
         await Promise.all([

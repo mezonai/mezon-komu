@@ -82,6 +82,15 @@ export class DailyCommand extends CommandMessage {
         message,
       );
     }
+    const userDB = await this.userRepository.findOne({
+      where: { userId: message.sender_id },
+    });
+    if (!userDB.roles || !userDB.roles.length) {
+      userDB.roles = ['user'];
+    }
+
+    await this.userRepository.save(userDB);
+
     const content = message.content.t;
     const messageid = message.message_id;
     const messageValidate = this.validateMessage(args);
