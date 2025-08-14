@@ -155,7 +155,7 @@ export class VoucherCommand extends CommandMessage {
     }
 
     if (args[0] === 'balance') {
-      let userEmail = args[1] ?? message.clan_nick;
+      let userEmail = args[1] || message.clan_nick || message.username;
       if (
         Array.isArray(message.mentions) &&
         message.mentions.length &&

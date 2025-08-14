@@ -34,7 +34,10 @@ export class WhereCommand extends CommandMessage {
         'Example: *where a.nguyenvan' +
         '';
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
         message,
       );
     }
@@ -80,11 +83,10 @@ export class WhereCommand extends CommandMessage {
         const filter = new Set();
         const currentUserVoiceChannelFindUser = listChannelVoiceUsers.filter(
           (item) => {
-            if (convertName(item.participant) !== message.username) {
+            if (item.user_id !== message.sender_id) {
               return false;
             }
             const identifier = `${item.user_id}-${item.channel_id}`;
-
             if (!filter.has(identifier)) {
               filter.add(identifier);
               return true;

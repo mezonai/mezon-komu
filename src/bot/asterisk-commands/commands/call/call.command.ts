@@ -4,7 +4,7 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelMezon, User } from 'src/bot/models';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
@@ -34,7 +34,10 @@ export class CallCommand extends CommandMessage {
         messageContent = 'Not found user';
       }
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
         message,
       );
     }
@@ -46,7 +49,10 @@ export class CallCommand extends CommandMessage {
         'Example: *call a.nguyenvan' +
         '';
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
         message,
       );
     }
@@ -93,7 +99,7 @@ export class CallCommand extends CommandMessage {
 
         const listVoiceChannel = await this.channelRepository.find({
           where: {
-            channel_type: ChannelType.CHANNEL_TYPE_GMEET_VOICE,
+            channel_type: In([4, 10]),
             clan_id: message.clan_id,
           },
         });
@@ -108,7 +114,7 @@ export class CallCommand extends CommandMessage {
 
         const filter = new Set();
         const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-          if (convertName(item.participant) !== message.username) {
+          if (item.user_id !== message.sender_id) {
             return false;
           }
           const identifier = `${item.user_id}-${item.channel_id}`;
