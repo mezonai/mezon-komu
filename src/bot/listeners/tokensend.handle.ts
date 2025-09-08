@@ -86,7 +86,7 @@ export class EventTokenSend extends BaseHandleEvent {
           },
           {
             name: `Funds Transferred:`,
-            value: `${data.amount}₫`,
+            value: `${(+data.amount).toLocaleString('vi-VN')}₫`,
           },
           {
             name: `Detail:`,

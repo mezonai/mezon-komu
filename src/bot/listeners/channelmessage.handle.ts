@@ -83,7 +83,6 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
-    console.log('message', message);
     try {
       if (!invalidCharacter.includes(message?.content?.t)) {
         await Promise.all([

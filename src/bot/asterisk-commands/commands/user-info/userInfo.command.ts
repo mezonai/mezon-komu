@@ -77,7 +77,9 @@ export class UserInfoCommand extends CommandMessage {
         message,
       );
 
-    const email = findUser?.email.toLowerCase() + '@ncc.asia';
+    const username = findUser.clan_nick || findUser.username
+
+    const email = username.toLowerCase() + '@ncc.asia';
     const { wiki, project, wikiApiKeySecret } = this.clientConfigService;
     const httpsAgent = this.clientConfigService.https;
     const headers = { 'X-Secret-Key': wikiApiKeySecret };
