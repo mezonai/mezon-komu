@@ -83,7 +83,7 @@ export class WhereCommand extends CommandMessage {
         const filter = new Set();
         const currentUserVoiceChannelFindUser = listChannelVoiceUsers.filter(
           (item) => {
-            if (item.user_id !== message.sender_id) {
+            if (item.user_id !== findUser.userId) {
               return false;
             }
             const identifier = `${item.user_id}-${item.channel_id}`;
@@ -110,7 +110,7 @@ export class WhereCommand extends CommandMessage {
           });
 
           const messageToUser: ReplyMezonMessage = {
-            userId: findUser.userId,
+            userId: message.sender_id,
             textContent: messageContent,
             messOptions: {
               hg,

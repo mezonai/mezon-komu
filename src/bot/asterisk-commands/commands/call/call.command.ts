@@ -114,7 +114,7 @@ export class CallCommand extends CommandMessage {
 
         const filter = new Set();
         const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-          if (item.user_id !== message.sender_id) {
+          if (item.user_id !== findUser.userId) {
             return false;
           }
           const identifier = `${item.user_id}-${item.channel_id}`;
