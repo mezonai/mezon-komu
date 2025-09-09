@@ -120,8 +120,7 @@ export class UtilsService {
 
     if (minuteDb >= 0 && minuteDb <= 4) {
       checkFiveMinute = minuteDb + 60 - minuteDateNow;
-      dateScheduler.setHours(dateScheduler.getHours() - 1);
-      hourTimestamp = dateScheduler.getHours();
+      hourTimestamp = dateScheduler.getHours() - 1;
     } else {
       checkFiveMinute = minuteDb - minuteDateNow;
       hourTimestamp = dateScheduler.getHours();
