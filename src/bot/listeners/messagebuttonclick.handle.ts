@@ -615,9 +615,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const isValidWFH = checkTimeNotWFH();
           const baseMessage = '✅ Daily saved.';
           const errorMessageWFH =
-            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
+            '❌ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
           const errorMessageNotWFH =
-            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
+            '❌ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
 
           const messageContent = wfhUserEmail.includes(authorUsername)
             ? isValidTimeFrame
@@ -2053,9 +2053,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const isValidWFH = checkTimeNotWFH();
           const baseMessage = '✅ Daily saved.';
           const errorMessageWFH =
-            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
+            '❌ Daily saved. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)';
           const errorMessageNotWFH =
-            '✅ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
+            '❌ Daily saved. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
 
           const messageContent = wfhUserEmail.includes(authorUsername)
             ? isValidTimeFrame
