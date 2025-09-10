@@ -199,6 +199,9 @@ export class KomubotrestService {
           { username: username, user_type: EUserType.MEZON },
         ],
       });
+      if (!findUser) {
+        return res.status(400).send({ message: 'Not found User' });
+      };
       const messageToUser: ReplyMezonMessage = {
         userId: findUser.userId,
         textContent: message,
