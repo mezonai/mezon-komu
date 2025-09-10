@@ -290,7 +290,7 @@ export class PollService {
           ],
           valueSelected: isMultiple
             ? { label: 'Multiple choice', value: 'MULTIPLE' }
-            : { label: 'Singel choice', value: 'SINGLE' },
+            : { label: 'Single choice', value: 'SINGLE' },
         },
       },
     };

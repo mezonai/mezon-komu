@@ -193,9 +193,12 @@ export class KomubotrestService {
 
     try {
       const findUser = await this.userRepository.findOne({
-        where: { clan_nick: username, user_type: EUserType.MEZON },
+        where: [
+          { clan_nick: username, user_type: EUserType.MEZON },
+          { display_name: username, user_type: EUserType.MEZON },
+          { username: username, user_type: EUserType.MEZON },
+        ],
       });
-      if (!findUser) return;
       const messageToUser: ReplyMezonMessage = {
         userId: findUser.userId,
         textContent: message,
