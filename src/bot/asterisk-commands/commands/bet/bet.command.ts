@@ -10,7 +10,7 @@ import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MezonClientService } from 'src/mezon/services/client.service';
 
-@Command('bet')
+// @Command('bet')
 export class BetCommand extends CommandMessage {
   private TIME_UTC = 7 * 60 * 60 * 1000;
   private client: MezonClient;
