@@ -35,7 +35,7 @@ export class ClientConfigService {
     this.user_status = {
       api_url_userstatus: `${configService.get<string>(
         'TIMESHEET_API',
-      )}Public/GetWorkingStatusByUser`,
+      )}Public/GetWorkingStatusByUserV2`,
     };
     this.submitTimesheet = {
       api_url_getListUserLogTimesheet: `${configService.get<string>(

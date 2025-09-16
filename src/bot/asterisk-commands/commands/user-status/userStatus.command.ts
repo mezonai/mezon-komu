@@ -23,7 +23,7 @@ export class UserStatusCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    let messageContent: EUserStatusCommand;
+    let messageContent;
     let userQuery = '';
     if (Array.isArray(message.references) && message.references.length) {
       userQuery = message.references[0].message_sender_username;
@@ -70,10 +70,9 @@ export class UserStatusCommand extends CommandMessage {
       .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
       .getOne();
 
-      
-      if (!findUser) {
-        messageContent = EUserStatusCommand.WRONG_EMAIL;
-      } else {
+    if (!findUser) {
+      messageContent = EUserStatusCommand.WRONG_EMAIL;
+    } else {
       const username = findUser?.clan_nick || findUser?.username;
       const url = `${this.clientConfig.user_status.api_url_userstatus}?emailAddress=${username}@ncc.asia`;
       const response = await this.axiosClientService.get(url);
@@ -81,10 +80,16 @@ export class UserStatusCommand extends CommandMessage {
       const getUserStatus = response.data;
       if (!getUserStatus) return;
 
-      messageContent = getUserStatus.result
-        ? getUserStatus.result.message
-        : EUserStatusCommand.WORK_AT_HOME;
+      messageContent =
+        `${username}'s status:\n` +
+        (getUserStatus.result.length
+          ? getUserStatus.result.map((item) => `- ` + item.message).join('\n')
+          : `- ` + EUserStatusCommand.WORK_AT_HOME);
     }
-    return this.replyMessageGenerate({ messageContent }, message);
+
+    return this.replyMessageGenerate(
+      { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
+      message,
+    );
   }
 }
