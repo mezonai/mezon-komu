@@ -30,9 +30,11 @@ export class ReportWFHService {
 
     const wfhFullday = await this.wfhRepository
       .createQueryBuilder('wfh')
-      .innerJoinAndSelect('komu_user', 'm', 'wfh.userId = m.userId')
+      .innerJoin('komu_user', 'm', 'wfh.userId = m.userId')
       .where(
-        '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusAPPROVED AND pmconfirm = :pmconfirm AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay)',
+        '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
+          'OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
+          'OR ("status" = :statusAPPROVED AND pmconfirm = :pmconfirm AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay)',
         {
           type: 'wfh',
           statusACCEPT: 'ACCEPT',
@@ -47,11 +49,17 @@ export class ReportWFHService {
             .lastDay.getTime(),
         },
       )
-      .groupBy('m.username')
-      .addGroupBy('wfh.userId')
-      .select('wfh.userId, COUNT(wfh.userId) as total, m.username')
+      .groupBy('wfh.userId')
+      .addGroupBy('m.clan_nick')
+      .addGroupBy('m.display_name')
+      .addGroupBy('m.username')
+      .select([
+        'wfh.userId AS userId',
+        'COUNT(wfh.userId) AS total',
+        'COALESCE(m.clan_nick, m.display_name, m.username) AS name',
+      ])
       .orderBy('total', 'DESC')
-      .execute();
+      .getRawMany();
 
     if (!returnMsg) {
       return wfhFullday;
@@ -149,9 +157,11 @@ export class ReportWFHService {
     });
     const result = await this.wfhRepository
       .createQueryBuilder('wfh')
-      .innerJoinAndSelect('komu_user', 'm', 'wfh.userId = m.userId')
+      .innerJoin('komu_user', 'm', 'wfh.userId = m.userId')
       .where(
-        '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusAPPROVED AND pmconfirm = :pmconfirm AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay)',
+        '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
+          'OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
+          'OR ("status" = :statusAPPROVED AND pmconfirm = :pmconfirm AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay)',
         {
           type: 'mention',
           statusACCEPT: 'ACCEPT',
@@ -166,11 +176,16 @@ export class ReportWFHService {
             .lastDay.getTime(),
         },
       )
-      .groupBy('m.email')
-      .addGroupBy('wfh.userId')
-      .select('m.email, COUNT(wfh.userId) as count')
+      .groupBy('wfh.userId')
+      .addGroupBy('m.clan_nick')
+      .addGroupBy('m.display_name')
+      .addGroupBy('m.username')
+      .select([
+        'COALESCE(m.clan_nick, m.display_name, m.username) AS name',
+        'COUNT(wfh.userId) as count',
+      ])
       .orderBy('count', 'DESC')
-      .execute();
+      .getRawMany();
     return result;
   }
 }
