@@ -56,7 +56,7 @@ export class ReportWFHService {
       .select([
         'wfh.userId AS userId',
         'COUNT(wfh.userId) AS total',
-        'COALESCE(m.clan_nick, m.display_name, m.username) AS name',
+        `COALESCE(NULLIF(m.clan_nick, ''), NULLIF(m.display_name, ''), m.username) AS name`,
       ])
       .orderBy('total', 'DESC')
       .getRawMany();
@@ -181,7 +181,7 @@ export class ReportWFHService {
       .addGroupBy('m.display_name')
       .addGroupBy('m.username')
       .select([
-        'COALESCE(m.clan_nick, m.display_name, m.username) AS name',
+        `COALESCE(NULLIF(m.clan_nick, ''), NULLIF(m.display_name, ''), m.username) AS name`,
         'COUNT(wfh.userId) as count',
       ])
       .orderBy('count', 'DESC')
