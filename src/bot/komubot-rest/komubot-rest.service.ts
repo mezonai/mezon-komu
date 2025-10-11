@@ -585,10 +585,10 @@ export class KomubotrestService {
             sender_name: 'KOMU',
             receiver_id: item.userId,
             amount: +item.amount,
-            extra_attribute: JSON.stringify({
+            extra_attribute: (JSON.stringify({
               appId,
               sessionId: `${payoutApplication.sessionId}-${item.userId}`,
-            }),
+            })) as any,
           };
           sendSuccessList.push(item.userId);
           return this.client.sendToken(dataSendToken);
@@ -621,10 +621,10 @@ export class KomubotrestService {
             sender_name: 'KOMU',
             receiver_id: item.userId,
             amount: +item.amount,
-            extra_attribute: JSON.stringify({
+            extra_attribute: (JSON.stringify({
               appId: 'send_by_api',
               sessionId: 'send_by_api',
-            }),
+            })) as any,
           };
           try {
             return this.client.sendToken(dataSendToken);
