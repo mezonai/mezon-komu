@@ -433,25 +433,28 @@ export class ReportTrackerService {
         );
 
         timeTextArray.push(
-          `${findUser.username} - tham gia tổng ${totalTimeInMinutes} phút -> thiếu ${remainingTimeInMinutes} phút`,
+          `${findUser.clan_nick || findUser.display_name || findUser.username} - tham gia tổng ${totalTimeInMinutes} phút -> thiếu ${remainingTimeInMinutes} phút`,
         );
       }
 
       // check join late
       if (session.firstJoin && session.firstJoin > timestampNcc8) {
         const lateSeconds = (session.firstJoin - timestampNcc8) / 1000;
-        const lateText =
-          lateSeconds > 60
-            ? `${Math.round(lateSeconds / 60)} phút`
-            : `${Math.round(lateSeconds)} giây`;
-        const timeString = this.utilsService.formatDate(
-          session.firstJoin,
-          true,
-        );
+        if (lateSeconds > 120) {
+          const lateText =
+            lateSeconds > 60
+              ? `${Math.round(lateSeconds / 60)} phút`
+              : `${Math.round(lateSeconds)} giây`;
 
-        lateTextArray.push(
-          `${findUser.username} - join lúc ${timeString} → vào muộn ${lateText}`,
-        );
+          const timeString = this.utilsService.formatDate(
+            session.firstJoin,
+            true,
+          );
+
+          lateTextArray.push(
+            `${findUser.clan_nick || findUser.display_name || findUser.username} - join lúc ${timeString} → vào muộn ${lateText}`,
+          );
+        }
       }
     }
 
@@ -463,7 +466,7 @@ export class ReportTrackerService {
         const user = await this.userRepository.findOne({
           where: { userId: id, user_type: EUserType.MEZON },
         });
-        return user?.username;
+        return user?.clan_nick || user?.display_name || user?.username;
       }),
     );
 

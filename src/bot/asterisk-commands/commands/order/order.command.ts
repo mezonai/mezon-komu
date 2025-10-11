@@ -19,7 +19,8 @@ export class OrderCommand extends CommandMessage {
     let author = message.sender_id;
     const findUser = await this.orderCommandService.getUserByUserId(author);
     if (!findUser) return;
-    const username = findUser.email ?? message.username;
+    const username =
+      message.clan_nick || message.display_name || message.username;
     if (!args[0]) {
       return this.replyMessageGenerate(
         { messageContent: EOrderCommand.EMPTY },
@@ -77,7 +78,10 @@ export class OrderCommand extends CommandMessage {
       for (let i = 0; i < listOrder.length; i += 50) {
         const chunk = listOrder.slice(i, i + 50);
         const mess = chunk
-          .map((list) => `<${list.username}> order ${list.menu.toUpperCase()}`)
+          .map(
+            (list) =>
+              `<${list?.clan_nick || list?.display_name || list?.username}> order ${list.menu.toUpperCase()}`,
+          )
           .join('\n');
 
         listMessage.push(mess);

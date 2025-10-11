@@ -27,7 +27,9 @@ export class ReportOrderService {
         .andWhere(
           `"createdTimestamp" > ${this.utilsService.getYesterdayDate() + 60000 * 60 * 7}`,
         )
-        .andWhere(`"createdTimestamp" < ${this.utilsService.getTomorrowDate() + 60000 * 60 * 7}`) 
+        .andWhere(
+          `"createdTimestamp" < ${this.utilsService.getTomorrowDate() + 60000 * 60 * 7}`,
+        )
         .groupBy('username')
         .execute();
 
@@ -51,7 +53,8 @@ export class ReportOrderService {
             const mess = listOrder
               .slice(i * 50, (i + 1) * 50)
               .map(
-                (list) => `<${list.username}> order ${list.menu.toUpperCase()}`,
+                (list) =>
+                  `<${list?.clan_nick || list?.display_name || list.username}> order ${list.menu.toUpperCase()}`,
               )
               .join('\n');
             listMessage.push(
