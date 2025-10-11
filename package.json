@@ -6,7 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "resolutions": {
-    "minimatch": "^9.0.0"
+    "minimatch": "^9.0.0",
+    "@firebase/util": "1.9.3",
+    "@firebase/database-compat": "1.0.7"
   },
   "scripts": {
     "build": "nest build",
@@ -39,7 +41,7 @@
     "axios": "^1.7.5",
     "base64-arraybuffer": "^1.0.2",
     "broadcast-address": "^1.0.2",
-    "cheerio": "^1.0.0",
+    "cheerio": "1.0.0",
     "chrono-node": "^1.4.9",
     "class-validator": "^0.14.1",
     "date-fns": "^3.6.0",
