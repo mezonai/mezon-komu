@@ -1,6 +1,7 @@
 import {
   ChannelMessage,
   EButtonMessageStyle,
+  EMarkdownType,
   EMessageComponentType,
 } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
@@ -107,6 +108,24 @@ export class VoucherCommand extends CommandMessage {
       //   },
       //   message,
       // );
+
+      // TODO
+      const msgText = `❌ Command voucher exchange hiện đang bảo trì!`;
+      const dataSend = this.replyMessageGenerate(
+        {
+          messageContent: msgText,
+          mk: [
+            {
+              type: EMarkdownType.PRE,
+              s: 0,
+              e: msgText.length,
+            },
+          ],
+        },
+        message,
+      );
+      return dataSend;
+  
       const sendTokenData = {
         sender_id: message.sender_id,
         receiver_id: process.env.BOT_KOMU_ID,
@@ -114,7 +133,7 @@ export class VoucherCommand extends CommandMessage {
         extra_attribute: JSON.stringify({
           sessionId: 'buy_NccSoft_voucher',
           appId: 'buy_NccSoft_voucher',
-          type: TransferType.VOUCHER
+          type: TransferType.VOUCHER,
         }),
       };
       const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));

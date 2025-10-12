@@ -1,7 +1,11 @@
-import { ChannelMessage, EButtonMessageStyle } from 'mezon-sdk';
+import { ChannelMessage, EButtonMessageStyle, EMarkdownType } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
-import { EmbedProps, EMessageComponentType, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
+import {
+  EmbedProps,
+  EMessageComponentType,
+  MEZON_EMBED_FOOTER,
+} from 'src/bot/constants/configs';
 import { getRandomColor } from 'src/bot/utils/helper';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,6 +29,24 @@ export class UnlockTimeSheetCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
+    const msgText = `❌ Command unlockts hiện đang bảo trì!`;
+    const dataSend = this.replyMessageGenerate(
+      {
+        messageContent: msgText,
+        mk: [
+          {
+            type: EMarkdownType.PRE,
+            s: 0,
+            e: msgText.length,
+          },
+        ],
+      },
+      message,
+    );
+    return dataSend;
+  }
+
+  async execute1(args: string[], message: ChannelMessage) {
     const findUser = await this.userRepository.findOne({
       where: { userId: message.sender_id },
     });
