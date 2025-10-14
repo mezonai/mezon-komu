@@ -196,8 +196,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     try {
       const args = data.button_id.split('_');
       if (args[0] !== 'question') return;
+      const clan = this.client.clans.get('0');
+      const user = await clan.users.fetch(data.user_id);
       const answer = args[1];
-      const channelDmId = args[2];
+      const channelDmId = user.dmChannelId;
       const color = args[3] || '#57F287';
       await this.userRepository.update(
         { userId: data.user_id },
@@ -323,7 +325,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       await user.sendDM({
         t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này!',
       });
-      console.log('Error handleMessageButtonClicked');
+      console.log('Error handleMessageButtonClicked', error);
     }
   }
 
