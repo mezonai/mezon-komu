@@ -45,7 +45,7 @@ export class MessageCommand {
     try {
       if (message.userId) {
         try {
-          const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
+          const clan = this.client.clans.get('0');
           const user = await clan.users.fetch(message.userId);
           if (!user) return;
           await user.sendDM(
@@ -59,10 +59,10 @@ export class MessageCommand {
           const clan = this.client.clans.get('0')
           const user = await clan?.users?.fetch('1827994776956309504')
           user.sendDM({t: `Không fetch đc user ${message.userId}`})
-          await this.userRepository.update(
-            { userId: message.userId },
-            { botPing: false, user_type: null },
-          );
+          // await this.userRepository.update(
+          //   { userId: message.userId },
+          //   { botPing: false, user_type: null },
+          // );
           console.log('Error fetch user', message.userId);
         }
       } else {

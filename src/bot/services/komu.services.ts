@@ -46,7 +46,7 @@ export class KomuService {
       }
       let sent: ChannelMessageAck;
       try {
-        const clan = this.client.clans.get(process.env.KOMUBOTREST_CLAN_NCC_ID);
+        const clan = this.client.clans.get('0');
         const user = await clan.users.fetch(userId);
         if (!user) return;
         sent = await user.sendDM({

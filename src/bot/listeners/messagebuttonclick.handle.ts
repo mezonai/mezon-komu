@@ -285,7 +285,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       };
       const messageToUser: ReplyMezonMessage = {
         userId: data.user_id,
-        textContent: userQuiz['answer'] ? mess : '',
+        textContent: userQuiz?.['answer'] ? mess : '',
         messOptions: messOptions,
         attachments: [],
         refs: refGenerate(msg),

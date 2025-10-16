@@ -117,7 +117,7 @@ export class QuizService {
           userId,
           q.id,
           sendMess.message_id,
-          sendMess.channel_id,
+          user.dmChannelId,
         );
       }
     } catch (error) {
