@@ -236,8 +236,27 @@ export class ReportTrackerService {
       }
 
       const { data } = result;
+      const usernames = Array.from(
+        new Set(data.map((x) => x.email).filter(Boolean)),
+      );
+      const rows = await this.userRepository
+        .createQueryBuilder('u')
+        .select([
+          'u.username AS username',
+          'u.email AS email',
+          `COALESCE(NULLIF(u.clan_nick, ''), u.username) AS name`,
+        ])
+        .where('u.username IN (:...usernames)', { usernames })
+        .getRawMany<{ username: string; name: string }>();
+
+      const nameByUsername = new Map(rows.map((r) => [r.username, r.name]));
+
+      const output = data.map((item) => ({
+        ...item,
+        email: nameByUsername.get(item.email) ?? item.email,
+      }));
       const userWfhs = [];
-      for (const e of data) {
+      for (const e of output) {
         for (const wfhUser of wfhUsers) {
           if (e.email.concat('@ncc.asia') == wfhUser.emailAddress) {
             e['dateTypeName'] = wfhUser.dateTypeName;
