@@ -108,23 +108,6 @@ export class VoucherCommand extends CommandMessage {
       //   },
       //   message,
       // );
-
-      // TODO
-      const msgText = `❌ Command voucher exchange hiện đang bảo trì!`;
-      const dataSend = this.replyMessageGenerate(
-        {
-          messageContent: msgText,
-          mk: [
-            {
-              type: EMarkdownType.PRE,
-              s: 0,
-              e: msgText.length,
-            },
-          ],
-        },
-        message,
-      );
-      return dataSend;
   
       const sendTokenData = {
         sender_id: message.sender_id,

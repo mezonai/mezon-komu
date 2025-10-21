@@ -29,24 +29,6 @@ export class UnlockTimeSheetCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    const msgText = `❌ Command unlockts hiện đang bảo trì!`;
-    const dataSend = this.replyMessageGenerate(
-      {
-        messageContent: msgText,
-        mk: [
-          {
-            type: EMarkdownType.PRE,
-            s: 0,
-            e: msgText.length,
-          },
-        ],
-      },
-      message,
-    );
-    return dataSend;
-  }
-
-  async execute1(args: string[], message: ChannelMessage) {
     const findUser = await this.userRepository.findOne({
       where: { userId: message.sender_id },
     });
