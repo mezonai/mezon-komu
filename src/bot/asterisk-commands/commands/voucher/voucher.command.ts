@@ -1,9 +1,4 @@
-import {
-  ChannelMessage,
-  EButtonMessageStyle,
-  EMarkdownType,
-  EMessageComponentType,
-} from 'mezon-sdk';
+import { ChannelMessage, EMarkdownType, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
@@ -18,14 +13,25 @@ import {
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
-import { UserStatusService } from '../user-status/userStatus.service';
-import { User, VoucherEntiTy } from 'src/bot/models';
+import { User, VoucherEntiTy, VoucherWithDrawEntiTy } from 'src/bot/models';
 import { EUserError } from 'src/bot/constants/error';
+import { MezonClientService } from 'src/mezon/services/client.service';
+import { DataSource } from 'typeorm';
+import { ETransactionStatus } from 'src/bot/models/voucherWithdrawTransaction.entity';
+import fs from 'fs';
+import path from 'path';
+interface VoucherUser {
+  gmail: string;
+  mezonId: string;
+  totalAvailable: number;
+}
 
 @Command('voucher')
 export class VoucherCommand extends CommandMessage {
+  private client: MezonClient;
+  private voucherData: VoucherUser[];
   constructor(
     private readonly axiosClientService: AxiosClientService,
     private messageQueue: MessageQueue,
@@ -34,119 +40,184 @@ export class VoucherCommand extends CommandMessage {
     private userRepository: Repository<User>,
     @InjectRepository(VoucherEntiTy)
     private voucherRepository: Repository<VoucherEntiTy>,
+    private clientService: MezonClientService,
+    private readonly dataSource: DataSource,
   ) {
     super();
+    this.client = this.clientService.getClient();
+    const filePath = path.resolve(
+      process.cwd(),
+      'src/bot/utils/transformed-output.json',
+    );
+
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const jsonData = JSON.parse(fileContent);
+      this.voucherData = jsonData.users || [];
+    } catch (err) {
+      console.error('❌ Failed to load voucher data:', err);
+      this.voucherData = [];
+    }
+  }
+
+  private findVoucherUserBySenderId(senderId: string) {
+    return this.voucherData.find((u) => u.mezonId === senderId) || null;
+  }
+
+  async handleWithdraw(message: ChannelMessage) {
+    const userId = message.sender_id;
+    const channelClan = await this.client.channels.fetch(message.channel_id);
+    const messageClan = await channelClan.messages.fetch(message.message_id);
+
+    // check user in DB
+    const user = this.findVoucherUserBySenderId(userId);
+    if (!user) {
+      const msg = '❌User not found in voucher data. Please contact admin.❌';
+      await messageClan.reply({
+        t: msg,
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: msg.length }],
+      });
+      return;
+    }
+
+    await this.dataSource.transaction('READ COMMITTED', async (manager) => {
+      // use pg_advisory_xact_lock block transaction by userid
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        userId,
+      ]);
+
+      // check have success transaction (1 user have only 1 transaction success)
+      const alreadySuccess = await manager
+        .getRepository(VoucherWithDrawEntiTy)
+        .createQueryBuilder('w')
+        .where('w."userId" = :userId AND w."status" = :status', {
+          userId,
+          status: ETransactionStatus.SUCCESS,
+        })
+        .setLock('pessimistic_read')
+        .getExists();
+
+      // throw if exist transaction success
+      if (alreadySuccess) {
+        const messageContent =
+          '⛔You have successfully withdrawn your money!⛔';
+        await messageClan.reply({
+          t: messageContent,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
+        });
+        return;
+      }
+
+      // check status pending
+      const existingPending = await manager
+        .getRepository(VoucherWithDrawEntiTy)
+        .createQueryBuilder('w')
+        .where('w."userId" = :userId AND w."status" = :status', {
+          userId,
+          status: ETransactionStatus.PENDING,
+        })
+        .setLock('pessimistic_read')
+        .getOne();
+
+      // return if exist transaction pending
+      if (existingPending) return;
+
+      let rowId = null;
+
+      // create pending transaction for init
+      try {
+        const result = await manager
+          .createQueryBuilder()
+          .insert()
+          .into(VoucherWithDrawEntiTy)
+          .values({
+            userId,
+            amount: 0,
+            status: ETransactionStatus.PENDING,
+            createdAt: Date.now(),
+          })
+          .returning(['id'])
+          .execute();
+
+        rowId = result.raw?.[0]?.id;
+      } catch (e) {
+        if (
+          e instanceof QueryFailedError &&
+          (e as any).driverError?.code === '23505'
+        )
+          return;
+        throw e;
+      }
+
+      if (!rowId) return;
+
+      // get blance user form voucher
+      const balance = user?.totalAvailable || 0;
+      // check balance
+      if (balance <= 0) {
+        await manager
+          .createQueryBuilder()
+          .update(VoucherWithDrawEntiTy)
+          .set({ status: ETransactionStatus.FAIL, amount: 0 })
+          .where('id = :id', { id: rowId })
+          .execute();
+        const messageContent = '⛔You have no money to withdraw!⛔';
+        await messageClan.reply({
+          t: messageContent,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
+        });
+        return;
+      }
+
+      // withdraw token
+      try {
+        const sendResult = await this.client.sendToken({
+          receiver_id: userId,
+          amount: balance,
+          note: 'Withdraw voucher',
+        });
+
+        const status = sendResult?.ok
+          ? ETransactionStatus.SUCCESS
+          : ETransactionStatus.FAIL;
+
+        // update success transaction
+        await manager
+          .createQueryBuilder()
+          .update(VoucherWithDrawEntiTy)
+          .set({ status, amount: balance })
+          .where('id = :id', { id: rowId })
+          .execute();
+
+        const messageContent = `✅Withdraw ${balance.toLocaleString('vi-VN')} successfully!✅`;
+        await messageClan.reply({
+          t: messageContent,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
+        });
+      } catch {
+        // update fail transaction
+        await manager
+          .createQueryBuilder()
+          .update(VoucherWithDrawEntiTy)
+          .set({ status: ETransactionStatus.FAIL, amount: balance })
+          .where('id = :id', { id: rowId })
+          .execute();
+        const messageContent =
+          '❌Withdrawal failed. Please contact the admin or try again!❌';
+        await messageClan.reply({
+          t: messageContent,
+          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
+        });
+      }
+    });
   }
 
   async execute(args: string[], message: ChannelMessage) {
     if (args[0] === 'exchange') {
-      // const embed: EmbedProps[] = [
-      //   {
-      //     color: getRandomColor(),
-      //     title: `VOUCHER EXCHANGE OPTION`,
-      //     description: 'Select option you want to exchange voucher',
-      //     fields: [
-      //       {
-      //         name: '',
-      //         value: '',
-      //         inputs: {
-      //           id: `VOUCHER`,
-      //           type: EMessageComponentType.RADIO,
-      //           component: [
-      //             {
-      //               label: 'Exchange voucher NCCSoft:',
-      //               value: 'voucher_NccSoft',
-      //               description:
-      //                 '- Quy đổi thành voucher sử dụng ở voucher.nccsoft.vn\n- Được sử dụng ở cuối tháng, giúp giảm tiền phạt\n- Nhập số tiền để quy đổi: 1 mezon token = 1 vnđ',
-      //               style: EButtonMessageStyle.PRIMARY,
-      //             },
-      //             {
-      //               label: 'Exchange voucher Market:',
-      //               value: 'voucher_Market',
-      //               description:
-      //                 '- Quy đổi thành voucher sử dụng ở nhiều trang thương mại điện tử \n   (Vd: Shopee, Lazada, Grab...)\n- Mỗi lần quy đổi cần 100.000 mezon token (tương ứng 100.000 vnđ cho mã giảm khi thanh toán ở trang thương mại điện tử)',
-      //               style: EButtonMessageStyle.PRIMARY,
-      //             },
-      //           ],
-      //         },
-      //       },
-      //       {
-      //         name: 'Vui lòng click Confirm để xác nhận.\nNếu không muốn giao dịch, vui lòng click Cancel!',
-      //         value: '',
-      //       },
-      //     ],
-      //     timestamp: new Date().toISOString(),
-      //     footer: MEZON_EMBED_FOOTER,
-      //   },
-      // ];
-      // const components = [
-      //   {
-      //     components: [
-      //       {
-      //         id: `voucher_CANCEL_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
-      //         type: EMessageComponentType.BUTTON,
-      //         component: {
-      //           label: `Cancel`,
-      //           style: EButtonMessageStyle.SECONDARY,
-      //         },
-      //       },
-      //       {
-      //         id: `voucher_CONFIRM_${message.sender_id}_${message.clan_id}_${message.mode}_${message.is_public}`,
-      //         type: EMessageComponentType.BUTTON,
-      //         component: {
-      //           label: `Confirm`,
-      //           style: EButtonMessageStyle.SUCCESS,
-      //         },
-      //       },
-      //     ],
-      //   },
-      // ];
-      // return this.replyMessageGenerate(
-      //   {
-      //     embed,
-      //     components,
-      //   },
-      //   message,
-      // );
-  
-      const sendTokenData = {
-        sender_id: message.sender_id,
-        receiver_id: process.env.BOT_KOMU_ID,
-        note: `[NccSoft Voucher Buying]`,
-        extra_attribute: JSON.stringify({
-          sessionId: 'buy_NccSoft_voucher',
-          appId: 'buy_NccSoft_voucher',
-          type: TransferType.VOUCHER,
-        }),
-      };
-      const qrCodeImage = await generateQRCode(JSON.stringify(sendTokenData));
-      const embed: EmbedProps[] = [
-        {
-          color: getRandomColor(),
-          title: 'VOUCHER NCCSOFT EXCHANGE!',
-          fields: [
-            {
-              name: 'Scan this QR code for EXCHANGE NCCSOFT VOUCHER!',
-              value: '',
-            },
-          ],
-          image: {
-            url: qrCodeImage + '',
-            width: '300px',
-            height: '300px',
-          },
-          timestamp: new Date().toISOString(),
-          footer: MEZON_EMBED_FOOTER,
-        },
-      ];
-      const messageToUser: ReplyMezonMessage = {
-        userId: message.sender_id,
-        textContent: '',
-        messOptions: { embed },
-      };
-      this.messageQueue.addMessage(messageToUser);
       const messageContent =
-        '' + `Komu sent to you a message. Please check!` + '';
+        '' +
+        `⚠️This service is no longer supported and will be hidden after November 1, 2025.\nPlease visit **https://dong.mezon.ai/** to continue exchanging your vouchers!` +
+        '';
       return this.replyMessageGenerate(
         {
           messageContent,
@@ -154,6 +225,19 @@ export class VoucherCommand extends CommandMessage {
         },
         message,
       );
+    }
+
+    //withdraw
+    if (args[0] === 'withdraw') {
+      try {
+        await this.handleWithdraw(message);
+      } catch (error) {
+        console.error(
+          '[Voucher withdraw] handler failed:',
+          error?.message || error,
+        );
+      }
+      return;
     }
 
     if (args[0] === 'balance') {
