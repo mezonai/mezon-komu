@@ -65,6 +65,7 @@ import {
   InvoiceOrder,
   MenuAddress,
   TokenTransfer,
+  VoucherWithDrawEntiTy,
 } from './models';
 import { BotGateway } from './events/bot.gateway';
 import { DailyCommand } from './asterisk-commands/commands/daily/daily.command';
@@ -249,6 +250,7 @@ import { OpentalkService } from './services/opentalk.services';
       MenuAddress,
       VoiceSession,
       TokenTransfer,
+      VoucherWithDrawEntiTy,
     ]),
     HttpModule,
     ScheduleModule.forRoot(),
