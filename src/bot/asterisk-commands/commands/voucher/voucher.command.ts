@@ -20,10 +20,18 @@ import { EUserError } from 'src/bot/constants/error';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { DataSource } from 'typeorm';
 import { ETransactionStatus } from 'src/bot/models/voucherWithdrawTransaction.entity';
+import fs from 'fs';
+import path from 'path';
+interface VoucherUser {
+  gmail: string;
+  mezonId: string;
+  totalAvailable: number;
+}
 
 @Command('voucher')
 export class VoucherCommand extends CommandMessage {
   private client: MezonClient;
+  private voucherData: VoucherUser[];
   constructor(
     private readonly axiosClientService: AxiosClientService,
     private messageQueue: MessageQueue,
@@ -37,6 +45,23 @@ export class VoucherCommand extends CommandMessage {
   ) {
     super();
     this.client = this.clientService.getClient();
+    const filePath = path.resolve(
+      process.cwd(),
+      'src/bot/utils/transformed-output.json',
+    );
+
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const jsonData = JSON.parse(fileContent);
+      this.voucherData = jsonData.users || [];
+    } catch (err) {
+      console.error('❌ Failed to load voucher data:', err);
+      this.voucherData = [];
+    }
+  }
+
+  private findVoucherUserBySenderId(senderId: string) {
+    return this.voucherData.find((u) => u.mezonId === senderId) || null;
   }
 
   async handleWithdraw(message: ChannelMessage) {
@@ -45,8 +70,15 @@ export class VoucherCommand extends CommandMessage {
     const messageClan = await channelClan.messages.fetch(message.message_id);
 
     // check user in DB
-    const user = await this.userRepository.findOne({ where: { userId } });
-    if (!user) return;
+    const user = this.findVoucherUserBySenderId(userId);
+    if (!user) {
+      const msg = '❌User not found in voucher data. Please contact admin.❌';
+      await messageClan.reply({
+        t: msg,
+        mk: [{ type: EMarkdownType.PRE, s: 0, e: msg.length }],
+      });
+      return;
+    }
 
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
       // use pg_advisory_xact_lock block transaction by userid
@@ -120,35 +152,7 @@ export class VoucherCommand extends CommandMessage {
       if (!rowId) return;
 
       // get blance user form voucher
-      const email = encodeURIComponent(
-        `${(user.clan_nick || user.username).trim()}@ncc.asia`,
-      );
-      let balance = 0;
-      try {
-        const response = await this.axiosClientService.get(
-          `${this.clientConfigService.voucherApi.getTotalVoucherByEmail}/${email}`,
-          { headers: { 'X-Secret-Key': process.env.VOUCHER_X_SECRET_KEY } },
-        );
-        balance = response?.data?.totalAvailable
-          ? +response?.data?.totalAvailable
-          : 0;
-      } catch {
-        // update transaction fail if can not call api
-        await manager
-          .createQueryBuilder()
-          .update(VoucherWithDrawEntiTy)
-          .set({ status: ETransactionStatus.FAIL })
-          .where('id = :id', { id: rowId })
-          .execute();
-        const messageContent =
-          '❌Withdrawal failed. Please contact the admin or try again!❌';
-        await messageClan.reply({
-          t: messageContent,
-          mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
-        });
-        return;
-      }
-
+      const balance = user?.totalAvailable || 0;
       // check balance
       if (balance <= 0) {
         await manager
