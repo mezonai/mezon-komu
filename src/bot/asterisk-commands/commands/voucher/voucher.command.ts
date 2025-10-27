@@ -40,6 +40,8 @@ export class VoucherCommand extends CommandMessage {
     private userRepository: Repository<User>,
     @InjectRepository(VoucherEntiTy)
     private voucherRepository: Repository<VoucherEntiTy>,
+    @InjectRepository(VoucherWithDrawEntiTy)
+    private voucherWithDrawEntiTy: Repository<VoucherWithDrawEntiTy>,
     private clientService: MezonClientService,
     private readonly dataSource: DataSource,
   ) {
@@ -189,7 +191,7 @@ export class VoucherCommand extends CommandMessage {
           .where('id = :id', { id: rowId })
           .execute();
 
-        const messageContent = `✅Withdraw ${balance.toLocaleString('vi-VN')} successfully!✅`;
+        const messageContent = `✅Withdraw ${balance.toLocaleString('vi-VN')}đ successfully!✅`;
         await messageClan.reply({
           t: messageContent,
           mk: [{ type: EMarkdownType.PRE, s: 0, e: messageContent.length }],
@@ -269,6 +271,12 @@ export class VoucherCommand extends CommandMessage {
         );
       }
       try {
+        const alreadySuccess = await this.voucherWithDrawEntiTy.findOne({
+          where: {
+            userId: message.sender_id,
+            status: ETransactionStatus.SUCCESS,
+          },
+        });
         const response = await this.axiosClientService.get(
           `${this.clientConfigService.voucherApi.getTotalVoucherByEmail}/${user?.clan_nick || user.username}@ncc.asia`,
           {
@@ -289,7 +297,7 @@ export class VoucherCommand extends CommandMessage {
               },
               {
                 name: `Total balance`,
-                value: `Available: ${response?.data?.totalAvailable} đ\nUsed: ${response?.data?.totalUsed} đ`,
+                value: `Available: ${(alreadySuccess ? 0 : +response?.data?.totalAvailable).toLocaleString('vi-VN')}đ\nUsed: ${(+response?.data?.totalUsed).toLocaleString('vi-VN')}đ`,
               },
             ],
             author: {
