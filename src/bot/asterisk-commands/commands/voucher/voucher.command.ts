@@ -273,7 +273,7 @@ export class VoucherCommand extends CommandMessage {
       try {
         const alreadySuccess = await this.voucherWithDrawEntiTy.findOne({
           where: {
-            userId: message.sender_id,
+            userId: user.userId,
             status: ETransactionStatus.SUCCESS,
           },
         });
