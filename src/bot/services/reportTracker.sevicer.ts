@@ -66,6 +66,21 @@ export class ReportTrackerService {
         return [];
       }
       const { data } = result;
+      const dataConverted = await Promise.all(
+        data.map(async (item) => {
+          const findUser = await this.userRepository.findOne({
+            where: {
+              username: item.email,
+              user_type: EUserType.MEZON,
+            },
+          });
+          return {
+            ...item,
+            email: findUser?.clan_nick || findUser?.username || item.email,
+          };
+        }),
+      );
+
       function processUserWfhs(data, wfhUsers, usersOffWork) {
         const userWfhs = [];
 
@@ -93,7 +108,7 @@ export class ReportTrackerService {
         return userWfhs;
       }
 
-      const userWfhs = processUserWfhs(data, wfhUsers, usersOffWork);
+      const userWfhs = processUserWfhs(dataConverted, wfhUsers, usersOffWork);
 
       if (!returnMsg) {
         return userWfhs;
