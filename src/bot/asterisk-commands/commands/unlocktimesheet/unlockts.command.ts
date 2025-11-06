@@ -13,7 +13,7 @@ import { In, Repository } from 'typeorm';
 import { RoleMezon, UnlockTimeSheet, User } from 'src/bot/models';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 
-@Command('unlockts')
+// @Command('unlockts')
 export class UnlockTimeSheetCommand extends CommandMessage {
   constructor(
     private clientService: MezonClientService,

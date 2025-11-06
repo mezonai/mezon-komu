@@ -28,7 +28,7 @@ interface VoucherUser {
   totalAvailable: number;
 }
 
-@Command('voucher')
+// @Command('voucher')
 export class VoucherCommand extends CommandMessage {
   private client: MezonClient;
   private voucherData: VoucherUser[];

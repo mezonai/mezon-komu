@@ -150,6 +150,38 @@ export class ReportTrackerService {
     }
   }
 
+  async reportTrackerList(args) {
+    try {
+      const result = await this.axiosClientService.get(
+        `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
+        {
+          headers: {
+            'X-Secret-Key': this.clientConfigService.komuTrackerApiKey,
+          },
+        },
+      );
+
+      const { data } = result;
+      const dataConverted = await Promise.all(
+        data.map(async (item) => {
+          const findUser = await this.userRepository.findOne({
+            where: {
+              username: item.email,
+              user_type: EUserType.MEZON,
+            },
+          });
+          return {
+            spent_time: item.spent_time,
+            email: findUser?.clan_nick || findUser?.username || item.email,
+          };
+        }),
+      );
+      return dataConverted;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   async getUserWFH(args) {
     let wfhGetApi;
     let wfhUsers;

@@ -144,15 +144,14 @@ export class KomubotrestController {
       .toDate();
     const formatedDate = query?.date;
 
-    const [daily, mention, wfh, tracker, trackerList] = await Promise.all([
+    const [daily, mention, wfh, tracker] = await Promise.all([
       this.reportDailyService.getUserNotDaily(parsedDate),
       this.reportWFHService.reportMachleo(parsedDate),
       this.reportWFHService.reportWfh([, formatedDate], false),
-      this.reportTrackerService.reportTrackerNot([, formatedDate], false),
-      this.reportTrackerService.reportTracker([, formatedDate], false),
+      this.reportTrackerService.reportTrackerList([, formatedDate]),
     ]);
 
-    return { daily: daily?.notDaily, mention, wfh, tracker, trackerList };
+    return { daily: daily?.notDaily, mention, wfh, tracker };
   }
 
   @Get('/reportDaily')
