@@ -48,6 +48,43 @@ export class DynamicCommand extends CommandMessage {
           message,
         );
       }
+
+      if (args[0] === 'list' && !args[1].startsWith('http')) {
+        const username = args[1];
+        const findUser = await this.userRepository.findOne({
+          where: [{ clan_nick: username }, { username: username }],
+        });
+
+        if (!findUser) {
+          const messageContent = 'Can not find this user!';
+          return this.replyMessageGenerate(
+            {
+              messageContent,
+              mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+            },
+            message,
+          );
+        }
+
+        const findCommand = await this.dynamicRepository.find({
+          where: { userId: findUser.userId },
+          select: ['command'],
+        });
+
+        const commandList = findCommand.map((item) => item.command);
+        const messageContent =
+          `${username} created total: ${commandList.length}` +
+          '\n' +
+          commandList.join(', ');
+
+        return this.replyMessageGenerate(
+          {
+            messageContent,
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
+      }
       const custCommandList =
         this.dynamicCommandService.getDynamicCommandList();
       const allCommands = CommandStorage.getAllCommands();
@@ -70,8 +107,7 @@ export class DynamicCommand extends CommandMessage {
         });
 
         if (!findCommand) {
-          const messageContent =
-            '' + `Can't find command ${args[1]}` + '';
+          const messageContent = '' + `Can't find command ${args[1]}` + '';
           return this.replyMessageGenerate(
             {
               messageContent,
@@ -86,15 +122,17 @@ export class DynamicCommand extends CommandMessage {
         });
 
         if (findUser && args[0] === 'delete') {
-          if (findUser.userId === message.sender_id || message.sender_id === '1827994776956309504') {
+          if (
+            findUser.userId === message.sender_id ||
+            message.sender_id === '1827994776956309504'
+          ) {
             await this.dynamicRepository
               .createQueryBuilder()
               .delete()
               .from(DynamicMezon)
               .where('command = :command', { command: args[1] })
               .execute();
-            const messageContent =
-              '' + `Delete ${args[1]} successful!` + '';
+            const messageContent = '' + `Delete ${args[1]} successful!` + '';
             this.dynamicCommandService.initDynamicCommandList();
             return this.replyMessageGenerate(
               {
@@ -129,6 +167,35 @@ export class DynamicCommand extends CommandMessage {
             message,
           );
         }
+      }
+
+      const findCommand = await this.dynamicRepository.find({
+        where: { userId: message.sender_id },
+      });
+      if (
+        findCommand?.length > 9 &&
+        message.sender_id !== '1827994776956309504'
+      ) {
+        const messageContent =
+          'You have reached the creation limit, maximum 10 custom commands. Delete some to create more!';
+        return this.replyMessageGenerate(
+          {
+            messageContent: messageContent,
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
+      }
+
+      if (args[0].length > 20) {
+        const messageContent = 'Command name too long, please change the name!';
+        return this.replyMessageGenerate(
+          {
+            messageContent: messageContent,
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
       }
       const output = args.slice(1).join(' ');
       const response = await axios.head(output);
@@ -182,7 +249,8 @@ export class DynamicCommand extends CommandMessage {
         );
       }
     } catch (error) {
-      const messageContent = "Getting an error when trying to process this attachment!";
+      const messageContent =
+        'Getting an error when trying to process this attachment!';
       return this.replyMessageGenerate(
         {
           messageContent: messageContent,

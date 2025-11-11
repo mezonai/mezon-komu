@@ -16,7 +16,30 @@ export class DynamicExcuteCommand extends CommandMessage {
     super();
   }
 
+  async getGifSize(url: string) {
+    const res = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: { Range: 'bytes=0-9' },
+      timeout: 5000,
+      validateStatus: (s) => s >= 200 && s < 400,
+    });
+
+    const buf = Buffer.from(res.data);
+    const signature = buf.slice(0, 6).toString('ascii');
+    if (signature !== 'GIF87a' && signature !== 'GIF89a') {
+      throw new Error('Not a GIF file');
+    }
+
+    const width = buf.readUInt16LE(6);
+    const height = buf.readUInt16LE(8);
+    return { width, height };
+  }
+
   getAttachmentSize(url: string): Promise<{ width: number; height: number }> {
+    if (/\.gif(\?|$)/i.test(url)) {
+      return this.getGifSize(url);
+    }
+
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(url, (err, metadata) => {
         if (err) return reject(err);
