@@ -1,10 +1,10 @@
-import { ChannelMessage } from 'mezon-sdk';
+import { ChannelMessage, InteractiveBuilder } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import axios from 'axios';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 
-// @Command('weather')
+@Command('weather')
 export class WeatherCommand extends CommandMessage {
   constructor() {
     super();
@@ -34,10 +34,10 @@ export class WeatherCommand extends CommandMessage {
     if (time === 'today') {
       time = this.getDateFormatted();
     }
-    if (time === 'tomorrow') {
+    if (time === 'tomorrow' || time === 'tmr') {
       time = this.getDateFormatted(1);
     }
-    if (time === 'thenextday') {
+    if (time === 'thenextday' || time === 'tnd') {
       time = this.getDateFormatted(2);
     }
 
@@ -64,38 +64,41 @@ export class WeatherCommand extends CommandMessage {
     dataForecast?,
   ) {
     const dataRender = forecast ? data : data?.current;
-    let title = '-'.repeat(50) + '\n';
-    if (!noTitle) {
-      title = `${forecast ? 'Forecast' : 'Current'} weather in ${data?.location?.name ?? locationName} - ${data?.location?.country ?? dataForecast?.location?.country} at ${data?.location?.localtime ?? data?.time}\n`;
-    }
-
-    return (
-      title +
-      `${formatNumber}Condition  : ${dataRender?.condition?.text}\n` +
-      `${formatNumber}Temperature: ${dataRender?.temp_c}℃ / ${dataRender?.temp_f}℉\n` +
-      `${formatNumber}Humidity   : ${dataRender?.humidity} %\n` +
-      `   ${locationName}${' '.repeat(12 - locationName?.length)}Cloud cover: ${dataRender?.cloud} %\n` +
-      `${formatNumber}Rainfall   : ${dataRender?.precip_mm} mm\n` +
-      `${formatNumber}UV         : ${dataRender?.uv}\n` +
-      `${formatNumber}PM2.5      : ${dataRender?.air_quality?.pm2_5 ?? '(no information)'} ${dataRender?.air_quality?.pm2_5 ? 'µg/m³' : ''}\n`
+    const interactiveBuilder = new InteractiveBuilder(
+      `${forecast ? 'Forecast' : 'Current'} weather ${data?.location?.name ?? locationName} - ${data?.location?.country ?? dataForecast?.location?.country} at ${data?.location?.localtime ?? data?.time}`,
     );
+    interactiveBuilder.setDescription(
+      '```' +
+        `Condition     : ${dataRender?.condition?.text}\n` +
+        `Temperature: ${dataRender?.temp_c}℃ / ${dataRender?.temp_f}℉\n` +
+        `Humidity      : ${dataRender?.humidity} %\n` +
+        `Cloud cover : ${dataRender?.cloud} %\n` +
+        `Rainfall        : ${dataRender?.precip_mm} mm\n` +
+        `UV               : ${dataRender?.uv}\n` +
+        `PM2.5          : ${dataRender?.air_quality?.pm2_5 ?? '(no information)'} ${dataRender?.air_quality?.pm2_5 ? 'µg/m³' : ''}` +
+        '```',
+    );
+    interactiveBuilder.setThumbnail(dataRender?.condition?.icon);
+    return interactiveBuilder.build();
   }
 
   formatWeatherForecastData(forecastData, formatNumber, locationName, country) {
-    const title = `Forecast weather in ${locationName} - ${country} at ${forecastData.format}all day\n`;
-
-    return (
-      title +
-      `${formatNumber}Condition          : ${forecastData?.condition?.text}\n` +
-      `${formatNumber}Max temperature    : ${forecastData?.maxtemp_c}℃ / ${forecastData?.maxtemp_f}℉\n` +
-      `${formatNumber}Min temperature    : ${forecastData?.mintemp_c}℃ / ${forecastData?.mintemp_f}℉\n` +
-      `${formatNumber}Average Humidity   : ${forecastData?.avghumidity} %\n` +
-      `   ${locationName}${' '.repeat(12 - locationName?.length)}Chance of rain     : ${forecastData?.daily_chance_of_rain} %\n` +
-      `${formatNumber}Average temperature: ${forecastData?.avgtemp_c}℃ / ${forecastData?.avgtemp_f}℉\n` +
-      `${formatNumber}UV                 : ${forecastData?.uv}\n` +
-      `${formatNumber}PM2.5              : ${forecastData?.air_quality?.pm2_5 ?? '(no information)'} ${forecastData?.air_quality?.pm2_5 ? 'µg/m³' : ''}\n` +
-      `${formatNumber}PM10               : ${forecastData?.air_quality?.pm_10 ?? '(no information)'} ${forecastData?.air_quality?.pm_10 ? 'µg/m³' : ''}\n`
+    const interactiveBuilder = new InteractiveBuilder(
+      `Forecast weather ${locationName} - ${country} at ${forecastData.format}all day`,
     );
+    interactiveBuilder.setDescription(
+      '```' + `Condition                  :  ${forecastData?.condition?.text}\n` +
+        `Max temperature      :  ${forecastData?.maxtemp_c}℃ / ${forecastData?.maxtemp_f}℉\n` +
+        `Min temperature       :  ${forecastData?.mintemp_c}℃ / ${forecastData?.mintemp_f}℉\n` +
+        `Average Humidity     :  ${forecastData?.avghumidity} %\n` +
+        `Chance of rain          :  ${forecastData?.daily_chance_of_rain} %\n` +
+        `Average temperature:  ${forecastData?.avgtemp_c}℃ / ${forecastData?.avgtemp_f}℉\n` +
+        `UV                             :  ${forecastData?.uv}\n` +
+        `PM2.5                       :  ${forecastData?.air_quality?.pm2_5 ?? '(no information)'} ${forecastData?.air_quality?.pm2_5 ? 'µg/m³' : ''}\n` +
+        `PM10                        :  ${forecastData?.air_quality?.pm_10 ?? '(no information)'} ${forecastData?.air_quality?.pm_10 ? 'µg/m³' : ''}` + '```',
+    );
+    interactiveBuilder.setThumbnail(forecastData?.condition?.icon);
+    return interactiveBuilder.build();
   }
 
   async execute(args: string[], message: ChannelMessage) {
@@ -105,15 +108,15 @@ export class WeatherCommand extends CommandMessage {
     try {
       if (!args[0]) {
         const messageContent =
-          '- Command: *weather location -> current weather in location' +
+          '- Command: *weather location -> Thời tiết hiện tại tại địa điểm' +
           '\n' +
           `  Example: *weather vinh\n` +
-          '- Command: *weather forecast dd/mm/yyyy location -> forecast weather in location at dd/mm/yyyy all day' +
+          '- Command: *weather fcst dd/mm/yyyy location -> Dự báo thời tiết cho cả ngày (Có thể dùng "today", "tmr", "tnd" thay cho ngày giờ)' +
           '\n' +
-          `  Example: *weather forecast 05/11/2024 vinh\n` +
-          '- Command: *weather forecast dd/mm/yyyy hh:mm location -> forecast weather in location at dd/mm/yyyy hh:mm' +
+          `  Example: --*weather fcst 11/11/2025 vinh-- HOẶC --*weather fcst tmr vinh--\n` +
+          '- Command: *weather fcst dd/mm/yyyy hh:mm location -> Dự báo chính xác tại 1 giờ trong ngày' +
           '\n' +
-          `  Example: *weather forecast 05/11/2024 09:00 vinh`;
+          `  Example: --*weather fcst 11/11/2024 09:00 vinh-- HOẶC --*weather fcst tmr 09:00 vinh--`;
         return this.replyMessageGenerate(
           {
             messageContent,
@@ -122,10 +125,10 @@ export class WeatherCommand extends CommandMessage {
           message,
         );
       }
-      if (args[0] === 'forecast') {
+      if (args[0] === 'fcst') {
         location = args.slice(hasHour ? 3 : 2).join(' ');
         const checkArg =
-          ['today', 'tomorrow', 'thenextday'].includes(args[1]) ||
+          ['today', 'tomorrow', 'thenextday', 'tmr', 'tnd'].includes(args[1]) ||
           args[1].length === 10;
         if (!checkArg) {
           const messageContent = 'Invalid date!';
@@ -141,10 +144,11 @@ export class WeatherCommand extends CommandMessage {
           args[1],
           hasHour ? args[2] : null,
         );
-
+        console.log('day', day, location)
         const dataApi = await this.getWeatherForecastData(location, day);
+        console.log('dataApi', dataApi)
         const forecastData = dataApi?.forecast?.forecastday[day];
-        let messageContent = '';
+        let messageContent;
         if (day < 0 || day > 3) {
           let messageContent = '';
           if (day < 0) {
@@ -161,8 +165,9 @@ export class WeatherCommand extends CommandMessage {
             message,
           );
         }
+        let embed;
         if (!hasHour) {
-          messageContent = this.formatWeatherForecastData(
+          embed = this.formatWeatherForecastData(
             { ...forecastData.day, format },
             formatNumber,
             dataApi?.location?.name,
@@ -185,7 +190,7 @@ export class WeatherCommand extends CommandMessage {
           const dataHour = forecastData.hour.filter(
             (item) => item.time_epoch >= timestamp,
           )[0];
-          messageContent = this.formatWeatherData(
+          embed = this.formatWeatherData(
             dataHour,
             formatNumber,
             dataApi?.location?.name,
@@ -196,16 +201,12 @@ export class WeatherCommand extends CommandMessage {
         }
         return this.replyMessageGenerate(
           {
-            messageContent: '' + messageContent + '',
-            mk: [{ type: 'pre', s: 0, e: messageContent.length + 6 }],
-            // attachments,
+            embed: [embed],
           },
           message,
         );
       }
       const mainWeatherData = await this.getWeatherData(location);
-      let messageContent = '';
-
       if (args[0] === 'ncc') {
         const nccCorners = ['Ha Noi', 'Vinh', 'Da Nang', 'Quy Nhon', 'Sai Gon'];
         let cornerWeatherData;
@@ -220,33 +221,23 @@ export class WeatherCommand extends CommandMessage {
         });
 
         const results = await Promise.all(weatherPromises);
-        messageContent =
-          `Current weather of all our corners at ${cornerWeatherData?.location?.localtime}\n` +
-          results.join('\n') +
-          `(Last updated on ${cornerWeatherData?.current?.last_updated})`;
-      } else {
-        messageContent =
-          this.formatWeatherData(
-            mainWeatherData,
-            formatNumber,
-            mainWeatherData?.location?.name,
-            false,
-          ) + `(Last updated on ${mainWeatherData?.current?.last_updated})`;
+        return this.replyMessageGenerate(
+          {
+            embed: results,
+          },
+          message,
+        );
       }
-
-      const attachments = [];
-      if (args[0] !== 'ncc') {
-        attachments.push({
-          url: mainWeatherData?.current?.condition?.icon,
-          filetype: 'image/jpeg',
-        });
-      }
+      const embed = this.formatWeatherData(
+        mainWeatherData,
+        formatNumber,
+        mainWeatherData?.location?.name,
+        false,
+      );
 
       return this.replyMessageGenerate(
         {
-          messageContent: '' + messageContent + '',
-          mk: [{ type: 'pre', s: 0, e: messageContent.length + 6 }],
-          // attachments,
+          embed: [embed],
         },
         message,
       );
