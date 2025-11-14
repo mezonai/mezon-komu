@@ -127,7 +127,9 @@ export class EventCommand extends CommandMessage {
         const indexNote =
           listUseAndNote.indexOf('Note:') || listUseAndNote.indexOf('note:');
         const usersMention =
-          indexNote !== -1 ? listUseAndNote.slice(0, indexNote) : listUseAndNote;
+          indexNote !== -1
+            ? listUseAndNote.slice(0, indexNote)
+            : listUseAndNote;
         const note = (
           indexNote !== -1 ? listUseAndNote.slice(indexNote + 1) : []
         ).join(' ');
@@ -151,22 +153,19 @@ export class EventCommand extends CommandMessage {
             message,
           );
         }
-        const user = await Promise.all(
-          usersMention.map(async (user) => {
-            const checkUser = await this.eventService.getDataUser(user);
-            if (!checkUser) {
-              return this.replyMessageGenerate(
-                {
-                  messageContent: 'User not found',
-                },
-                message,
-              );
-            } else {
-              insertUser.push(checkUser.userId);
-              return checkUser;
-            }
-          }),
-        );
+        const user = (
+          await Promise.all(
+            usersMention.map(async (user) => {
+              const checkUser = await this.eventService.getDataUser(user);
+              if (!checkUser) {
+                return;
+              } else {
+                insertUser.push(checkUser.userId);
+                return checkUser;
+              }
+            }),
+          )
+        ).filter(Boolean);
         if (user.includes(undefined)) {
           return this.replyMessageGenerate(
             {
@@ -207,7 +206,7 @@ export class EventCommand extends CommandMessage {
           insertUser,
           message.channel_id,
           attachment,
-          note
+          note,
         );
         if (!createEvent) {
           const messageContent = 'This event already exists!';
@@ -226,7 +225,7 @@ export class EventCommand extends CommandMessage {
           checkTime,
           attachment,
           title,
-          note
+          note,
         );
         const messageContent = '✅ Event saved.';
         return this.replyMessageGenerate(

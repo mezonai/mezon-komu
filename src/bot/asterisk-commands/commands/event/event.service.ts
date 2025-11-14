@@ -87,13 +87,18 @@ export class EventService {
 
   async getDataUser(email) {
     return await this.userRepository
-      .createQueryBuilder()
+      .createQueryBuilder('u')
       .where(
-        `("email" = :email or "username" = :username) and "user_type" = :userType`,
-        { email, username: email, userType: EUserType.MEZON },
+        `(u.clan_nick = :email AND u.user_type = :type)
+       OR (u.username = :email AND u.user_type = :type)`,
+        {
+          email,
+          type: EUserType.MEZON,
+        },
       )
-      .select('*')
-      .getRawOne();
+      .orderBy('u.clan_nick = :email', 'DESC')
+      .setParameter('email', email)
+      .getOne();
   }
 
   async getDataUserById(id) {
@@ -115,50 +120,73 @@ export class EventService {
   ) {
     const textAttachment = `${attachment ?? ''}`;
     userMentions.map(async (item) => {
-      const usernameFilter = [item.username, message.username];
+      const usernameFilter = [
+        item.clan_nick || item.username,
+        message.clan_nick || message.username,
+      ];
       const usernameList = userMentions
-        .filter((user) => !usernameFilter.includes(user.username))
-        .map((user) => `@${user.username}`)
+        .filter(
+          (user) => !usernameFilter.includes(user.clan_nick || user.username),
+        )
+        .map((user) => `@${user.clan_nick || user.username}`)
         .join(', ');
-      const textContent = `You have an event "${title}" with @${message.username}, ${usernameList} on ${checkDate} in ${checkTime}\n${note && `Note: ${note}\n`}`;
+
+      const textNoNote = `[EVENT] You have an event "${title}" with @${message.username}, ${usernameList} on ${checkDate} in ${checkTime}\n${note && 'Note: '}`;
+      const textContent = textNoNote + `${note}\n`;
+      const mk = [];
+      if (attachment)
+        mk.push({
+          type: 'lk',
+          s: textContent.length,
+          e: textContent.length + textAttachment.length,
+        });
+
+      if (note?.startsWith('http'))
+        mk.push({
+          type: 'lk',
+          s: textNoNote.length,
+          e: textNoNote.length + note.length,
+        });
 
       const messageToUser: ReplyMezonMessage = {
         userId: item.userId,
         textContent: textContent + (attachment ? textAttachment : ''),
-        messOptions: attachment
-          ? {
-              mk: [
-                {
-                  type: 'lk',
-                  s: textContent.length,
-                  e: textContent.length + textAttachment.length,
-                },
-              ],
-            }
-          : null,
+        messOptions: { mk },
       };
       this.messageQueue.addMessage(messageToUser);
     });
 
     const usernameList = userMentions
       .filter((user) => user.username !== message.username)
-      .map((user) => `@${user.username}`)
+      .map((user) => `@${user.clan_nick || user.username}`)
       .join(', ');
-    const textContent = `You have an event "${title}" with ${usernameList} on ${checkDate} in ${checkTime}\n${note && `Note: ${note}\n`}`;
+
+    const textNoNote = `[EVENT] You have an event "${title}" with ${usernameList} on ${checkDate} in ${checkTime}\n${note && `Note: `}`;
+    const textContent = textNoNote + `${note}\n`;
+    const mk = [
+      {
+        type: 'b',
+        s: 0,
+        e: 7,
+      },
+    ];
+    if (attachment)
+      mk.push({
+        type: 'lk',
+        s: textContent.length,
+        e: textContent.length + textAttachment.length,
+      });
+
+    if (note?.startsWith('http'))
+      mk.push({
+        type: 'lk',
+        s: textNoNote.length,
+        e: textNoNote.length + note.length,
+      });
     const messageToUser: ReplyMezonMessage = {
       userId: message.sender_id,
       textContent: textContent + (attachment ? textAttachment : ''),
-      messOptions: attachment
-        ? {
-            mk: [
-              {
-                type: 'lk',
-                s: textContent.length,
-                e: textContent.length + textAttachment.length,
-              },
-            ],
-          }
-        : null,
+      messOptions: { mk },
     };
     this.messageQueue.addMessage(messageToUser);
   }
