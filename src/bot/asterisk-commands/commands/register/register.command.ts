@@ -8,6 +8,7 @@ import { TABLE } from 'src/bot/constants/table';
 import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 import axios from 'axios';
 import { CommandStorage } from 'src/bot/base/storage';
+import { EUserType } from 'src/bot/constants/configs';
 
 @Command('register')
 export class DynamicCommand extends CommandMessage {
@@ -52,7 +53,10 @@ export class DynamicCommand extends CommandMessage {
       if (args[0] === 'list' && !args[1].startsWith('http')) {
         const username = args[1];
         const findUser = await this.userRepository.findOne({
-          where: [{ clan_nick: username }, { username: username }],
+          where: [
+            { clan_nick: username, user_type: EUserType.MEZON },
+            { username: username, user_type: EUserType.MEZON },
+          ],
         });
 
         if (!findUser) {
