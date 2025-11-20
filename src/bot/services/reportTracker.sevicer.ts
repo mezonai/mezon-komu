@@ -171,7 +171,7 @@ export class ReportTrackerService {
             },
           });
           return {
-            spent_time: item.spent_time,
+            spent_time: item.active_time,
             email: findUser?.clan_nick || findUser?.username || item.email,
           };
         }),
