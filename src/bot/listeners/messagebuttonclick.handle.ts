@@ -128,6 +128,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     super(clientService);
   }
   private blockEditedList: string[] = [];
+  private errorMessageIdByUserDaily = new Map<string, string[]>();
 
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
@@ -472,6 +473,21 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       console.log('handleUnlockTimesheet', e);
     }
   }
+
+  private async clearErrorsForUser(userId: string, channel_id: string) {
+    const list = this.errorMessageIdByUserDaily.get(userId);
+    if (!list || !list.length) return;
+    const channel = await this.client.channels.fetch(channel_id);
+    await Promise.all(
+      list.map(async (msgId) => {
+        const message = await channel.messages.fetch(msgId);
+        await message.delete();
+      }),
+    );
+
+    this.errorMessageIdByUserDaily.delete(userId);
+  }
+
   async handleSubmitDaily(data) {
     const senderId = data.user_id;
     const botId = data.sender_id;
@@ -485,10 +501,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     const ownerSenderDaily = splitButtonId[6];
     const dateValue = splitButtonId[7];
     const buttonType = splitButtonId[8];
+    const authorMessageId = splitButtonId[9];
+    const channel = await this.client.channels.fetch(channelId);
+    const messageAuthor = await channel.messages.fetch(authorMessageId);
+
     const invalidLength =
-      'Please enter at least 100 characters in your daily text';
+      '❌Please enter at least 100 characters in your daily text';
     const missingField =
-      'Missing project, yesterday, today, block or task field';
+      '❌Missing project, yesterday, today, block or task field';
 
     const isOwner = ownerSenderDaily === senderId;
     if (!isOwner) return;
@@ -560,27 +580,41 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           if (!isOwner) {
             return;
           }
+
           if (contentLength < 80) {
-            const replyMessageInvalidLength = createReplyMessage(
-              invalidLength,
-              clanIdValue,
-              channelId,
-              isPublicValue,
-              modeValue,
-              msg,
-            );
-            return this.messageQueue.addMessage(replyMessageInvalidLength);
+            const messageInvalidLength = await messageAuthor.reply({
+              t: invalidLength,
+              mk: [
+                {
+                  type: EMarkdownType.PRE,
+                  s: 0,
+                  e: invalidLength.length,
+                },
+              ],
+            });
+            if (!messageInvalidLength) return;
+            const list = this.errorMessageIdByUserDaily.get(data.user_id) ?? [];
+            list.push(messageInvalidLength.message_id);
+            this.errorMessageIdByUserDaily.set(data.user_id, list);
+            return messageInvalidLength;
           }
+
           if (isMissingField) {
-            const replyMessageMissingField = createReplyMessage(
-              missingField,
-              clanIdValue,
-              channelId,
-              isPublicValue,
-              modeValue,
-              msg,
-            );
-            return this.messageQueue.addMessage(replyMessageMissingField);
+            const messageMissingField = await messageAuthor.reply({
+              t: missingField,
+              mk: [
+                {
+                  type: EMarkdownType.PRE,
+                  s: 0,
+                  e: missingField.length,
+                },
+              ],
+            });
+            if (!messageMissingField) return;
+            const list = this.errorMessageIdByUserDaily.get(data.user_id) ?? [];
+            list.push(messageMissingField.message_id);
+            this.errorMessageIdByUserDaily.set(data.user_id, list);
+            return messageMissingField;
           }
           const findUser = await this.userRepository
             .createQueryBuilder()
@@ -647,9 +681,14 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             t: textDailySuccess,
             mk: [{ type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length }],
           };
-          const channel = await this.client.channels.fetch(channelId);
-          const message = await channel.messages.fetch(data.message_id);
-          await message.update(msgDailySuccess);
+          // delete ephemeral form
+          await channel.deleteEphemeral(
+            data.user_id,
+            data.message_id,
+          );
+          // delete list messsage error
+          await this.clearErrorsForUser(data.user_id, data.channel_id)
+          await messageAuthor.reply(msgDailySuccess);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           const textDailyCancelSuccess = 'The daily has been cancelled';
@@ -663,11 +702,15 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
               },
             ],
           };
-          const channelCannel = await this.client.channels.fetch(channelId);
-          const messageCannel = await channelCannel.messages.fetch(
+
+          // delete ephemeral form
+          await channel.deleteEphemeral(
+            data.user_id,
             data.message_id,
           );
-          await messageCannel.update(msgDailyCancelSuccess);
+          // delete list messsage error
+          await this.clearErrorsForUser(data.user_id, data.channel_id)
+          await messageAuthor.reply(msgDailyCancelSuccess);
           return;
         default:
           break;

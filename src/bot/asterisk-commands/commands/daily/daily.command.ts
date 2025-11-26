@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prettier/prettier */
-import { ChannelMessage } from 'mezon-sdk';
+import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { EButtonMessageStyle, EMessageComponentType } from 'mezon-sdk';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { Repository } from 'typeorm';
@@ -21,6 +21,7 @@ import {
 } from 'src/bot/constants/configs';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 export enum EMessageSelectType {
   TEXT = 1,
@@ -31,6 +32,7 @@ export enum EMessageSelectType {
 
 @Command('daily')
 export class DailyCommand extends CommandMessage {
+  private client: MezonClient;
   constructor(
     private timeSheetService: TimeSheetService,
     @InjectRepository(User)
@@ -38,8 +40,10 @@ export class DailyCommand extends CommandMessage {
     @InjectRepository(Daily) private dailyRepository: Repository<Daily>,
     private readonly clientConfigService: ClientConfigService,
     private readonly axiosClientService: AxiosClientService,
+    private clientService: MezonClientService,
   ) {
     super();
+    this.client = this.clientService.getClient();
   }
 
   validateMessage(args: string[]) {
@@ -87,9 +91,8 @@ export class DailyCommand extends CommandMessage {
     });
     if (!userDB.roles || !userDB.roles.length) {
       userDB.roles = ['user'];
+      await this.userRepository.save(userDB);
     }
-
-    await this.userRepository.save(userDB);
 
     const content = message.content.t;
     const messageid = message.message_id;
@@ -286,7 +289,7 @@ export class DailyCommand extends CommandMessage {
       {
         components: [
           {
-            id: `daily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}_cancel`,
+            id: `daily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}_cancel_${message.message_id}`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Cancel`,
@@ -294,7 +297,7 @@ export class DailyCommand extends CommandMessage {
             },
           },
           {
-            id: `daily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}_submit`,
+            id: `daily_${messageid}_${clanId}_${modeMess}_${codeMess}_${isPublic}_${ownerSenderDaily}_${formattedDate}_submit_${message.message_id}`,
             type: EMessageComponentType.BUTTON,
             component: {
               label: `Submit`,
@@ -304,13 +307,9 @@ export class DailyCommand extends CommandMessage {
         ],
       },
     ];
-    if (onlyDailySyntax || !messageValidate)
-      return this.replyMessageGenerate(
-        {
-          embed,
-          components,
-        },
-        message,
-      );
+    if (onlyDailySyntax || !messageValidate) {
+      const channel = await this.client.channels.fetch(message.channel_id);
+      await channel.sendEphemeral(message.sender_id, { embed, components });
+    }
   }
 }
