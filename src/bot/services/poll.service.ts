@@ -24,6 +24,7 @@ import { getRandomColor, sleep } from '../utils/helper';
 export class PollService {
   private client: MezonClient;
   private blockEditedList: string[] = [];
+  private POLL_TOTAL_LIMIT = 3500;
   constructor(
     @InjectRepository(MezonBotMessage)
     private mezonBotMessageRepository: Repository<MezonBotMessage>,
@@ -46,20 +47,60 @@ export class PollService {
     '🔟 ',
   ];
 
-  generateEmbedComponents(options, data?, isMultiple?) {
-    const embedCompoents = options.map((option, index) => {
-      const userVoted = data?.[index];
+  private formatVotedUsers(users: string[] | undefined, maxChars: number) {
+    if (!users || users.length === 0) return '(no one choose)';
+    if (maxChars <= 0) return '...';
+
+    const result: string[] = [];
+    let currentLen = 0;
+
+    for (const name of users) {
+      const piece = (result.length ? ', ' : '') + name;
+      if (currentLen + piece.length > maxChars) break;
+      result.push(name);
+      currentLen += piece.length;
+    }
+
+    const hiddenCount = users.length - result.length;
+    if (hiddenCount > 0) {
+      return `${result.join(', ')} ... (+${hiddenCount} more people)`;
+    }
+
+    return result.join(', ');
+  }
+
+  generateEmbedComponents(options, data?, isMultiple?, dataUser?) {
+    const optionCount = Math.min(Math.max(options.length, 2), 10);
+
+    const availableForOptions = Math.max(1000, this.POLL_TOTAL_LIMIT);
+
+    const maxCharsPerOption = Math.floor(availableForOptions / optionCount);
+
+    const embedComponents = options.map((option, index) => {
+      const userVoted = data?.[index] || [];
+      const idVoted = dataUser?.[index];
+
+      const voteCount = userVoted.length;
+      const labelCount = voteCount ? ` (${voteCount})` : '';
+
+      const prefix = userVoted.length ? '- Voted: ' : '- (no one choose)';
+      const maxUserChars = maxCharsPerOption - prefix.length;
+
+      const description = userVoted.length
+        ? `${prefix}${this.formatVotedUsers(userVoted, maxUserChars)}`
+        : prefix;
+
       return {
         ...(isMultiple ? { name: `poll_${index}` } : {}),
-        label: `${this.iconList[index] + option.trim()} ${userVoted?.length ? `(${userVoted.length})` : ''}`,
+        label: `${this.iconList[index]}${option.trim()}${labelCount}`,
         value: `poll_${index}`,
-        description: userVoted?.length
-          ? `- Voted: ${userVoted.join(', ')}`
-          : `- (no one choose)`,
+        description,
         style: EButtonMessageStyle.SUCCESS,
+        extraData: idVoted,
       };
     });
-    return embedCompoents;
+
+    return embedComponents;
   }
 
   generateEmbedMessageVote(
@@ -98,19 +139,36 @@ export class PollService {
   }
 
   generateEmbedComponentsResult(options, data, authorName: string) {
-    const embedCompoents = options.map((option, index) => {
-      const userVoted = data?.[index];
+    const availableForOptions = Math.max(1000, this.POLL_TOTAL_LIMIT);
+
+    const optionCount = Math.min(Math.max(options.length, 2), 10);
+    const maxCharsPerOption = Math.floor(availableForOptions / optionCount);
+
+    const embedComponents = options.map((option, index) => {
+      const userVoted: string[] = data?.[index] || [];
+      const voteCount = userVoted.length;
+
+      const prefix = voteCount ? '- Voted: ' : '- (no one choose)';
+      const maxUserChars = Math.max(0, maxCharsPerOption - prefix.length);
+
+      const value = voteCount
+        ? `${prefix}${this.formatVotedUsers(userVoted, maxUserChars)}`
+        : prefix;
+
       return {
-        name: `${this.iconList[index] + option.trim()} (${userVoted?.length || 0})`,
-        value: `${userVoted ? `- Voted: ${userVoted.join(', ')}` : `- (no one choose)`}`,
+        name: `${this.iconList?.[index] ?? ''}${option.trim()} (${voteCount})`,
+        value,
       };
     });
-    authorName &&
-      embedCompoents.push({
-        name: `\nPoll created by ${authorName}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t`,
+
+    if (authorName) {
+      embedComponents.push({
+        name: `\nPoll created by ${authorName}`,
         value: '',
       });
-    return embedCompoents;
+    }
+
+    return embedComponents;
   }
 
   generateEmbedMessageResult(title: string, color: string, embedCompoents) {
@@ -595,14 +653,16 @@ export class PollService {
         if (!findUser) return;
 
         const username = findUser.clan_nick || findUser.username;
+        const id = findUser.userId;
 
         if (!username || !value) return;
 
         let groupedByValue: { [key: string]: string[] } = {};
+        let groupedById: { [key: string]: string[] } = {};
 
         if (!isMultiple) {
           // === SINGLE mode ===
-          const newUserVoteMessage = { username, value };
+          const newUserVoteMessage = { id, username, value };
 
           const exists = userVoteMessageId.some(
             (item) =>
@@ -630,6 +690,13 @@ export class PollService {
             }
             groupedByValue[item.value].push(item.username);
           }
+
+          for (const item of userVoteMessageId) {
+            if (!groupedById[item.value]) {
+              groupedById[item.value] = [];
+            }
+            groupedById[item.value].push(item.id);
+          }
         } else {
           // === MULTIPLE mode ===
 
@@ -645,7 +712,7 @@ export class PollService {
             return user;
           });
           if (!checkExist) {
-            userVoteMessageId.push({ username, values });
+            userVoteMessageId.push({ username, values, id });
           }
 
           // Group username by value (MULTIPLE)
@@ -657,6 +724,14 @@ export class PollService {
               groupedByValue[val].push(user.username);
             }
           }
+          for (const user of userVoteMessageId) {
+            for (const val of user.values) {
+              if (!groupedById[val]) {
+                groupedById[val] = [];
+              }
+              groupedById[val].push(user.id);
+            }
+          }
         }
 
         // display user + value on embed
@@ -664,6 +739,7 @@ export class PollService {
           options,
           groupedByValue,
           isMultiple,
+          groupedById,
         );
 
         const create = findMessagePoll.createAt;
@@ -724,6 +800,8 @@ export class PollService {
         await sleep(700);
         await this.handleResultPoll(findMessagePoll);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.log('handleSelectPoll', error)
+    }
   }
 }
