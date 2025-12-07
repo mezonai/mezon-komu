@@ -175,6 +175,7 @@ import { EventVoiceJoined } from './listeners/voicejoined.handle';
 import { VoiceSession } from './models/voiceSession.entity';
 import { OpentalkCommand } from './asterisk-commands/commands/opentalk/opentalk.command';
 import { OpentalkService } from './services/opentalk.services';
+import { PollTrackerService } from './services/PollTracker.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -355,6 +356,7 @@ import { OpentalkService } from './services/opentalk.services';
     EventVoiceLeaved,
     OpentalkService,
     OpentalkCommand,
+    PollTrackerService
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

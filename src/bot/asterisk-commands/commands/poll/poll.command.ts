@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { MezonBotMessage } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { PollService } from 'src/bot/services/poll.service';
+import { PollTrackerService } from 'src/bot/services/PollTracker.services';
 
 @Command('poll')
 export class PollCommand extends CommandMessage {
@@ -15,6 +16,7 @@ export class PollCommand extends CommandMessage {
   constructor(
     private clientService: MezonClientService,
     private pollService: PollService,
+    private pollTrackerService: PollTrackerService
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -29,7 +31,7 @@ export class PollCommand extends CommandMessage {
     const embed: EmbedProps[] = [
       {
         color,
-        title: `POLL CREATOR`,
+        title: `Poll Configuration`,
         fields: this.pollService.generateFieldsCreatePoll(defaultNumberOption),
         timestamp: new Date().toISOString(),
         footer: MEZON_EMBED_FOOTER,
@@ -42,6 +44,7 @@ export class PollCommand extends CommandMessage {
       message.clan_id ?? '',
       message.sender_id
     );
-    await messageChannel?.reply({ embed, components });
+    const sent = await messageChannel?.reply({ embed, components });
+    this.pollTrackerService.startTrackPoll(message.clan_id, message.channel_id, sent.message_id);
   }
 }

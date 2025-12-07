@@ -34,6 +34,7 @@ import { QuizService } from '../services/quiz.services';
 import { MessageQueue } from '../services/messageQueue.service';
 import { UtilsService } from '../services/utils.services';
 import { invalidCharacter, messagesBusy } from '../constants/text';
+import { PollTrackerService } from '../services/PollTracker.services';
 
 @Injectable()
 export class EventListenerChannelMessage {
@@ -55,6 +56,7 @@ export class EventListenerChannelMessage {
     private quizService: QuizService,
     private messageQueue: MessageQueue,
     private utilsService: UtilsService,
+    private pollTrackerService: PollTrackerService
   ) {
     this.client = clientService.getClient();
   }
@@ -483,5 +485,14 @@ export class EventListenerChannelMessage {
     } catch (error) {
       console.log('answer bot error', error, msg);
     }
+  }
+
+  @OnEvent(Events.ChannelMessage)
+  async handleMessageCreated(data: ChannelMessage) {
+    const clanId = data?.clan_id;
+    const channelId = data?.channel_id;
+    const messageId = data?.message_id;
+    if (!clanId || !channelId || !messageId) return;
+    this.pollTrackerService.handleNewMessage(clanId, channelId, messageId, data);
   }
 }

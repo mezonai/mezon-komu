@@ -129,67 +129,83 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
   private blockEditedList: string[] = [];
   private errorMessageIdByUserDaily = new Map<string, string[]>();
+  private processingButtons = new Map<string, boolean>();
 
   @OnEvent(Events.MessageButtonClicked)
   async hanndleButtonForm(data) {
+    const userId = data?.user_id;
+    const buttonId = data?.button_id;
+    if (!userId || !buttonId) return;
+    const key = `${userId}:${buttonId}`;
+    if (this.processingButtons.get(key)) {
+      console.log('Ignore spam click: ', key);
+      return;
+    }
+
+    this.processingButtons.set(key, true);
+    setTimeout(() => this.processingButtons.delete(key), 1000);
+
     try {
-      const args = data.button_id.split('_');
+      const args = buttonId.split('_');
       const buttonConfirmType = args[0];
       switch (buttonConfirmType) {
         case 'pollCreate':
-          this.handleCreatePoll(data);
+          await this.handleCreatePoll(data);
           break;
         case 'question':
-          this.handleAnswerQuestionWFH(data);
+          await this.handleAnswerQuestionWFH(data);
           break;
         case 'unlockTs':
-          this.handleUnlockTimesheet(data);
+          await this.handleUnlockTimesheet(data);
           break;
         case ERequestAbsenceDayType.REMOTE:
         case ERequestAbsenceDayType.ONSITE:
         case ERequestAbsenceDayType.OFF:
         case ERequestAbsenceDayType.OFFCUSTOM:
-          this.handleRequestAbsenceDay(data);
+          await this.handleRequestAbsenceDay(data);
           break;
         case 'daily':
-          this.handleSubmitDaily(data);
+          await this.handleSubmitDaily(data);
           break;
         case 'logts':
-          this.handleLogTimesheet(data);
+          await this.handleLogTimesheet(data);
           break;
         case 'w2request':
-          this.handleEventRequestW2(data);
+          await this.handleEventRequestW2(data);
           break;
         case EPMButtonTaskW2.APPROVE_TASK:
         case EPMButtonTaskW2.REJECT_TASK:
         case EPMButtonTaskW2.SUBMIT_REJECT_TASK:
         case EPMButtonTaskW2.CONFIRM_PROBATIONARY:
         case EPMButtonTaskW2.COMFIRM_REGISNATION:
-          this.handleTaskW2Request(data);
+          await this.handleTaskW2Request(data);
           break;
         case 'PMRequestDay':
-          this.handlePMRequestAbsenceDay(data);
+          await this.handlePMRequestAbsenceDay(data);
           break;
         case 'dailyPm':
-          this.handleSubmitDailyPm(data);
+          await this.handleSubmitDailyPm(data);
           break;
         case 'voucher':
-          this.handleSelectVoucher(data);
+          await this.handleSelectVoucher(data);
           break;
         case 'poll':
-          this.handleSelectPoll(data);
+          await this.handleSelectPoll(data);
           break;
         case 'interview':
-          this.sendAnswerOfInterviewerToHr(data);
+          await this.sendAnswerOfInterviewerToHr(data);
           break;
         case 'menu':
-          this.menuOrderService.handelSelectMenuOrder(data);
+          await this.menuOrderService.handelSelectMenuOrder(data);
           break;
         default:
           break;
       }
     } catch (error) {
       console.log('hanndleButtonForm ERROR', error);
+    } finally {
+      const key = `${data?.user?.user_id}:${data?.button_id}`;
+      this.processingButtons.delete(key);
     }
   }
 
@@ -682,12 +698,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             mk: [{ type: EMarkdownType.PRE, s: 0, e: textDailySuccess.length }],
           };
           // delete ephemeral form
-          await channel.deleteEphemeral(
-            data.user_id,
-            data.message_id,
-          );
+          await channel.deleteEphemeral(data.user_id, data.message_id);
           // delete list messsage error
-          await this.clearErrorsForUser(data.user_id, data.channel_id)
+          await this.clearErrorsForUser(data.user_id, data.channel_id);
           await messageAuthor.reply(msgDailySuccess);
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
@@ -704,12 +717,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           };
 
           // delete ephemeral form
-          await channel.deleteEphemeral(
-            data.user_id,
-            data.message_id,
-          );
+          await channel.deleteEphemeral(data.user_id, data.message_id);
           // delete list messsage error
-          await this.clearErrorsForUser(data.user_id, data.channel_id)
+          await this.clearErrorsForUser(data.user_id, data.channel_id);
           await messageAuthor.reply(msgDailyCancelSuccess);
           return;
         default:
