@@ -80,14 +80,6 @@ export class MezonClientService {
     }
   }
 
-  async createDMchannel(userId: string) {
-    try {
-      return await this.client.createDMchannel(userId);
-    } catch (error) {
-      console.log('createDMchannel', error);
-    }
-  }
-
   async reactMessageChannel(dataReact: ReactMessageChannel) {
     const channel = await this.client.channels.fetch(dataReact.channel_id);
     const message = await channel.messages.fetch(dataReact.message_id);

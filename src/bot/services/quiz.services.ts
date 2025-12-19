@@ -8,11 +8,16 @@ import { KomuService } from './komu.services';
 import { EUserType } from '../constants/configs';
 import { ChannelDMMezon } from '../models/channelDmMezon.entity';
 import { getRandomColor } from '../utils/helper';
-import { EMessageComponentType, EButtonMessageStyle } from 'mezon-sdk';
+import {
+  EMessageComponentType,
+  EButtonMessageStyle,
+  MezonClient,
+} from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class QuizService {
+  private client: MezonClient;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
