@@ -45,8 +45,7 @@ export class MessageCommand {
     try {
       if (message.userId) {
         try {
-          const clan = this.client.clans.get('0');
-          const user = await clan.users.fetch(message.userId);
+          const user = await this.client.users.fetch(message.userId);
           if (!user) return;
           await user.sendDM(
             {
@@ -56,8 +55,7 @@ export class MessageCommand {
             message?.code,
           );
         } catch (error) {
-          const clan = this.client.clans.get('0')
-          const user = await clan?.users?.fetch('1827994776956309504')
+          const user = await this.client.users?.fetch('1827994776956309504')
           user.sendDM({t: `Không fetch đc user ${message.userId}`})
           // await this.userRepository.update(
           //   { userId: message.userId },

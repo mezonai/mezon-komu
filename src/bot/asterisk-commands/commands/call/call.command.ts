@@ -27,8 +27,7 @@ export class CallCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (args[0] === 'user' && message.sender_id === '1827994776956309504') {
-      const clan = this.client.clans.get(message.clan_id);
-      const user = clan.users.get(args[1]);
+      const user = this.client.users.get(args[1]);
       let messageContent = `userId: ${user?.id}, dmId: ${user?.dmChannelId}`;
       if (!user) {
         messageContent = 'Not found user';

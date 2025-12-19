@@ -143,8 +143,7 @@ export class SendMessageSchedulerService {
             checkUser.user_type !== EUserType.MEZON
           )
             return;
-          const clan = this.client.clans.get('0');
-          const user = await clan.users.fetch(checkUser.userId);
+          const user = await this.client.users.fetch(checkUser.userId);
           await user.sendDM({
             t: 'Nhớ submit timesheet cuối tuần tránh bị phạt bạn nhé!!! Nếu bạn có tham gia opentalk bạn hãy log timesheet vào project company activities nhé.',
           });
@@ -266,8 +265,7 @@ export class SendMessageSchedulerService {
             checkUser.userId &&
             checkUser.user_type === EUserType.MEZON
           ) {
-            const clan = this.client.clans.get('0');
-            const user = await clan.users.fetch(checkUser.userId);
+            const user = await this.client.users.fetch(checkUser.userId);
             await user.sendDM({
               t: 'Nhớ tắt máy trước khi ra về nếu không dùng nữa nhé!!!',
             });
@@ -317,8 +315,7 @@ export class SendMessageSchedulerService {
 
           const checkUser = await query.select('user').getOne();
           if (checkUser?.userId && checkUser.user_type === EUserType.MEZON) {
-            const clan = this.client.clans.get('0');
-            const user = await clan.users.fetch(checkUser?.userId);
+            const user = await this.client.users.fetch(checkUser?.userId);
             await user.sendDM({
               t: 'Đừng quên checkout trước khi ra về nhé!!!',
             });
@@ -363,8 +360,7 @@ export class SendMessageSchedulerService {
               userdb.user_type === EUserType.MEZON
             ) {
               usernameList.push(userdb?.clan_nick || userdb?.username);
-              const clan = this.client.clans.get('0');
-              const user = await clan.users.fetch(userdb?.userId);
+              const user = await this.client.users.fetch(userdb?.userId);
               const textContent =
                 type === 'last'
                   ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'

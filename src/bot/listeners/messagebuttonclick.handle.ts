@@ -214,7 +214,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const args = data.button_id.split('_');
       if (args[0] !== 'question') return;
       const clan = this.client.clans.get('0');
-      const user = await clan.users.fetch(data.user_id);
+      const user = await this.client.users.fetch(data.user_id);
       const answer = args[1];
       const channelDmId = user.dmChannelId;
       const color = args[3] || '#57F287';
@@ -337,8 +337,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           botPing: false,
         },
       );
-      const clan = this.client.clans.get('0');
-      const user = await clan.users.fetch(data.user_id);
+      const user = await this.client.users.fetch(data.user_id);
       await user.sendDM({
         t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này!',
       });
@@ -1501,10 +1500,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     if (args[3]) {
       this.taskId = args[3];
     }
-    const clan = await this.client.clans.fetch(
-      process.env.KOMUBOTREST_CLAN_NCC_ID,
-    );
-    const user = await clan.users.fetch(data.user_id);
+    const user = await this.client.users.fetch(data.user_id);
     if (data.button_id.split('_')[0] === EPMButtonTaskW2.APPROVE_TASK) {
       if (buttonConfirmType === EPMTaskW2Type.RESIGNATION) {
         const embed: EmbedProps[] = [

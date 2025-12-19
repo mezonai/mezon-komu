@@ -355,9 +355,9 @@ export class MenuOrderService {
         where: { user_id: data.user_id },
       });
       let newDMChannel;
-      if (findSellerDMChannel) {
-        newDMChannel = await this.clientService.createDMchannel(data.user_id);
-      }
+      // if (findSellerDMChannel) {
+      //   newDMChannel = await this.clientService.createDMchannel(data.user_id);
+      // }
       const embed: EmbedProps[] = [
         {
           color: getRandomColor(),

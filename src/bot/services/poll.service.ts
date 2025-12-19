@@ -429,7 +429,7 @@ export class PollService {
     ] = data.button_id.split('_');
 
     if (data.user_id !== authId) {
-      const user = await channel.clan.users.fetch(data.user_id);
+      const user = await this.client.users.fetch(data.user_id);
       const content = `❌You have no permission to edit this poll created by ${authorName}!`;
       return await user.sendDM({
         t: content,
@@ -603,7 +603,7 @@ export class PollService {
         authorName,
       ] = data.button_id.split('_');
       const channel = await this.client.channels.fetch(data.channel_id);
-      const user = await channel.clan.users.fetch(data.user_id);
+      const user = await this.client.users.fetch(data.user_id);
       const messsage = await channel.messages.fetch(data.message_id);
 
       const isPublicBoolean = isPublic === 'true' ? true : false;

@@ -94,7 +94,7 @@ export class QuizService {
       const userId = userInput.userId;
       const clan = client?.clans?.get('0');
       if (!clan) return;
-      const user = await clan.users.fetch(userId);
+      const user = await this.client.users.fetch(userId);
       const q = await this.randomQuiz(userInput, roleSelect);
       if (!q) return;
 

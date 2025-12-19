@@ -40,8 +40,7 @@ export class EventAddClanUser extends BaseHandleEvent {
       const randomIndexVoiceChannel = Math.floor(
         Math.random() * textWelcome.length,
       );
-      const clan = await this.client.clans.fetch(data.clan_id);
-      const user = await clan.users.fetch(data?.user?.user_id);
+      const user = await this.client.users.fetch(data?.user?.user_id);
       const messageDM = await user.sendDM({
         t: textWelcome[randomIndexVoiceChannel] + 'Welcome nhé!',
         hg: [

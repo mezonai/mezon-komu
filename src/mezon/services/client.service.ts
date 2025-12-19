@@ -69,8 +69,7 @@ export class MezonClientService {
   }
 
   async sendMessageToUser(messageToUser: ReplyMezonMessage) {
-    const dmClan = await this.client.clans.fetch('0');
-    const user = await dmClan.users.fetch(messageToUser.userId);
+    const user = await this.client.users.fetch(messageToUser.userId);
     try {
       return await user.sendDM({
         t: messageToUser.textContent,

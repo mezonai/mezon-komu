@@ -42,7 +42,7 @@ export class MeetingCommand extends CommandMessage {
           )
         )?.voice_channel_users;
       } catch (error) {
-        console.log('listChannelVoiceUsers', error);
+        console.log('listChannelVoiceUsers error', error);
       }
 
       const listVoiceChannel = await this.channelRepository.find({

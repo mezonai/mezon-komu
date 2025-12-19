@@ -79,8 +79,7 @@ export class StreamingEvent extends BaseHandleEvent {
         .getMany();
       const userIdList = findUserWfh.map((user) => user.userId);
 
-      const clan = this.client.clans.get(data.clan_id);
-      const user = await clan.users.fetch(data.user_id);
+      const user = await this.client.users.fetch(data.user_id);
       user.sendDM({ t: '🎉Tuyệt vời, hãy cùng nhau chill với NCC8 nào!' });
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
@@ -137,8 +136,7 @@ export class StreamingEvent extends BaseHandleEvent {
           `Không tìm thấy session đang mở cho user ${data.streaming_user_id}.`,
         );
       }
-      const clan = this.client.clans.get(data.clan_id);
-      const user = await clan.users.fetch(data.streaming_user_id);
+      const user = await this.client.users.fetch(data.streaming_user_id);
       user.sendDM({ t: '❗Bạn đã rời khỏi channel NCC8-Radio!' });
     } catch (error) {
       console.log('handleLeaveNCC8', error);
