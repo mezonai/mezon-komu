@@ -27,19 +27,31 @@ export class CallCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (args[0] === 'user' && message.sender_id === '1827994776956309504') {
-      const user = this.client.users.get(args[1]);
-      let messageContent = `userId: ${user?.id}, dmId: ${user?.dmChannelId}`;
-      if (!user) {
-        messageContent = 'Not found user';
+      if (args[1]) {
+        const user = this.client.users.get(args[1]);
+        let messageContent = `userId: ${user?.id}, dmId: ${user?.dmChannelId}`;
+        if (!user) {
+          messageContent = 'Not found user';
+        }
+        return this.replyMessageGenerate(
+          {
+            messageContent,
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          },
+          message,
+        );
       }
+
+      const users = Array.from(this.client.users.values());
+      const countDMChannel = users.filter((u) => !!u.dmChannelId).length;
       return this.replyMessageGenerate(
         {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          messageContent: `Count init: ${countDMChannel}`,
         },
         message,
       );
     }
+
     if (!args.length) {
       const messageContent =
         '' +

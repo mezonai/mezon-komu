@@ -5,6 +5,7 @@ import {
   ChannelMessage,
   MezonClient,
   ChannelStreamMode,
+  EMarkdownType,
 } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
@@ -56,7 +57,7 @@ export class EventListenerChannelMessage {
     private quizService: QuizService,
     private messageQueue: MessageQueue,
     private utilsService: UtilsService,
-    private pollTrackerService: PollTrackerService
+    private pollTrackerService: PollTrackerService,
   ) {
     this.client = clientService.getClient();
   }
@@ -318,6 +319,16 @@ export class EventListenerChannelMessage {
         const firstLetter = content.trim()[0];
         switch (firstLetter) {
           case '*':
+            if (msg.clan_id !== this.clientConfigService.clandNccId) {
+              const channel = await this.client.channels.fetch(msg.channel_id);
+              const message = await channel.messages.fetch(msg.message_id);
+              const text = 'Commands cannot be used outside the KOMU clan!';
+              await message.reply({
+                t: text,
+                mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],
+              });
+              break;
+            }
             replyMessage = await this.asteriskCommand.execute(content, msg);
             break;
           default:
@@ -493,6 +504,11 @@ export class EventListenerChannelMessage {
     const channelId = data?.channel_id;
     const messageId = data?.message_id;
     if (!clanId || !channelId || !messageId) return;
-    this.pollTrackerService.handleNewMessage(clanId, channelId, messageId, data);
+    this.pollTrackerService.handleNewMessage(
+      clanId,
+      channelId,
+      messageId,
+      data,
+    );
   }
 }
