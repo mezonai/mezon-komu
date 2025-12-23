@@ -213,7 +213,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     try {
       const args = data.button_id.split('_');
       if (args[0] !== 'question') return;
-      const clan = this.client.clans.get('0');
       const user = await this.client.users.fetch(data.user_id);
       const answer = args[1];
       const channelDmId = user.dmChannelId;

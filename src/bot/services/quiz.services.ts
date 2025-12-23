@@ -95,11 +95,9 @@ export class QuizService {
   async sendQuizToSingleUser(userInput, botPing = false, roleSelect = null) {
     if (!userInput) return;
     try {
-      const client = this.clientService.getClient();
       const userId = userInput.userId;
-      const clan = client?.clans?.get('0');
-      if (!clan) return;
       const user = await this.client.users.fetch(userId);
+      if (!user?.dmChannelId) return
       const q = await this.randomQuiz(userInput, roleSelect);
       if (!q) return;
 

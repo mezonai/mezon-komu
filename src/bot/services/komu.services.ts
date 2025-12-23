@@ -46,7 +46,6 @@ export class KomuService {
       }
       let sent: ChannelMessageAck;
       try {
-        const clan = this.client.clans.get('0');
         const user = await this.client.users.fetch(userId);
         if (!user) return;
         sent = await user.sendDM({
@@ -54,22 +53,26 @@ export class KomuService {
           embed,
         });
       } catch (error) {
-        const user = await this.client.users.fetch('1827994776956309504');
-        user.sendDM({ t: `Không SEND DM WFH ĐC CHO user ${userId}` });
-        await this.userRepository.update(
-          { userId: userId },
-          { botPing: false, user_type: null },
-        );
-        switch (error) {
-          case ErrorSocketType.TIME_OUT:
-            console.log('Message wfh get error', userId);
-            break;
-          // case ErrorSocketType.NOT_ESTABLISHED:
-          //   this.messageQueue.addMessage(newMessage);
-          //   break;
-          default:
-            console.log('error send wfh', error, userId);
-            break;
+        try {
+          const user = await this.client.users.fetch('1827994776956309504');
+          user.sendDM({ t: `Không SEND DM WFH ĐC CHO user ${userId}` });
+          await this.userRepository.update(
+            { userId: userId },
+            { botPing: false, user_type: null },
+          );
+          switch (error) {
+            case ErrorSocketType.TIME_OUT:
+              console.log('Message wfh get error', userId);
+              break;
+            // case ErrorSocketType.NOT_ESTABLISHED:
+            //   this.messageQueue.addMessage(newMessage);
+            //   break;
+            default:
+              console.log('error send wfh', error, userId);
+              break;
+          }
+        } catch (error) {
+          console.log('error sendDM ADMIN', error);
         }
       }
       if (!sent) return;
@@ -93,21 +96,6 @@ export class KomuService {
         .execute();
       return sent;
     } catch (error) {
-      const userDb = await this.userRepository
-        .createQueryBuilder()
-        .where('"userId" = :userId and deactive IS NOT True ', {
-          userId,
-        })
-        .select('*')
-        .getRawOne()
-        .catch(console.error);
-
-      const message = `KOMU không gửi được tin nhắn cho @${userDb.email}. Hãy ping #admin-username để được hỗ trợ nhé!!!`;
-
-      const messageItAdmin = `KOMU không gửi được tin nhắn cho @${userDb.email}. #admin-username hỗ trợ nhé!!!`;
-
-      await Promise.all([this.sendErrorToDev(messageItAdmin)]);
-
       return null;
     }
   };
