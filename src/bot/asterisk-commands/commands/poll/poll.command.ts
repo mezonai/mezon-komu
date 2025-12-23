@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { PollService } from 'src/bot/services/poll.service';
 import { PollTrackerService } from 'src/bot/services/PollTracker.services';
 
-@Command('poll')
+// @Command('poll')
 export class PollCommand extends CommandMessage {
   protected client: MezonClient;
   constructor(
