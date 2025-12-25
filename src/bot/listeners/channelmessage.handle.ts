@@ -59,7 +59,7 @@ export class EventListenerChannelMessage {
     private utilsService: UtilsService,
     private pollTrackerService: PollTrackerService,
   ) {
-    this.client = clientService.getClient();
+    this.client = this.clientService.getClient();
   }
 
   getRandomMessage(): string {

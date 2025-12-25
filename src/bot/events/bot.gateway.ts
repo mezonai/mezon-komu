@@ -42,7 +42,7 @@ export class BotGateway {
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {
-    this.client = clientService.getClient();
+    this.client = this.clientService.getClient();
   }
 
   initEvent() {

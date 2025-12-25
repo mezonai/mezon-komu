@@ -27,7 +27,7 @@ export class WFHSchedulerService {
     private wfhRepository: Repository<WorkFromHome>,
     private messageQueue: MessageQueue,
   ) {
-    this.client = clientService.getClient();
+    this.client = this.clientService.getClient();
   }
 
   async getUserByDateTypeNames() {

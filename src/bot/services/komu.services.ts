@@ -22,7 +22,7 @@ export class KomuService {
     @InjectRepository(ChannelDMMezon)
     private channelDmMezonRepository: Repository<ChannelDMMezon>,
   ) {
-    this.client = clientService.getClient();
+    this.client = this.clientService.getClient();
   }
   sendMessageKomuToUser = async (
     msg,
