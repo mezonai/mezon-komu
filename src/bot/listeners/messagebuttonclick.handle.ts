@@ -699,7 +699,12 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           await channel.deleteEphemeral(data.user_id, data.message_id);
           // delete list messsage error
           await this.clearErrorsForUser(data.user_id, data.channel_id);
-          await messageAuthor.reply(msgDailySuccess);
+          try {
+            await messageAuthor.reply(msgDailySuccess);
+          } catch (error) {
+            console.log('error messageAuthor', error);
+            await channel.send(msgDailySuccess);
+          }
           break;
         case EUnlockTimeSheet.CANCEL.toLowerCase():
           const textDailyCancelSuccess = 'The daily has been cancelled';
