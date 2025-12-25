@@ -17,7 +17,6 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Injectable()
 export class QuizService {
-  private client: MezonClient;
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -94,9 +93,10 @@ export class QuizService {
 
   async sendQuizToSingleUser(userInput, botPing = false, roleSelect = null) {
     if (!userInput) return;
+    const client = this.clientService.getClient();
     try {
       const userId = userInput.userId;
-      const user = await this.client.users.fetch(userId);
+      const user = await client.users.fetch(userId);
       console.log('sendQuizToSingleUser', userId, user.id, user.dmChannelId);
       if (!user?.dmChannelId) return;
       const q = await this.randomQuiz(userInput, roleSelect);
