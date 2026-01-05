@@ -199,12 +199,17 @@ export class SendMessageSchedulerService {
     const result = await this.birthdayUser();
     await Promise.all(
       result.map(async (item) => {
-        if (!item?.user?.userId || item?.user?.userId === '1827994776956309504')
+        if (
+          !item?.user?.userId ||
+          item?.user?.userId === '1827994776956309504' ||
+          item?.user?.userId === '1783444920736944128'
+        )
           return;
         const userName =
           item?.user?.clan_nick ||
           item?.user?.display_name ||
           item?.user?.username;
+        if (userName === 'duy.nguyenxuan') return;
         const replyMessage = {
           clan_id: this.clientConfigService.clandNccId,
           channel_id: this.clientConfigService.mezonNhaCuaChungChannelId,
