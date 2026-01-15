@@ -196,7 +196,7 @@ export class EventListenerChannelMessage {
         });
       }
 
-      if (message.code) {
+      if (message.code || !message.hide_editted) {
         const listMentionByMessageId = await this.mentionedRepository.find({
           where: {
             messageId: message.message_id,
@@ -311,7 +311,7 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleCommand(msg: ChannelMessage) {
-    if (msg.code) return; // Do not support case edit message
+    if (msg.code || !msg.hide_editted || !msg.clan_id) return; // Do not support case edit message
     try {
       const content = msg.content.t;
       let replyMessage: ReplyMezonMessage;
