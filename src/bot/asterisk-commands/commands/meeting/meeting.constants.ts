@@ -1,8 +1,10 @@
 export const messHelp =
   '' +
-  'Command *meeting' +
+  'List command *meeting:' +
   '\n' +
-  '*meeting cancel' +
+  '*meeting (to list current meeting on channel)' +
+  '\n' +
+  '*meeting cancel [meetingId]' +
   '\n' +
   '*meeting now' +
   '\n' +
