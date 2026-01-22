@@ -17,6 +17,12 @@ export class VoiceSession {
   @Column()
   voice_channel_id: string;
 
+  @Column({ type: 'text', nullable: true })
+  event_id: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  is_in_event: boolean;
+
   @Column({ type: 'timestamp', nullable: true })
   joined_at: Date;
 

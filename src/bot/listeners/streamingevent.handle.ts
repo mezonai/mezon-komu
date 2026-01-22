@@ -80,7 +80,7 @@ export class StreamingEvent extends BaseHandleEvent {
       const userIdList = findUserWfh.map((user) => user.userId);
 
       const user = await this.client.users.fetch(data.user_id);
-      user.sendDM({ t: '🎉Tuyệt vời, hãy cùng nhau chill với NCC8 nào!' });
+      user.sendDM({ t: "🎉 Joining NCC8 successfully. Let's chill with NCC8!" });
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
       const existing = await this.mezonTrackerStreamingRepository.findOne({

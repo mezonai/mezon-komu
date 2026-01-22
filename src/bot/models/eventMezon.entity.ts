@@ -22,10 +22,16 @@ export class EventMezon {
   channelId: string;
 
   @Column({ type: 'text', nullable: true })
+  channelVoiceId: string;
+
+  @Column({ type: 'text', nullable: true })
   address: string;
 
   @Column({ nullable: true })
   activeBet: boolean;
+
+  @Column({ nullable: true })
+  active: boolean;
 
   @Column({ type: 'decimal', nullable: true })
   timeStart: number;

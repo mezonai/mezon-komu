@@ -3,28 +3,25 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Events, VoiceJoinedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { OpentalkService } from '../services/opentalk.services';
+import { VoiceSessionTrackingService } from '../services/voiceSessionTracking.services';
 
 @Injectable()
 export class EventVoiceJoined extends BaseHandleEvent {
   constructor(
     clientService: MezonClientService,
-    private opentalkService: OpentalkService,
+    private voiceSessionTrackingService: VoiceSessionTrackingService,
   ) {
     super(clientService);
   }
 
   @OnEvent(Events.VoiceJoinedEvent)
   async handleVoiceJoined(data: VoiceJoinedEvent) {
-    const now = new Date();
-    const day = now.getDay();
-    if (day !== 6) return;
-    console.log('handleVoiceJoined', data)
-
-    try {
-      await this.opentalkService.handleVoiceJoined(data);
-    } catch (error) {
-      console.log('handleVoiceJoined');
-    }
+    if (data.clan_id !== process.env.KOMUBOTREST_CLAN_NCC_ID) return;
+    await this.voiceSessionTrackingService.onVoiceJoined({
+      clan_id: data.clan_id,
+      user_id: data.user_id,
+      participant: data.participant,
+      voice_channel_id: data.voice_channel_id,
+    });
   }
 }
