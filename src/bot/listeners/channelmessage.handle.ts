@@ -187,7 +187,7 @@ export class EventListenerChannelMessage {
             authorId: message.sender_id,
             channelId: message.channel_id,
             mentionUserId: user.user_id,
-            createdTimestamp: new Date(message.create_time).getTime(),
+            createdTimestamp: new Date(message.create_time ?? Date.now()).getTime(),
             noti: false,
             confirm: false,
             punish: false,
