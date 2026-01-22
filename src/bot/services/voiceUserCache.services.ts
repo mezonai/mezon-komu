@@ -44,7 +44,6 @@ export class VoiceUsersCacheService {
 
     entry.inFlight = (async () => {
       try {
-        console.log('call api')
         const fresh = (await fetcher()) ?? [];
         entry!.value = fresh;
         entry!.updatedAt = Date.now();
