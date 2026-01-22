@@ -313,7 +313,7 @@ export class VoiceSessionTrackingService {
             try {
               const user = await this.client.users.fetch(s.user_id);
               const text =
-                '[⚠️⚠️⚠️] Bạn vừa bị tính đã thoát khỏi room opentalk do KOMU không tìm thấy trong room.\nNếu bạn vẫn đang xem, hãy thoát ra rồi vào lại! Xin cảm ơn!';
+                '[⚠️⚠️⚠️] Bạn vừa bị tính đã thoát khỏi room opentalk do KOMU không tìm thấy bạn trong room opentalk nào cả!\nNếu bạn vẫn đang xem, hãy thoát ra rồi vào lại! Xin cảm ơn!';
               await user.sendDM({
                 t: text,
                 mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],
