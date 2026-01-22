@@ -3,27 +3,23 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Events, VoiceLeavedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { OpentalkService } from '../services/opentalk.services';
+import { VoiceSessionTrackingService } from '../services/voiceSessionTracking.services';
 
 @Injectable()
 export class EventVoiceLeaved extends BaseHandleEvent {
   constructor(
     clientService: MezonClientService,
-    private opentalkService: OpentalkService,
+    private voiceSessionTrackingService: VoiceSessionTrackingService,
   ) {
     super(clientService);
   }
 
   @OnEvent(Events.VoiceLeavedEvent)
   async handleVoiceLeaved(data: VoiceLeavedEvent) {
-    try {
-      const now = new Date();
-      const day = now.getDay();
-      if (day !== 6) return;
-      console.log('handleVoiceLeaved', data)
-      await this.opentalkService.handleVoiceLeaved(data);
-    } catch (error) {
-      console.log('handleVoiceLeaved');
-    }
+    await this.voiceSessionTrackingService.onVoiceLeft({
+      clan_id: data.clan_id,
+      voice_channel_id: data.voice_channel_id,
+      voice_user_id: data.voice_user_id,
+    });
   }
 }

@@ -141,7 +141,7 @@ export class EventListenerChannelMessage {
           typeof message.content.t !== 'string' ||
           message.mode === 4 ||
           message.content.t?.split(' ')?.includes('@here')) &&
-        message.code !== 2
+        (message.code !== 2 && (!message.hide_editted && message.mode === 2))
       )
         return;
 
@@ -178,7 +178,8 @@ export class EventListenerChannelMessage {
             user?.user_id === this.clientConfigService.botKomuId ||
             clientId.includes(user?.user_id) ||
             user?.role_id ||
-            message.code
+            message.code ||
+            !message.hide_editted
           )
             return;
           const data = {
@@ -186,7 +187,7 @@ export class EventListenerChannelMessage {
             authorId: message.sender_id,
             channelId: message.channel_id,
             mentionUserId: user.user_id,
-            createdTimestamp: new Date(message.create_time).getTime(),
+            createdTimestamp: new Date(message.create_time ?? Date.now()).getTime(),
             noti: false,
             confirm: false,
             punish: false,
@@ -222,7 +223,10 @@ export class EventListenerChannelMessage {
         const messageMentionUserIds = message.mentions.map(
           (user) => user.user_id,
         );
-        if (message.code === 1) {
+        if (
+          message.code === 1 ||
+          (!message.hide_editted && message.mode === 2)
+        ) {
           const { uniqueInArr1: usersRemoved, uniqueInArr2: usersAdded } =
             this.findUniqueElements(
               currentMentionUserIds,
@@ -287,7 +291,10 @@ export class EventListenerChannelMessage {
           return;
         }
 
-        if (message.code === 2) {
+        if (
+          message.code === 2 ||
+          (!message.hide_editted && message.mode === 0)
+        ) {
           currentMentionUserIds.forEach(async (id) => {
             await this.mentionedRepository.update(
               {

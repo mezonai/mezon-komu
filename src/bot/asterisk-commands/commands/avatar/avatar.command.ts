@@ -52,7 +52,6 @@ export class AvatarCommand extends CommandMessage {
           '(user.clan_nick = :query OR user.username = :query OR user.userId = :query)',
           { query: args[0] },
         )
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
         .orderBy(
           'CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 ELSE 3 END',
         )

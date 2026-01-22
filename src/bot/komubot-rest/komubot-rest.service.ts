@@ -29,6 +29,7 @@ import { SendTokenToUser } from '../dto/sendTokenToUser';
 import { parseMarkDownText } from '../utils/helper';
 import { OpentalkService } from '../services/opentalk.services';
 import { GetTransactionsDTO } from '../dto/getTransactions';
+import { VoiceSessionTrackingService } from '../services/voiceSessionTracking.services';
 
 @Injectable()
 export class KomubotrestService {
@@ -55,6 +56,7 @@ export class KomubotrestService {
     private applicationRepository: Repository<Application>,
     private clientService: MezonClientService,
     private opentalkService: OpentalkService,
+    private voiceSessionTrackingService: VoiceSessionTrackingService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -643,7 +645,7 @@ export class KomubotrestService {
   }
 
   async getAllOpentalkTime(time: string) {
-    return await this.opentalkService.getAllUsersVoiceTime(time);
+    return await this.voiceSessionTrackingService.reportVoiceTimeByDay(time);
   }
 
   async getAllTransactions(query: GetTransactionsDTO) {

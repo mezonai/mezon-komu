@@ -12,6 +12,7 @@ import { convertName, getUserNameByEmail } from '../utils/helper';
 import moment from 'moment';
 import { MessageQueue } from '../services/messageQueue.service';
 import { Cron } from '@nestjs/schedule';
+import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
 
 @Injectable()
 export class WFHSchedulerService {
@@ -26,6 +27,7 @@ export class WFHSchedulerService {
     @InjectRepository(WorkFromHome)
     private wfhRepository: Repository<WorkFromHome>,
     private messageQueue: MessageQueue,
+    private voiceUsersService: VoiceUsersCacheService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -57,12 +59,10 @@ export class WFHSchedulerService {
       const clan = await this.client.clans.fetch(
         process.env.KOMUBOTREST_CLAN_NCC_ID,
       );
-      const listChannelVoiceUsers = (
-        await clan.listChannelVoiceUsers(
-          '',
-          ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-        )
-      )?.voice_channel_users;
+      const listChannelVoiceUsers =
+        await this.voiceUsersService.listMezonVoiceUsers(
+          process.env.KOMUBOTREST_CLAN_NCC_ID,
+        );
 
       const useridJoining =
         listChannelVoiceUsers.map((user) => user?.user_id) || [];

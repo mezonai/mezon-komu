@@ -12,6 +12,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { EMessageMode } from '../constants/configs';
 import { KomuService } from '../services/komu.services';
 import { MessageQueue } from '../services/messageQueue.service';
+import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
 
 @Injectable()
 export class MeetingSchedulerService {
@@ -27,6 +28,7 @@ export class MeetingSchedulerService {
     private clientService: MezonClientService,
     private komuService: KomuService,
     private messageQueue: MessageQueue,
+    private voiceUsersService: VoiceUsersCacheService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -36,16 +38,11 @@ export class MeetingSchedulerService {
   async getListVoiceChannelAvalable() {
     let listChannelVoiceUsers = [];
     try {
-      const clan = await this.client.clans.fetch(this.clientConfig.clandNccId)
-      listChannelVoiceUsers =
-        (
-          await clan.listChannelVoiceUsers(
-            '',
-            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-          )
-        )?.voice_channel_users ?? [];
+      listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(
+        this.clientConfig.clandNccId,
+      );
     } catch (error) {
-      // console.log('listChannelVoiceUsers meeting', error);
+      console.log('listChannelVoiceUsers meeting', error);
     }
 
     const listVoiceChannel = await this.channelRepository.find({

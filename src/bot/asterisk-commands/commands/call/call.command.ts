@@ -8,7 +8,7 @@ import { In, Repository } from 'typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
-import { convertName } from 'src/bot/utils/helper';
+import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
 
 @Command('call')
 export class CallCommand extends CommandMessage {
@@ -20,6 +20,7 @@ export class CallCommand extends CommandMessage {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private messageQueue: MessageQueue,
+    private voiceUsersService: VoiceUsersCacheService
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -98,15 +99,7 @@ export class CallCommand extends CommandMessage {
             message,
           );
         }
-        const clan = await this.client.clans.fetch(
-          process.env.KOMUBOTREST_CLAN_NCC_ID,
-        );
-        listChannelVoiceUsers = (
-          await clan.listChannelVoiceUsers(
-            '',
-            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-          )
-        )?.voice_channel_users;
+        listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(process.env.KOMUBOTREST_CLAN_NCC_ID);
 
         const listVoiceChannel = await this.channelRepository.find({
           where: {

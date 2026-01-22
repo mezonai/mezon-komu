@@ -9,6 +9,7 @@ import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { convertName } from 'src/bot/utils/helper';
+import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
 
 @Command('where')
 export class WhereCommand extends CommandMessage {
@@ -20,6 +21,7 @@ export class WhereCommand extends CommandMessage {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private messageQueue: MessageQueue,
+    private voiceUsersService: VoiceUsersCacheService
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -72,13 +74,7 @@ export class WhereCommand extends CommandMessage {
             message,
           );
         }
-        const clan = this.client.clans.get(message.clan_id);
-        listChannelVoiceUsers = (
-          await clan.listChannelVoiceUsers(
-            '',
-            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-          )
-        )?.voice_channel_users;
+        listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
 
         const filter = new Set();
         const currentUserVoiceChannelFindUser = listChannelVoiceUsers.filter(

@@ -8,6 +8,7 @@ import { ChannelMezon } from 'src/bot/models';
 import { In, Repository } from 'typeorm';
 import { messHelp } from './meeting.constants';
 import { convertName } from 'src/bot/utils/helper';
+import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
 
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
@@ -17,6 +18,7 @@ export class MeetingCommand extends CommandMessage {
     private clientService: MezonClientService,
     @InjectRepository(ChannelMezon)
     private channelRepository: Repository<ChannelMezon>,
+    private voiceUsersService: VoiceUsersCacheService
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -27,20 +29,17 @@ export class MeetingCommand extends CommandMessage {
       const messageContent =
         await this.meetingService.handleMeetingNoArgs(message);
       return this.replyMessageGenerate(
-        { messageContent, mk: [{ type: 'pre', s: 0, e: messageContent.length }] },
+        {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+        },
         message,
       );
     }
     if (args[0] === 'now') {
       let listChannelVoiceUsers = [];
       try {
-        const clan = this.client.clans.get(message.clan_id);
-        listChannelVoiceUsers = (
-          await clan.listChannelVoiceUsers(
-            '',
-            ChannelType.CHANNEL_TYPE_GMEET_VOICE,
-          )
-        )?.voice_channel_users;
+        listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
       } catch (error) {
         console.log('listChannelVoiceUsers error', error);
       }

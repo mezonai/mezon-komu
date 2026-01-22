@@ -2,19 +2,22 @@ import { ChannelMessage } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/bot/models';
+import { EventMezon, User } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import {
   OpentalkService,
   UpdateTimeType,
 } from 'src/bot/services/opentalk.services';
+import { VoiceSessionTrackingService } from 'src/bot/services/voiceSessionTracking.services';
 
 @Command('opt')
 export class OpentalkCommand extends CommandMessage {
   constructor(
-    private opentalkService: OpentalkService,
+    private voiceSessionTrackingService: VoiceSessionTrackingService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(EventMezon)
+    private readonly eventRepo: Repository<EventMezon>,
   ) {
     super();
   }
@@ -33,77 +36,51 @@ export class OpentalkCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    if (!args?.length) {
-      const messageContent = 'Command *opt dd/MM/yyyy';
-      return this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-    }
+    if (message.sender_id !== '1827994776956309504') return;
+    if (args[0] === 'list') {
+      const events = await this.eventRepo
+        .createQueryBuilder('e')
+        .orderBy('e.id', 'DESC')
+        .limit(15)
+        .getMany();
 
-    if (args[0] === 'set') {
-      if (message.sender_id !== '1827994776956309504') return;
-      const channelsList = args.slice(1);
-      this.opentalkService.setValidChannelIds(channelsList);
-      this.opentalkService.saveValidChannelIdsToFile();
-      const listChannelValid = this.opentalkService.getValidChannelIds();
-      const messageContent =
-        '' +
-        `List channel: ${channelsList}\nSet list channel opentalk valid success! Current channel: ${listChannelValid.join(', ')}` +
-        '';
-      return this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-    }
+      if (!events.length) {
+        const text = 'Không có events!';
+        return this.replyMessageGenerate(
+          {
+            messageContent: text,
+            mk: [{ type: 'pre', s: 0, e: text.length }],
+          },
+          message,
+        );
+      }
 
-    if (args[0] === 'add') {
-      if (message.sender_id !== '1827994776956309504') return;
-      const channelsList = args.slice(1);
-      this.opentalkService.addValidChannelIds(channelsList);
-      const listChannelValid = this.opentalkService.getValidChannelIds();
-      const messageContent =
-        '' +
-        `List add channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
-        '';
-      return this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-    }
+      const result = events
+        .map((e, i) => {
+          const raw = e.timeStart;
+          const time = Number(raw);
+          const date = new Date(time);
+          return `${i + 1}. ${e.id} | ${e.title} | ${new Date(date).toLocaleString()} | ${e.channelVoiceId ?? 'không có'} `;
+        })
+        .join('\n');
 
-    if (args[0] === 'remove') {
-      if (message.sender_id !== '1827994776956309504') return;
-      const channelsList = args.slice(1);
-      this.opentalkService.removeValidChannelIds(channelsList[0]);
-      const listChannelValid = this.opentalkService.getValidChannelIds();
-      const messageContent =
-        '' +
-        `List remove channel: ${channelsList}\nSet list channel opentalk valid success! Current channels: ${listChannelValid.join(', ')}` +
-        '';
       return this.replyMessageGenerate(
         {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          messageContent: result,
+          mk: [{ type: 'pre', s: 0, e: result.length }],
         },
         message,
       );
     }
 
     if (args[0] === 'up') {
-      if (message.sender_id !== '1827994776956309504') return;
       const userId = args[1];
       const min = +args[2];
-      await this.opentalkService.updateLeftAt(userId, min, UpdateTimeType.UP);
+      await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
+        userId,
+        min,
+        UpdateTimeType.UP,
+      );
       const messageContent = `Tăng ${min} success! ${userId}`;
       return this.replyMessageGenerate(
         {
@@ -115,10 +92,13 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'down') {
-      if (message.sender_id !== '1827994776956309504') return;
       const userId = args[1];
       const min = +args[2];
-      await this.opentalkService.updateLeftAt(userId, min, UpdateTimeType.DOWN);
+      await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
+        userId,
+        min,
+        UpdateTimeType.DOWN,
+      );
       const messageContent = `Giảm ${min} success! ${userId}`;
       return this.replyMessageGenerate(
         {
@@ -129,55 +109,6 @@ export class OpentalkCommand extends CommandMessage {
       );
     }
 
-    if (args[0] === 'list') {
-      if (message.sender_id !== '1827994776956309504') return;
-      const listChannelValid = this.opentalkService.getValidChannelIds();
-      const messageContent =
-        '' + `Current channels: ${listChannelValid ?? 'empty'}` + '';
-      return this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-    }
-
-    if (args[0] === 'removeAll') {
-      if (message.sender_id !== '1827994776956309504') return;
-      this.opentalkService.removeAllValidChannelIds();
-      const messageContent = '' + `Romove all channel success!` + '';
-      return this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-    }
-
-    const total = await this.opentalkService.getAllUsersVoiceTime(
-      args[0],
-      message.clan_id,
-    );
-
-    const messages = total.map((data) => {
-      return `- ${data.email} join opentalk tổng cộng được: ${data?.totalTime ?? 0} phút!`;
-    });
-    const messageArray = messages.filter((msg) => msg !== null);
-    const chunks = this.chunkArray(messageArray, 50);
-    const messagesSend = [];
-    chunks.map((messages) => {
-      const messageContent = '' + messages.join('\n') + '';
-      const messageReply = this.replyMessageGenerate(
-        {
-          messageContent,
-          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
-        },
-        message,
-      );
-      messagesSend.push(messageReply);
-    });
-    return messagesSend;
+    return;
   }
 }

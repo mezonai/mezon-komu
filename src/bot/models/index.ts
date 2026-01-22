@@ -61,3 +61,4 @@ export { MenuOrderMessage } from './menuOrderMessage.entity';
 export { MenuAddress } from './menuAddress.entity';
 export { TokenTransfer } from './tokenTransfer.entity';
 export { VoucherWithDrawEntiTy } from './voucherWithdrawTransaction.entity';
+export { VoiceSession } from './voiceSession.entity';

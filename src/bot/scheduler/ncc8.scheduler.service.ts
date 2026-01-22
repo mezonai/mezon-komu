@@ -69,12 +69,13 @@ export class Ncc8SchedulerService {
         userType: EUserType.MEZON,
       })
       .getMany();
-    const text = '[WARNING] Ncc8 will play in 1 minute, please go to ';
-    const channelLabel = '#ncc8-radio';
+    const text = "[WARNING] Ncc8 will play in 1 minute, please go to ";
+    const channelLabel = '#ncc8-radio'
+    const textConfirm = "\nMake sure you've got message `Joining NCC8 successfully` when NCC8 start!";
     findUserWfh.map((user) => {
       const messageToUser: ReplyMezonMessage = {
         userId: user.userId,
-        textContent: text + channelLabel,
+        textContent: text + channelLabel + textConfirm,
         messOptions: {
           hg: [
             {
