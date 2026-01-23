@@ -36,7 +36,9 @@ export class OpentalkCommand extends CommandMessage {
   }
 
   async execute(args: string[], message: ChannelMessage) {
-    if (message.sender_id !== '1827994776956309504') return;
+    const allowedIds = ['1827994776956309504', '1779815181480628224'];
+
+    if (!allowedIds.includes(message.sender_id)) return;
 
     if (args[0] === 'toggle') {
       const eventId = args[1];
