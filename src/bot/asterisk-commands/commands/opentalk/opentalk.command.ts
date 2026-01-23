@@ -37,6 +37,29 @@ export class OpentalkCommand extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (message.sender_id !== '1827994776956309504') return;
+
+    if (args[0] === 'toggle') {
+      const eventId = args[1];
+
+      const event = await this.eventRepo.findOne({ where: { id: eventId } });
+      if (!event) {
+        const text = 'Không có events!';
+        return this.replyMessageGenerate(
+          { messageContent: text, mk: [{ type: 'pre', s: 0, e: text.length }] },
+          message,
+        );
+      }
+
+      event.active = !event.active;
+      await this.eventRepo.save(event);
+
+      const text = `Event now ${event.active ? 'active' : 'disabled'}`;
+      return this.replyMessageGenerate(
+        { messageContent: text, mk: [{ type: 'pre', s: 0, e: text.length }] },
+        message,
+      );
+    }
+
     if (args[0] === 'list') {
       const events = await this.eventRepo
         .createQueryBuilder('e')
