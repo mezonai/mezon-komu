@@ -28,7 +28,7 @@ export class WolCommand extends CommandMessage {
           messageContent,
           hg: [
             {
-              channelid: process.env.MEZON_WOL_CHANNEL_ID,
+              channelId: process.env.MEZON_WOL_CHANNEL_ID,
               s: messageContent.length - 4,
               e: messageContent.length,
             },

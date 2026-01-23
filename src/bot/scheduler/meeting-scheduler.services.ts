@@ -226,7 +226,7 @@ export class MeetingSchedulerService {
           `#${voiceChannel?.channel_label || ''} (${data?.task ?? ''})`,
         hg: [
           {
-            channelid: selectedChannel?.channel_id,
+            channelId: selectedChannel?.channel_id,
             s: messageContent.length,
             e:
               messageContent.length +

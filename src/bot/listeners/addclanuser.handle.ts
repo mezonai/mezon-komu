@@ -45,7 +45,7 @@ export class EventAddClanUser extends BaseHandleEvent {
         t: textWelcome[randomIndexVoiceChannel] + 'Welcome nhé!',
         hg: [
           {
-            channelid: process.env.MEZON_WELCOME_CHANNEL_ID,
+            channelId: process.env.MEZON_WELCOME_CHANNEL_ID,
             s: textWelcome[randomIndexVoiceChannel].length,
             e: textWelcome[randomIndexVoiceChannel].length + 7,
           },

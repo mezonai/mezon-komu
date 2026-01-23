@@ -99,7 +99,7 @@ export class WhereCommand extends CommandMessage {
           const hg = currentUserVoiceChannelFindUser.map((item) => {
             messageContent += `#\n`; // '#' at message is channel, auto fill at FE
             return {
-              channelid: item.channel_id,
+              channelId: item.channel_id,
               s: messageContent.length - 2, // replace to '#' in text
               e: messageContent.length - 1, // replace to '#' in text
             };

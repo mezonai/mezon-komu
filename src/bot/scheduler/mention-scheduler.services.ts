@@ -177,7 +177,7 @@ export class MentionSchedulerService {
         // ],
         hg: [
           {
-            channelid: user.channelId,
+            channelId: user.channelId,
             s: content.length, // replace to '#' in text
             e: content.length + 1 + (findChannel.channel_label ?? '').length, // replace to '#' in text
           },

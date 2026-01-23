@@ -83,7 +83,7 @@ export class MeetingCommand extends CommandMessage {
           );
           messageContent += `Everyone please join the voice channel #${findChannel?.channel_label || ''}\n`;
           return {
-            channelid: item.channel_id,
+            channelId: item.channel_id,
             s:
               messageContent.length -
               (2 + (findChannel?.channel_label || '').length),
@@ -134,7 +134,7 @@ export class MeetingCommand extends CommandMessage {
             messageContent + `#${findChannel?.channel_label || ''}`, // '#' at message is channel, auto fill at FE
           hg: [
             {
-              channelid: selectedChannel?.channel_id,
+              channelId: selectedChannel?.channel_id,
               s: messageContent.length, // replace to '#' in text
               e:
                 messageContent.length +

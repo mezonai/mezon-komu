@@ -177,7 +177,7 @@ export class EventListenerChannelMessage {
           if (
             user?.user_id === this.clientConfigService.botKomuId ||
             clientId.includes(user?.user_id) ||
-            user?.role_id ||
+            user?.role_id !== '0' ||
             message.code ||
             !message.hide_editted
           )
@@ -187,7 +187,9 @@ export class EventListenerChannelMessage {
             authorId: message.sender_id,
             channelId: message.channel_id,
             mentionUserId: user.user_id,
-            createdTimestamp: new Date(message.create_time ?? Date.now()).getTime(),
+            createdTimestamp: new Date(
+              message.create_time ?? Date.now(),
+            ).getTime(),
             noti: false,
             confirm: false,
             punish: false,

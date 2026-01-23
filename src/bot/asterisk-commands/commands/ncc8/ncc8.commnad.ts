@@ -67,7 +67,7 @@ export class Ncc8Command extends CommandMessage {
           messageContent: textContent,
           hg: [
             {
-              channelid: this.clientConfigService.ncc8ChannelId,
+              channelId: this.clientConfigService.ncc8ChannelId,
               s: textContent.length,
               e: textContent.length + 1,
             },

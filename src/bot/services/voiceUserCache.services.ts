@@ -66,7 +66,6 @@ export class VoiceUsersCacheService {
       async () => {
         const clan = this.client.clans.get(clanId);
         const res = await clan.listChannelVoiceUsers(
-          '',
           ChannelType.CHANNEL_TYPE_GMEET_VOICE,
         );
         return res?.voice_channel_users ?? [];

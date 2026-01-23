@@ -79,7 +79,7 @@ export class Ncc8SchedulerService {
         messOptions: {
           hg: [
             {
-              channelid: process.env.MEZON_NCC8_CHANNEL_ID,
+              channelId: process.env.MEZON_NCC8_CHANNEL_ID,
               s: text.length,
               e: text.length + channelLabel.length,
             },

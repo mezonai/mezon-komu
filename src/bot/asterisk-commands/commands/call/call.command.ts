@@ -139,7 +139,7 @@ export class CallCommand extends CommandMessage {
               messOptions: {
                 hg: [
                   {
-                    channelid: currentUserVoiceChannel[0].channel_id,
+                    channelId: currentUserVoiceChannel[0].channel_id,
                     s: messageContent.length, // replace to '#' in text
                     e: messageContent.length + 1, // replace to '#' in text
                   },
@@ -178,7 +178,7 @@ export class CallCommand extends CommandMessage {
             messOptions: {
               hg: [
                 {
-                  channelid:
+                  channelId:
                     listVoiceChannelAvalable[randomIndexVoiceChannel]
                       .channel_id,
                   s: messageContent.length, // replace to '#' in text
