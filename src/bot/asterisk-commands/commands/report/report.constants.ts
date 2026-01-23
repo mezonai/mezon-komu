@@ -5,4 +5,6 @@ export const messHelpDaily =
   '*report weekly' +
   '\n' +
   '*report daily dd/MM/YYYY' +
+  '\n' +
+  '*report daily dd/MM/YYYY <user.name>' +
   '';
