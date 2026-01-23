@@ -42,8 +42,8 @@ export class EventClanEventCreated extends BaseHandleEvent {
         EventMezonData.clandId = data.clan_id;
         EventMezonData.channelId = data.channel_id;
         EventMezonData.channelVoiceId = data.channel_voice_id;
-        EventMezonData.timeStart = new Date(data.start_time).getTime();
-        EventMezonData.timeEnd = new Date(data.end_time).getTime();
+        EventMezonData.timeStart = +data.start_time_seconds * 1000;
+        EventMezonData.timeEnd = +data.end_time_seconds * 1000;
         EventMezonData.activeBet = true;
         EventMezonData.title = data.title;
         EventMezonData.description = data.description;

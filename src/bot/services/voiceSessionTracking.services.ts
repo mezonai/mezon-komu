@@ -132,27 +132,36 @@ export class VoiceSessionTrackingService {
 
     const rows = await this.voiceSessionRepo.query(
       `
-    SELECT
-      user_id,
-      SUM(
-        EXTRACT(
-          EPOCH FROM (
-            LEAST(COALESCE(left_at, $2), $2)
-            -
-            GREATEST(joined_at, $1)
-          )
+        WITH bounds AS (
+          SELECT
+            ($1::timestamptz AT TIME ZONE 'Asia/Ho_Chi_Minh') AS t1,
+            ($2::timestamptz AT TIME ZONE 'Asia/Ho_Chi_Minh') AS t2
         )
-      ) * 1000 AS total_ms
-    FROM "komu_voiceSession"
-    WHERE
-      joined_at < $2
-      AND (left_at IS NULL OR left_at > $1)
-      AND is_in_event = true
-    GROUP BY user_id
-    `,
+        SELECT
+          s.user_id,
+          SUM(
+            GREATEST(
+              0,
+              EXTRACT(
+                EPOCH FROM (
+                  LEAST(COALESCE(s.left_at, b.t2), b.t2)
+                  -
+                  GREATEST(s.joined_at, b.t1)
+                )
+              )
+            )
+          ) * 1000 AS total_ms
+        FROM "komu_voiceSession" s
+        CROSS JOIN bounds b
+        WHERE
+          s.joined_at < b.t2
+          AND (s.left_at IS NULL OR s.left_at > b.t1)
+          AND s.is_in_event = true
+        GROUP BY s.user_id
+        `,
       [dayStart, dayEnd],
     );
-
+    console.log('rows', rows);
     const userMap = new Map<string, number>();
     for (const row of rows) {
       const ms = Number(row.total_ms);
