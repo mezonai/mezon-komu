@@ -63,6 +63,27 @@ export class ReportDailyService {
     }
   }
 
+  async reportDailyUser(date: Date, userName: string) {
+    const { notDaily, userNotDaily } = await this.getUserNotDaily(date);
+    if (!userNotDaily) {
+      return;
+    }
+    const userReport = userNotDaily.find(
+      (user) =>
+        (user.clan_nick || user.username).toLowerCase() === userName.toLowerCase(),
+    );
+    if (!userReport) {
+      return `${userName} đã daily${date ? ` vào ngày ${date.toDateString()}` : ''}`;
+    } else {
+      const countNotDaily = this.findCountNotDaily(
+        notDaily,
+        userReport.clan_nick || userReport.username,
+      );
+      return `${userName} chưa daily${date ? ` vào ngày ${date.toDateString()}` : ''
+        } (Số lần chưa daily: ${countNotDaily})`;
+    }
+  }
+
   async getUserNotDaily(date: Date) {
     if (
       date &&
