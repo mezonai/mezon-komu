@@ -49,6 +49,24 @@ export class ReportCommand extends CommandMessage {
               message,
             );
           }
+
+          const userName = args[2];
+          if (userName) {
+            const mess = await this.reportDailyService.reportDailyUser(
+              dateTime,
+              userName,
+            );
+            if (mess) {
+              return this.replyMessageGenerate(
+                {
+                  messageContent: '' + mess + '',
+                  mk: [{ type: 'pre', s: 0, e: mess.length + 6 }],
+                },
+                message,
+              );
+            }
+          }
+
           const mess = await this.reportDailyService.reportDaily(dateTime);
           if (mess) {
             return mess.map((m) => {
