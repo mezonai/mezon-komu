@@ -267,9 +267,10 @@ export class VoiceSessionTrackingService {
 
     for (const [clanId, sessions] of byClan.entries()) {
       let voiceUsers: Array<{
-        id: string;
+        id?: string;
         channel_id: string;
-        user_id: string;
+        user_id?: string;
+        user_ids?: string[];
         participant?: string;
       }> = [];
 
@@ -286,15 +287,24 @@ export class VoiceSessionTrackingService {
       const presentByChannel = new Map<string, Set<string>>();
       for (const u of voiceUsers ?? []) {
         const ch = u.channel_id;
-        const uid = u.user_id;
-        if (!ch || !uid) continue;
+        if (!ch) continue;
+
+        const userIds =
+          u.user_ids && u.user_ids.length > 0
+            ? u.user_ids
+            : u.user_id
+              ? [u.user_id]
+              : [];
+        if (!userIds.length) continue;
 
         let set = presentByChannel.get(ch);
         if (!set) {
           set = new Set<string>();
           presentByChannel.set(ch, set);
         }
-        set.add(uid);
+        for (const uid of userIds) {
+          if (uid) set.add(uid);
+        }
       }
 
       const eventChannelIds = new Set<string>(

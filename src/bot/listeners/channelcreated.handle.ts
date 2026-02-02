@@ -25,7 +25,10 @@ export class EventListenerChannelCreated extends BaseHandleEvent {
       where: { channel_id: channelId },
     });
     if (findChannel) return;
-    const channel = this.channelRepository.create(channelInput);
+    const channel = this.channelRepository.create({
+      ...channelInput,
+      channel_type: channelInput.channel_type,
+    }); 
     return await this.channelRepository.save(channel);
   }
 }

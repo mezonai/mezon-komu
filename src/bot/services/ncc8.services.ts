@@ -22,7 +22,6 @@ export class NCC8Service {
 
   connectSocket() {
     const token = this.clientService.getToken();
-    console.log('token', token);
     this.ws = new WebSocket(
       `wss://stn.mezon.ai/ws?token=${token ?? process.env.BOT_TOKEN}`,
     );

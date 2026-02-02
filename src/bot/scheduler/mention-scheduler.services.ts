@@ -83,7 +83,7 @@ export class MentionSchedulerService {
         messOptions: {
           hg: [
             {
-              channelid: user.channelId,
+              channelId: user.channelId,
               s: textContent.length, // replace to '#' in text
               e: textContent.length + 1, // replace to '#' in text
             },

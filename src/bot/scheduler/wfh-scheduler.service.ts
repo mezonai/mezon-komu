@@ -64,8 +64,16 @@ export class WFHSchedulerService {
           process.env.KOMUBOTREST_CLAN_NCC_ID,
         );
 
-      const useridJoining =
-        listChannelVoiceUsers.map((user) => user?.user_id) || [];
+      const useridJoining: string[] = [];
+      for (const user of listChannelVoiceUsers ?? []) {
+        if (Array.isArray(user?.user_ids) && user.user_ids.length > 0) {
+          for (const id of user.user_ids) {
+            if (id) useridJoining.push(id);
+          }
+        } else if (user?.user_id) {
+          useridJoining.push(user.user_id);
+        }
+      }
 
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
 

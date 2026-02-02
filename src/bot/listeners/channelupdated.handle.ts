@@ -24,19 +24,14 @@ export class EventListenerChannelUpdated extends BaseHandleEvent {
     const channel = await this.channelRepository.findOne({
       where: { channel_id: channelId },
     });
-    if (!channel) {
-      const channel = this.channelRepository.create({
+    if (!channel) return;
+    return await this.channelRepository.update(
+      { channel_id: channelId },
+      {
         ...channelInput,
         channel_private: channelInput.channel_private ? 1 : 0,
-      });
-      await this.channelRepository.save(channel);
-    }
-    //TODO handle channel_private
-    const channelDb = this.channelRepository.merge(channel, {
-      ...channelInput,
-      channel_private: channelInput.channel_private ? 1 : 0,
-    });
-    // Save the updated channel back to the database
-    return this.channelRepository.save(channelDb);
+        channel_type: channel.channel_type,
+      },
+    );
   }
 }

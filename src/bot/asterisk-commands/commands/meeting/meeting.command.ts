@@ -61,10 +61,10 @@ export class MeetingCommand extends CommandMessage {
 
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-        if (item.user_id !== message.sender_id) {
+        if (!item.user_ids?.includes(message.sender_id)) {
           return false;
         }
-        const identifier = `${item.user_id}-${item.channel_id}`;
+        const identifier = `${message.sender_id}-${item.channel_id}`;
         if (!filter.has(identifier)) {
           filter.add(identifier);
           return true;
