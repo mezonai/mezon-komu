@@ -55,7 +55,7 @@ export class SendMessageSchedulerService {
 
   // Start cron job
   startCronJobs(): void {
-    this.addCronJob('happyBirthday', '00 09 * * 0-6', () =>
+    this.addCronJob('happyBirthday', '55 08 * * 0-6', () =>
       this.happyBirthday(),
     );
     this.addCronJob('remindCheckout', '00 18 * * 1-5', () =>
@@ -67,7 +67,7 @@ export class SendMessageSchedulerService {
     this.addCronJob('sendSubmitTimesheet', '00 12 * * 0', () =>
       this.sendSubmitTimesheet(),
     );
-    this.addCronJob('remindDailyMorning', '00 9 * * 1-5', () =>
+    this.addCronJob('remindDailyMorning', '05 9 * * 1-5', () =>
       this.remindDaily('morning'),
     );
     this.addCronJob('remindDailyAfternoon', '00 13 * * 1-5', () =>
@@ -344,44 +344,39 @@ export class SendMessageSchedulerService {
         userNotDaily = [...notDailyMorning, ...notDailyFullday];
       }
       const usernameList = [];
-      await Promise.all(
-        userNotDaily.map(async (username) => {
-          try {
-            const userdb = await this.userRepository
-              .createQueryBuilder('user')
-              .where(
-                '(user.clan_nick = :username OR user.username = :username)',
-                { username },
-              )
-              .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
-              .andWhere('user.user_type = :userType', {
-                userType: EUserType.MEZON,
-              })
-              .getOne();
+      for (const username of userNotDaily) {
+        try {
+          const userdb = await this.userRepository
+            .createQueryBuilder('user')
+            .where(
+              '(user.clan_nick = :username OR user.username = :username)',
+              { username },
+            )
+            .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
+            .andWhere('user.user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
+            .getOne();
 
-            if (
-              userdb &&
-              userdb.userId &&
-              userdb.user_type === EUserType.MEZON
-            ) {
-              usernameList.push(userdb?.clan_nick || userdb?.username);
-              const user = await this.client.users.fetch(userdb?.userId);
-              const textContent =
-                type === 'last'
-                  ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
-                  : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.";
-              await user.sendDM(
-                {
-                  t: textContent,
-                },
-                type === 'last' && userdb.buzzDaily ? 8 : undefined,
-              );
-            }
-          } catch (error) {
-            console.error('remindDaily', error);
+          if (userdb && userdb.userId && userdb.user_type === EUserType.MEZON) {
+            usernameList.push(userdb?.clan_nick || userdb?.username);
+
+            const user = await this.client.users.fetch(userdb.userId);
+
+            const textContent =
+              type === 'last'
+                ? '[WARNING] Five minutes until lost 20k because of missing DAILY. Thanks!'
+                : "Don't forget to daily, dude! Don't be mad at me, we are friends I mean we are best friends.";
+
+            await user.sendDM(
+              { t: textContent },
+              type === 'last' && userdb.buzzDaily ? 8 : undefined,
+            );
           }
-        }),
-      );
+        } catch (error) {
+          console.error('remindDaily', error);
+        }
+      }
     } catch (error) {
       console.log(error);
     }
