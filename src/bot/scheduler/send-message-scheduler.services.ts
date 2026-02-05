@@ -55,7 +55,7 @@ export class SendMessageSchedulerService {
 
   // Start cron job
   startCronJobs(): void {
-    this.addCronJob('happyBirthday', '55 08 * * 0-6', () =>
+    this.addCronJob('happyBirthday', '00 09 * * 0-6', () =>
       this.happyBirthday(),
     );
     this.addCronJob('remindCheckout', '00 18 * * 1-5', () =>
