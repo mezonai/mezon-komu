@@ -10,7 +10,7 @@ import {
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { Asterisk } from '../asterisk-commands/asterisk';
-import { IsNull, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { checkTimeMention } from '../utils/helper';
 import {
   Channel,
@@ -36,6 +36,7 @@ import { MessageQueue } from '../services/messageQueue.service';
 import { UtilsService } from '../services/utils.services';
 import { invalidCharacter, messagesBusy } from '../constants/text';
 import { PollTrackerService } from '../services/PollTracker.services';
+import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
 
 @Injectable()
 export class EventListenerChannelMessage {
@@ -58,6 +59,7 @@ export class EventListenerChannelMessage {
     private messageQueue: MessageQueue,
     private utilsService: UtilsService,
     private pollTrackerService: PollTrackerService,
+    private voiceUsersService: VoiceUsersCacheService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -141,7 +143,9 @@ export class EventListenerChannelMessage {
           typeof message.content.t !== 'string' ||
           message.mode === 4 ||
           message.content.t?.split(' ')?.includes('@here')) &&
-        (message.code !== 2 && (!message.hide_editted && message.mode === 2))
+        message.code !== 2 &&
+        !message.hide_editted &&
+        message.mode === 2
       )
         return;
 
@@ -249,47 +253,47 @@ export class EventListenerChannelMessage {
             );
           });
 
-          usersAdded.forEach(async (id) => {
-            if (currentMentionConfirmedUserIds.includes(id)) return;
-            const findMention = await this.mentionedRepository.find({
-              where: {
-                messageId: message.message_id,
-                mentionUserId: id,
-                channelId: message.channel_id,
-              },
-            });
-            if (findMention.length) {
-              const userIdsMention = findMention.map(
-                (user) => user.mentionUserId,
-              );
-              userIdsMention.forEach(async (id) => {
-                await this.mentionedRepository.update(
-                  {
-                    channelId: message.channel_id,
-                    messageId: message.message_id,
-                    mentionUserId: id,
-                  },
-                  {
-                    confirm: false,
-                    reactionTimestamp: null,
-                  },
-                );
-              });
-              return;
-            }
-            const data = {
-              messageId: message.message_id,
-              authorId: message.sender_id,
-              channelId: message.channel_id,
-              mentionUserId: id,
-              createdTimestamp: new Date(message.create_time).getTime(),
-              noti: false,
-              confirm: false,
-              punish: false,
-              reactionTimestamp: null,
-            };
-            await this.mentionedRepository.insert(data);
-          });
+          // usersAdded.forEach(async (id) => {
+          //   if (currentMentionConfirmedUserIds.includes(id)) return;
+          //   const findMention = await this.mentionedRepository.find({
+          //     where: {
+          //       messageId: message.message_id,
+          //       mentionUserId: id,
+          //       channelId: message.channel_id,
+          //     },
+          //   });
+          //   if (findMention.length) {
+          //     const userIdsMention = findMention.map(
+          //       (user) => user.mentionUserId,
+          //     );
+          //     userIdsMention.forEach(async (id) => {
+          //       await this.mentionedRepository.update(
+          //         {
+          //           channelId: message.channel_id,
+          //           messageId: message.message_id,
+          //           mentionUserId: id,
+          //         },
+          //         {
+          //           confirm: false,
+          //           reactionTimestamp: null,
+          //         },
+          //       );
+          //     });
+          //     return;
+          //   }
+          //   const data = {
+          //     messageId: message.message_id,
+          //     authorId: message.sender_id,
+          //     channelId: message.channel_id,
+          //     mentionUserId: id,
+          //     createdTimestamp: new Date(message.create_time).getTime(),
+          //     noti: false,
+          //     confirm: false,
+          //     punish: false,
+          //     reactionTimestamp: null,
+          //   };
+          //   await this.mentionedRepository.insert(data);
+          // });
           return;
         }
 
@@ -518,6 +522,80 @@ export class EventListenerChannelMessage {
       channelId,
       messageId,
       data,
+    );
+  }
+
+  async getListVoiceChannelAvalable() {
+    let listChannelVoiceUsers = [];
+    try {
+      listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(
+        process.env.KOMUBOTREST_CLAN_NCC_ID,
+      );
+    } catch (error) {
+      console.log('listChannelVoiceUsers upcoming', error);
+    }
+
+    const listVoiceChannel = await this.channelRepository.find({
+      where: {
+        channel_type: In([4, 10]),
+        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+      },
+    });
+    const listVoiceChannelIdUsed = [];
+    listChannelVoiceUsers.forEach((item) => {
+      if (!listVoiceChannelIdUsed.includes(item.channel_id))
+        listVoiceChannelIdUsed.push(item.channel_id);
+    });
+    const listVoiceChannelAvalable = listVoiceChannel.filter(
+      (item) => !listVoiceChannelIdUsed.includes(item.channel_id),
+    );
+    return listVoiceChannelAvalable;
+  }
+
+  @OnEvent(Events.ChannelMessage)
+  async handleUpComingMessage(message: ChannelMessage) {
+    if (message.code !== 13 || !message.content.t.includes('has started'))
+      return;
+    const listVoiceChannelAvalable = await this.getListVoiceChannelAvalable();
+    const listType10 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 10,
+    );
+    const listType3 = listVoiceChannelAvalable.filter(
+      (item) => item.channel_type === 4,
+    );
+
+    let selectedChannel = null;
+
+    if (listType10.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType10.length);
+      selectedChannel = listType10[randomIndex];
+    } else if (listType3.length > 0) {
+      const randomIndex = Math.floor(Math.random() * listType3.length);
+      selectedChannel = listType3[randomIndex];
+    }
+    const voiceChannel = await this.channelRepository.findOne({
+      where: {
+        channel_id: selectedChannel?.channel_id,
+      },
+    });
+    const messageContent = `@here Our meeting room is `;
+    const channel = await this.client.channels.fetch(message.channel_id);
+    const message2 = await channel.messages.fetch(message.message_id);
+    await message2.reply(
+      {
+        t: messageContent + '#' + voiceChannel.channel_label,
+        hg: [
+          {
+            channelId: selectedChannel?.channel_id,
+            s: messageContent.length,
+            e:
+              messageContent.length +
+              1 +
+              (voiceChannel?.channel_label || '').length,
+          },
+        ],
+      },
+      [{ user_id: process.env.MEZON_HERE_USER_ID, s: 0, e: 5 }],
     );
   }
 }
