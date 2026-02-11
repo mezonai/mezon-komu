@@ -47,19 +47,13 @@ export class EventClanEventCreated extends BaseHandleEvent {
         EventMezonData.activeBet = true;
         EventMezonData.title = data.title;
         EventMezonData.description = data.description;
-        EventMezonData.active = true;
+        EventMezonData.active = data.channel_id === '0' || !data.channel_id;
         await this.eventMezonRepository.insert(EventMezonData);
       }
       if (data.event_status === 0 && data.action === 3) {
-        const eventFound = await this.eventMezonRepository.findOne({
-          where: { id: data.event_id },
-        });
-        if (eventFound) {
-          eventFound.active = false;
-        }
         await this.eventMezonRepository.update(
           { id: data.event_id },
-          { ...eventFound },
+          { active: false },
         );
       }
       if (data.event_status === 0 && data.action === 2) {

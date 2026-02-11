@@ -554,6 +554,7 @@ export class EventListenerChannelMessage {
 
   @OnEvent(Events.ChannelMessage)
   async handleUpComingMessage(message: ChannelMessage) {
+    if (await this.utilsService.checkHoliday()) return;
     if (message.code !== 13 || !message.content.t.includes('has started'))
       return;
     const listVoiceChannelAvalable = await this.getListVoiceChannelAvalable();

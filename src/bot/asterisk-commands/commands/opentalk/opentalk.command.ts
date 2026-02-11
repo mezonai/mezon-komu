@@ -85,7 +85,7 @@ export class OpentalkCommand extends CommandMessage {
           const raw = e.timeStart;
           const time = Number(raw);
           const date = new Date(time);
-          return `${i + 1}. ${e.id} | ${e.title} | ${new Date(date).toLocaleString()} | ${e.channelVoiceId ?? 'không có'} `;
+          return `${i + 1}. ${e.id} | ${e.title} | ${new Date(date).toLocaleString()} | ${e.channelVoiceId ?? 'không có'} | ${e.active}`;
         })
         .join('\n');
 
