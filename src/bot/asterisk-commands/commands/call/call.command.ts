@@ -1,26 +1,26 @@
-import { ChannelMessage, ChannelType, MezonClient } from 'mezon-sdk';
+import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ChannelMezon, User } from 'src/bot/models';
-import { In, Repository } from 'typeorm';
+import { User } from 'src/bot/models';
+import { Repository } from 'typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { ReplyMezonMessage } from '../../dto/replyMessage.dto';
 import { MessageQueue } from 'src/bot/services/messageQueue.service';
 import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
+import { VoiceRoomAllocatorService } from 'src/bot/services/voiceRoomAllocator.services';
 
 @Command('call')
 export class CallCommand extends CommandMessage {
   private client: MezonClient;
   constructor(
     private clientService: MezonClientService,
-    @InjectRepository(ChannelMezon)
-    private channelRepository: Repository<ChannelMezon>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private messageQueue: MessageQueue,
-    private voiceUsersService: VoiceUsersCacheService
+    private voiceUsersService: VoiceUsersCacheService,
+    private voiceRoomAllocator: VoiceRoomAllocatorService,
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -101,21 +101,6 @@ export class CallCommand extends CommandMessage {
         }
         listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(process.env.KOMUBOTREST_CLAN_NCC_ID);
 
-        const listVoiceChannel = await this.channelRepository.find({
-          where: {
-            channel_type: In([4, 10]),
-            clan_id: message.clan_id,
-          },
-        });
-        const listVoiceChannelIdUsed = [];
-        listChannelVoiceUsers.forEach((item) => {
-          if (!listVoiceChannelIdUsed.includes(item.channel_id))
-            listVoiceChannelIdUsed.push(item.channel_id);
-        });
-        const listVoiceChannelAvalable = listVoiceChannel.filter(
-          (item) => !listVoiceChannelIdUsed.includes(item.channel_id),
-        );
-
         const filter = new Set();
         const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
           if (!item.user_ids?.includes(findUser.userId)) {
@@ -157,7 +142,11 @@ export class CallCommand extends CommandMessage {
           );
         }
 
-        if (!listVoiceChannelAvalable.length) {
+        const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
+          message.clan_id,
+          message.sender_id,
+        );
+        if (!selectedChannel) {
           return this.replyMessageGenerate(
             {
               messageContent: 'Voice channel full!',
@@ -166,9 +155,6 @@ export class CallCommand extends CommandMessage {
           );
         }
 
-        const randomIndexVoiceChannel = Math.floor(
-          Math.random() * listVoiceChannelAvalable.length,
-        );
         const messageContent = `Komu is connecting the call between ${message.username} and ${findUser.username}\n`;
         const userIdCall = [message.sender_id, findUser.userId];
         userIdCall.forEach((id) => {
@@ -178,9 +164,7 @@ export class CallCommand extends CommandMessage {
             messOptions: {
               hg: [
                 {
-                  channelId:
-                    listVoiceChannelAvalable[randomIndexVoiceChannel]
-                      .channel_id,
+                  channelId: selectedChannel.channel_id,
                   s: messageContent.length, // replace to '#' in text
                   e: messageContent.length + 1, // replace to '#' in text
                 },

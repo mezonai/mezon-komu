@@ -178,6 +178,7 @@ import { OpentalkService } from './services/opentalk.services';
 import { PollTrackerService } from './services/PollTracker.services';
 import { VoiceUsersCacheService } from './services/voiceUserCache.services';
 import { VoiceSessionTrackingService } from './services/voiceSessionTracking.services';
+import { VoiceRoomAllocatorService } from './services/voiceRoomAllocator.services';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -360,6 +361,7 @@ import { VoiceSessionTrackingService } from './services/voiceSessionTracking.ser
     OpentalkCommand,
     PollTrackerService,
     VoiceUsersCacheService,
+    VoiceRoomAllocatorService,
     VoiceSessionTrackingService,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],

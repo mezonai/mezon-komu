@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { isFirstDayOfMonth, isLastDayOfMonth } from 'date-fns';
@@ -12,7 +12,7 @@ import { MezonClientService } from 'src/mezon/services/client.service';
 import { EMessageMode } from '../constants/configs';
 import { KomuService } from '../services/komu.services';
 import { MessageQueue } from '../services/messageQueue.service';
-import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
+import { VoiceRoomAllocatorService } from '../services/voiceRoomAllocator.services';
 
 @Injectable()
 export class MeetingSchedulerService {
@@ -28,7 +28,7 @@ export class MeetingSchedulerService {
     private clientService: MezonClientService,
     private komuService: KomuService,
     private messageQueue: MessageQueue,
-    private voiceUsersService: VoiceUsersCacheService,
+    private voiceRoomAllocator: VoiceRoomAllocatorService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -36,30 +36,9 @@ export class MeetingSchedulerService {
   private readonly logger = new Logger(MeetingSchedulerService.name);
 
   async getListVoiceChannelAvalable() {
-    let listChannelVoiceUsers = [];
-    try {
-      listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(
-        this.clientConfig.clandNccId,
-      );
-    } catch (error) {
-      console.log('listChannelVoiceUsers meeting', error);
-    }
-
-    const listVoiceChannel = await this.channelRepository.find({
-      where: {
-        channel_type: In([4, 10]),
-        clan_id: this.clientConfig.clandNccId,
-      },
-    });
-    const listVoiceChannelIdUsed = [];
-    listChannelVoiceUsers.forEach((item) => {
-      if (!listVoiceChannelIdUsed.includes(item.channel_id))
-        listVoiceChannelIdUsed.push(item.channel_id);
-    });
-    const listVoiceChannelAvalable = listVoiceChannel.filter(
-      (item) => !listVoiceChannelIdUsed.includes(item.channel_id),
+    return this.voiceRoomAllocator.getAvailableVoiceChannels(
+      this.clientConfig.clandNccId,
     );
-    return listVoiceChannelAvalable;
   }
 
   @Cron(CronExpression.EVERY_MINUTE, { timeZone: 'Asia/Ho_Chi_Minh' })
@@ -183,21 +162,20 @@ export class MeetingSchedulerService {
   }
 
   async sendMeetingMessage(data, listVoiceChannelAvalable, messageContent) {
-    const listType10 = listVoiceChannelAvalable.filter(
-      (item) => item.channel_type === 10,
+    const selectedChannel =
+      this.voiceRoomAllocator.pickRandomPreferredChannel(
+        listVoiceChannelAvalable,
+      );
+    if (!selectedChannel?.channel_id) return;
+    this.voiceRoomAllocator.reserveRoom(
+      this.clientConfig.clandNccId,
+      selectedChannel.channel_id,
     );
-    const listType3 = listVoiceChannelAvalable.filter(
-      (item) => item.channel_type === 4,
+    const selectedIndex = listVoiceChannelAvalable.findIndex(
+      (item) => item.channel_id === selectedChannel.channel_id,
     );
-
-    let selectedChannel = null;
-
-    if (listType10.length > 0) {
-      const randomIndex = Math.floor(Math.random() * listType10.length);
-      selectedChannel = listType10[randomIndex];
-    } else if (listType3.length > 0) {
-      const randomIndex = Math.floor(Math.random() * listType3.length);
-      selectedChannel = listType3[randomIndex];
+    if (selectedIndex >= 0) {
+      listVoiceChannelAvalable.splice(selectedIndex, 1);
     }
 
     const findChannel = await this.channelRepository.findOne({

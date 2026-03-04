@@ -1,4 +1,4 @@
-import { ChannelMessage, ChannelType, MezonClient } from 'mezon-sdk';
+import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { MeetingService } from './meeting.services';
@@ -7,8 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelMezon } from 'src/bot/models';
 import { In, Repository } from 'typeorm';
 import { messHelp } from './meeting.constants';
-import { convertName } from 'src/bot/utils/helper';
 import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
+import { VoiceRoomAllocatorService } from 'src/bot/services/voiceRoomAllocator.services';
 
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
@@ -18,7 +18,8 @@ export class MeetingCommand extends CommandMessage {
     private clientService: MezonClientService,
     @InjectRepository(ChannelMezon)
     private channelRepository: Repository<ChannelMezon>,
-    private voiceUsersService: VoiceUsersCacheService
+    private voiceUsersService: VoiceUsersCacheService,
+    private voiceRoomAllocator: VoiceRoomAllocatorService,
   ) {
     super();
     this.client = this.clientService.getClient();
@@ -50,15 +51,6 @@ export class MeetingCommand extends CommandMessage {
           clan_id: message.clan_id,
         },
       });
-      const listVoiceChannelIdUsed = [];
-      listChannelVoiceUsers.forEach((item) => {
-        if (!listVoiceChannelIdUsed.includes(item.channel_id))
-          listVoiceChannelIdUsed.push(item.channel_id);
-      });
-      const listVoiceChannelAvalable = listVoiceChannel.filter(
-        (item) => !listVoiceChannelIdUsed.includes(item.channel_id),
-      );
-
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
         if (!item.user_ids?.includes(message.sender_id)) {
@@ -99,7 +91,11 @@ export class MeetingCommand extends CommandMessage {
         );
       }
 
-      if (!listVoiceChannelAvalable.length) {
+      const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
+        message.clan_id,
+        message.sender_id,
+      );
+      if (!selectedChannel) {
         return this.replyMessageGenerate(
           {
             messageContent: 'Voice channel full!',
@@ -108,22 +104,6 @@ export class MeetingCommand extends CommandMessage {
         );
       }
 
-      const listType10 = listVoiceChannelAvalable.filter(
-        (item) => item.channel_type === 10,
-      );
-      const listType3 = listVoiceChannelAvalable.filter(
-        (item) => item.channel_type === 4,
-      );
-
-      let selectedChannel = null;
-
-      if (listType10.length > 0) {
-        const randomIndex = Math.floor(Math.random() * listType10.length);
-        selectedChannel = listType10[randomIndex];
-      } else if (listType3.length > 0) {
-        const randomIndex = Math.floor(Math.random() * listType3.length);
-        selectedChannel = listType3[randomIndex];
-      }
       const findChannel = listVoiceChannel.find(
         (item) => item.channel_id === selectedChannel?.channel_id,
       );

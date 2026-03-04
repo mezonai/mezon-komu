@@ -97,7 +97,6 @@ export class QuizService {
     try {
       const userId = userInput.userId;
       const user = await client.users.fetch(userId);
-      console.log('sendQuizToSingleUser', userId, user.id, user.dmChannelId);
       if (!user?.dmChannelId) return;
       const q = await this.randomQuiz(userInput, roleSelect);
       if (!q) return;

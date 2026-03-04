@@ -10,7 +10,7 @@ import {
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { Asterisk } from '../asterisk-commands/asterisk';
-import { In, IsNull, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { checkTimeMention } from '../utils/helper';
 import {
   Channel,
@@ -36,7 +36,7 @@ import { MessageQueue } from '../services/messageQueue.service';
 import { UtilsService } from '../services/utils.services';
 import { invalidCharacter, messagesBusy } from '../constants/text';
 import { PollTrackerService } from '../services/PollTracker.services';
-import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
+import { VoiceRoomAllocatorService } from '../services/voiceRoomAllocator.services';
 
 @Injectable()
 export class EventListenerChannelMessage {
@@ -59,7 +59,7 @@ export class EventListenerChannelMessage {
     private messageQueue: MessageQueue,
     private utilsService: UtilsService,
     private pollTrackerService: PollTrackerService,
-    private voiceUsersService: VoiceUsersCacheService,
+    private voiceRoomAllocator: VoiceRoomAllocatorService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -526,30 +526,9 @@ export class EventListenerChannelMessage {
   }
 
   async getListVoiceChannelAvalable() {
-    let listChannelVoiceUsers = [];
-    try {
-      listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(
-        process.env.KOMUBOTREST_CLAN_NCC_ID,
-      );
-    } catch (error) {
-      console.log('listChannelVoiceUsers upcoming', error);
-    }
-
-    const listVoiceChannel = await this.channelRepository.find({
-      where: {
-        channel_type: In([4, 10]),
-        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
-      },
-    });
-    const listVoiceChannelIdUsed = [];
-    listChannelVoiceUsers.forEach((item) => {
-      if (!listVoiceChannelIdUsed.includes(item.channel_id))
-        listVoiceChannelIdUsed.push(item.channel_id);
-    });
-    const listVoiceChannelAvalable = listVoiceChannel.filter(
-      (item) => !listVoiceChannelIdUsed.includes(item.channel_id),
+    return this.voiceRoomAllocator.getAvailableVoiceChannels(
+      process.env.KOMUBOTREST_CLAN_NCC_ID,
     );
-    return listVoiceChannelAvalable;
   }
 
   @OnEvent(Events.ChannelMessage)
@@ -557,23 +536,10 @@ export class EventListenerChannelMessage {
     if (await this.utilsService.checkHoliday()) return;
     if (message.code !== 13 || !message.content.t.includes('has started'))
       return;
-    const listVoiceChannelAvalable = await this.getListVoiceChannelAvalable();
-    const listType10 = listVoiceChannelAvalable.filter(
-      (item) => item.channel_type === 10,
+    const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
+      process.env.KOMUBOTREST_CLAN_NCC_ID,
     );
-    const listType3 = listVoiceChannelAvalable.filter(
-      (item) => item.channel_type === 4,
-    );
-
-    let selectedChannel = null;
-
-    if (listType10.length > 0) {
-      const randomIndex = Math.floor(Math.random() * listType10.length);
-      selectedChannel = listType10[randomIndex];
-    } else if (listType3.length > 0) {
-      const randomIndex = Math.floor(Math.random() * listType3.length);
-      selectedChannel = listType3[randomIndex];
-    }
+    if (!selectedChannel) return;
     const voiceChannel = await this.channelRepository.findOne({
       where: {
         channel_id: selectedChannel?.channel_id,
