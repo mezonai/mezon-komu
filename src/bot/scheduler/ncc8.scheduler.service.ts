@@ -21,6 +21,7 @@ import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { MessageQueue } from '../services/messageQueue.service';
 import { TimeSheetService } from '../services/timesheet.services';
 import { NCC8Service } from '../services/ncc8.services';
+import { Ncc8ScheduleConfigService } from '../services/ncc8ScheduleConfig.service';
 
 @Injectable()
 export class Ncc8SchedulerService {
@@ -37,6 +38,7 @@ export class Ncc8SchedulerService {
     private userRepository: Repository<User>,
     private timeSheetService: TimeSheetService,
     private ncc8Service: NCC8Service,
+    private ncc8ScheduleConfigService: Ncc8ScheduleConfigService,
   ) {
     this.client = this.clientService.getClient();
   }
@@ -49,8 +51,13 @@ export class Ncc8SchedulerService {
       .getOne();
   }
 
-  @Cron('29 11 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('29 11 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8JoinScheduler() {
+    const vietnamDate = new Date(Date.now() + 7 * 60 * 60 * 1000);
+    if (!this.ncc8ScheduleConfigService.isEnabledWeekday(vietnamDate.getUTCDay())) {
+      return;
+    }
+
     const wfhResult = await this.timeSheetService.findWFHUser();
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
@@ -70,8 +77,9 @@ export class Ncc8SchedulerService {
       })
       .getMany();
     const text = "[WARNING] Ncc8 will play in 1 minute, please go to ";
-    const channelLabel = '#ncc8-radio'
-    const textConfirm = "\nMake sure you've got message `Joining NCC8 successfully` when NCC8 start!";
+    const channelLabel = '#ncc8-radio';
+    const textConfirm =
+      "\nMake sure you've got message `Joining NCC8 successfully` when NCC8 start!";
     findUserWfh.map((user) => {
       const messageToUser: ReplyMezonMessage = {
         userId: user.userId,

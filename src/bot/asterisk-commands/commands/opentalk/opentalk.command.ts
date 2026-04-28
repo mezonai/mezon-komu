@@ -4,11 +4,9 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventMezon, User } from 'src/bot/models';
 import { Repository } from 'typeorm';
-import {
-  OpentalkService,
-  UpdateTimeType,
-} from 'src/bot/services/opentalk.services';
+import { UpdateTimeType } from 'src/bot/services/opentalk.services';
 import { VoiceSessionTrackingService } from 'src/bot/services/voiceSessionTracking.services';
+import { Ncc8ScheduleConfigService } from 'src/bot/services/ncc8ScheduleConfig.service';
 
 @Command('opt')
 export class OpentalkCommand extends CommandMessage {
@@ -18,6 +16,7 @@ export class OpentalkCommand extends CommandMessage {
     private userRepository: Repository<User>,
     @InjectRepository(EventMezon)
     private readonly eventRepo: Repository<EventMezon>,
+    private ncc8ScheduleConfigService: Ncc8ScheduleConfigService,
   ) {
     super();
   }
@@ -39,6 +38,52 @@ export class OpentalkCommand extends CommandMessage {
     const allowedIds = ['1827994776956309504', '1779815181480628224'];
 
     if (!allowedIds.includes(message.sender_id)) return;
+
+    if (args[0] === 'ncc8day') {
+      const action = args[1];
+      const weekday = this.ncc8ScheduleConfigService.parseWeekday(args[2]);
+
+      if (action === 'list') {
+        const enabledDays = this.ncc8ScheduleConfigService
+          .getEnabledWeekdays()
+          .map((day) => this.ncc8ScheduleConfigService.formatWeekday(day))
+          .join(', ');
+        const optionalDays = this.ncc8ScheduleConfigService
+          .getOptionalWeekdays()
+          .map((day) => this.ncc8ScheduleConfigService.formatWeekday(day))
+          .join(', ');
+        const text =
+          `NCC8 enabled days: ${enabledDays}\n` +
+          `Optional days: ${optionalDays || 'none'}\n` +
+          'Default day thu 6 is always enabled.';
+        return this.replyMessageGenerate(
+          { messageContent: text, mk: [{ type: 'pre', s: 0, e: text.length }] },
+          message,
+        );
+      }
+
+      if (!['enable', 'disable'].includes(action) || weekday === null) {
+        const text =
+          'Command: *opt ncc8day list | enable <thu2|thu4|mon|wed> | disable <thu2|thu4|mon|wed>';
+        return this.replyMessageGenerate(
+          { messageContent: text, mk: [{ type: 'pre', s: 0, e: text.length }] },
+          message,
+        );
+      }
+
+      const enabledDays =
+        action === 'enable'
+          ? this.ncc8ScheduleConfigService.enableWeekday(weekday)
+          : this.ncc8ScheduleConfigService.disableWeekday(weekday);
+      const enabledText = enabledDays
+        .map((day) => this.ncc8ScheduleConfigService.formatWeekday(day))
+        .join(', ');
+      const text = `NCC8 ${action} ${this.ncc8ScheduleConfigService.formatWeekday(weekday)} success. Enabled days: ${enabledText}`;
+      return this.replyMessageGenerate(
+        { messageContent: text, mk: [{ type: 'pre', s: 0, e: text.length }] },
+        message,
+      );
+    }
 
     if (args[0] === 'toggle') {
       const eventId = args[1];
