@@ -2,7 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { WorkFromHome } from 'src/bot/models/wfh.entity';
 import { Between, In, Repository } from 'typeorm';
 import { Injectable } from '@nestjs/common';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import https from 'https';
 import { UtilsService } from './utils.services';
 import { TimeSheetService } from './timesheet.services';
@@ -11,6 +11,7 @@ import { ClientConfigService } from '../config/client-config.service';
 import { MezonTrackerStreaming, User } from '../models';
 import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
+import { Ncc8ScheduleConfigService } from './ncc8ScheduleConfig.service';
 
 @Injectable()
 export class ReportTrackerService {
@@ -23,6 +24,7 @@ export class ReportTrackerService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private timeSheetService: TimeSheetService,
+    private ncc8ScheduleConfigService: Ncc8ScheduleConfigService,
   ) {}
 
   messTrackerHelp =
@@ -407,28 +409,23 @@ export class ReportTrackerService {
   }
 
   async handleReportJoinNcc8(args) {
-    let formatDate;
-    if (args[1]) {
-      const day = args[1].slice(0, 2);
-      const month = args[1].slice(3, 5);
-      const year = args[1].slice(6);
-      formatDate = `${month}/${day}/${year}`;
-    }
-    const fridayTimestamp = formatDate
-      ? new Date(formatDate).getTime()
-      : this.getFriday();
-
-    const firdayDate = new Date(fridayTimestamp);
-    const timestampNcc8 = new Date(
-      firdayDate.getFullYear(),
-      firdayDate.getMonth(),
-      firdayDate.getDate(),
-      11,
-      30,
-    ).getTime();
+    const reportDate = args[1]
+      ? moment.tz(args[1], 'DD/MM/YYYY', 'Asia/Ho_Chi_Minh')
+      : this.ncc8ScheduleConfigService.getLatestEnabledDate();
+    const reportStart = reportDate.clone().startOf('day').valueOf();
+    const reportEnd = reportDate.clone().endOf('day').valueOf();
+    const timestampNcc8 = reportDate
+      .clone()
+      .hour(11)
+      .minute(30)
+      .second(0)
+      .millisecond(0)
+      .valueOf();
 
     //get user wfh id
-    const wfhResult = await this.timeSheetService.findWFHUser(fridayTimestamp);
+    const wfhResult = await this.timeSheetService.findWFHUser(
+      reportDate.clone().hour(12).valueOf(),
+    );
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
       .map((item) => getUserNameByEmail(item.emailAddress));
@@ -451,7 +448,7 @@ export class ReportTrackerService {
     // get data tracker
     const findUserTracker = await this.mezonTrackerStreamingRepository.find({
       where: {
-        joinAt: Between(fridayTimestamp - 86400000, fridayTimestamp + 86400000),
+        joinAt: Between(reportStart, reportEnd),
         channelId: process.env.MEZON_NCC8_CHANNEL_ID,
       },
     });
@@ -536,13 +533,12 @@ export class ReportTrackerService {
       }),
     );
 
-    const now = new Date();
-    const textToday = formatDate
-      ? `ngày ${formatDate}`
-      : now.getDay() === 5
+    const now = moment.tz('Asia/Ho_Chi_Minh');
+    const textToday = args[1]
+      ? `ngày ${args[1]}`
+      : reportDate.isSame(now, 'day')
         ? 'hôm nay'
-        : 'thứ 6 tuần trước';
-
+        : `${this.ncc8ScheduleConfigService.formatWeekday(reportDate.day())} gần nhất`;
     this.prependMessage(
       userNotJoin,
       `Những người KHÔNG THAM GIA NCC8 ${textToday}`,

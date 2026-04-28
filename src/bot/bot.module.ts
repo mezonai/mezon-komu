@@ -179,6 +179,7 @@ import { PollTrackerService } from './services/PollTracker.services';
 import { VoiceUsersCacheService } from './services/voiceUserCache.services';
 import { VoiceSessionTrackingService } from './services/voiceSessionTracking.services';
 import { VoiceRoomAllocatorService } from './services/voiceRoomAllocator.services';
+import { Ncc8ScheduleConfigService } from './services/ncc8ScheduleConfig.service';
 
 // import { CronjobSlashCommand } from "./slash-commands/cronjob.slashcommand";
 
@@ -363,6 +364,7 @@ import { VoiceRoomAllocatorService } from './services/voiceRoomAllocator.service
     VoiceUsersCacheService,
     VoiceRoomAllocatorService,
     VoiceSessionTrackingService,
+    Ncc8ScheduleConfigService,
   ],
   controllers: [KomubotrestController, RequestTaskW2Controller],
 })

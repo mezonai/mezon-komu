@@ -3,13 +3,14 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Events, StreamingJoinedEvent, StreamingLeavedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
-import { MezonTrackerStreaming, RoleMezon, User } from '../models';
+import { MezonTrackerStreaming, User } from '../models';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { TimeSheetService } from '../services/timesheet.services';
 import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
+import { Ncc8ScheduleConfigService } from '../services/ncc8ScheduleConfig.service';
 
 @Injectable()
 export class StreamingEvent extends BaseHandleEvent {
@@ -20,6 +21,7 @@ export class StreamingEvent extends BaseHandleEvent {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private timeSheetService: TimeSheetService,
+    private ncc8ScheduleConfigService: Ncc8ScheduleConfigService,
   ) {
     super(clientService);
   }
@@ -32,9 +34,9 @@ export class StreamingEvent extends BaseHandleEvent {
     const minutes = minutesUTC;
 
     const vietnamDate = new Date(currentDate.getTime() + 7 * 60 * 60 * 1000);
-    const day = vietnamDate.getDay();
+    const day = vietnamDate.getUTCDay();
 
-    if (day !== 5) return true;
+    if (!this.ncc8ScheduleConfigService.isEnabledWeekday(day)) return true;
 
     if (
       hours < 11 ||
