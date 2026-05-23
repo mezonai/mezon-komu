@@ -151,7 +151,14 @@ export class KomubotrestController {
       this.reportTrackerService.reportTrackerList([, formatedDate]),
     ]);
 
-    return { daily: daily?.notDaily, mention, wfh, tracker };
+    const toArray = (data: unknown) => (Array.isArray(data) ? data : []);
+
+    return {
+      mention: toArray(mention),
+      daily: toArray(daily?.notDaily),
+      wfh: toArray(wfh),
+      tracker: toArray(tracker),
+    };
   }
 
   @Get('/reportDaily')
