@@ -56,24 +56,6 @@ export class WFHSchedulerService {
       const wfhUserEmail = await this.getUserByDateTypeNames();
       const { notSendUser: userOff } =
         await this.timeSheetService.getUserOffWork(null);
-      const clan = await this.client.clans.fetch(
-        process.env.KOMUBOTREST_CLAN_NCC_ID,
-      );
-      const listChannelVoiceUsers =
-        await this.voiceUsersService.listMezonVoiceUsers(
-          process.env.KOMUBOTREST_CLAN_NCC_ID,
-        );
-
-      const useridJoining: string[] = [];
-      for (const user of listChannelVoiceUsers ?? []) {
-        if (Array.isArray(user?.user_ids) && user.user_ids.length > 0) {
-          for (const id of user.user_ids) {
-            if (id) useridJoining.push(id);
-          }
-        } else if (user?.user_id) {
-          useridJoining.push(user.user_id);
-        }
-      }
 
       const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
 
@@ -89,12 +71,6 @@ export class WFHSchedulerService {
             ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
             : '1=1',
           { userOff },
-        )
-        .andWhere(
-          useridJoining && useridJoining.length > 0
-            ? 'user.userId NOT IN (:...useridJoining)'
-            : '1=1',
-          { useridJoining },
         )
         .andWhere('user.user_type = :userType', {
           userType: EUserType.MEZON.toString(),
