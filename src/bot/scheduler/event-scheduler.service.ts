@@ -115,15 +115,10 @@ export class EventSchedulerService {
   }
 
   async sendEventMessage(data, listVoiceChannelAvalable, messageContent) {
-    const selectedChannel =
-      this.voiceRoomAllocator.pickRandomPreferredChannel(
-        listVoiceChannelAvalable,
-      );
-    if (!selectedChannel?.channel_id) return;
-    this.voiceRoomAllocator.reserveRoom(
+    const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
       this.clientConfig.clandNccId,
-      selectedChannel.channel_id,
     );
+    if (!selectedChannel?.channel_id) return false;
     const selectedIndex = listVoiceChannelAvalable.findIndex(
       (item) => item.channel_id === selectedChannel.channel_id,
     );
@@ -169,6 +164,7 @@ export class EventSchedulerService {
       };
       this.messageQueue.addMessage(messageToUser);
     });
+    return true;
   }
 
   async updateEventRepository(data, createdTimestamp?) {
@@ -203,11 +199,12 @@ export class EventSchedulerService {
       this.utilsService.isSameMinute(minuteDb, dateScheduler)
     ) {
       const messageContent = `Please join the event ${data.title} at `;
-      await this.sendEventMessage(
+      const sent = await this.sendEventMessage(
         data,
         listVoiceChannelAvalable,
         messageContent,
       );
+      if (!sent) return;
       await this.updateEventRepository(data);
     }
   }

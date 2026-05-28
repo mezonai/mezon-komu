@@ -162,15 +162,10 @@ export class MeetingSchedulerService {
   }
 
   async sendMeetingMessage(data, listVoiceChannelAvalable, messageContent) {
-    const selectedChannel =
-      this.voiceRoomAllocator.pickRandomPreferredChannel(
-        listVoiceChannelAvalable,
-      );
-    if (!selectedChannel?.channel_id) return;
-    this.voiceRoomAllocator.reserveRoom(
+    const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
       this.clientConfig.clandNccId,
-      selectedChannel.channel_id,
     );
+    if (!selectedChannel?.channel_id) return false;
     const selectedIndex = listVoiceChannelAvalable.findIndex(
       (item) => item.channel_id === selectedChannel.channel_id,
     );
@@ -217,6 +212,7 @@ export class MeetingSchedulerService {
       mention_everyone: true,
     };
     this.messageQueue.addMessage(replyMessage);
+    return true;
   }
 
   async updateMeetingRepository(data, createdTimestamp?) {
@@ -251,17 +247,17 @@ export class MeetingSchedulerService {
     dateScheduler,
     minuteDb,
   ) {
-    // console.log('datadatadata', data);
     if (
       this.utilsService.isSameDate(dateCreatedTimestamp) &&
       this.utilsService.isSameMinute(minuteDb, dateScheduler)
     ) {
       const messageContent = `@here Our meeting room is `;
-      await this.sendMeetingMessage(
+      const sent = await this.sendMeetingMessage(
         data,
         listVoiceChannelAvalable,
         messageContent,
       );
+      if (!sent) return;
       await this.updateMeetingRepository(data);
     }
   }
@@ -283,11 +279,12 @@ export class MeetingSchedulerService {
       this.utilsService.isTimeDay(dateScheduler, data.channel_id)
     ) {
       const messageContent = `@here Our meeting room is `;
-      await this.sendMeetingMessage(
+      const sent = await this.sendMeetingMessage(
         data,
         listVoiceChannelAvalable,
         messageContent,
       );
+      if (!sent) return;
 
       let newCreatedTimestamp = data.createdTimestamp;
       newCreatedTimestamp = currentDate.setDate(currentDate.getDate() + 1);
@@ -311,11 +308,12 @@ export class MeetingSchedulerService {
       this.utilsService.isTimeDay(dateScheduler)
     ) {
       const messageContent = `@here Our meeting room is `;
-      await this.sendMeetingMessage(
+      const sent = await this.sendMeetingMessage(
         data,
         listVoiceChannelAvalable,
         messageContent,
       );
+      if (!sent) return;
 
       let newCreatedTimestampWeekly = data.createdTimestamp;
       newCreatedTimestampWeekly = currentDate.setDate(
@@ -343,11 +341,12 @@ export class MeetingSchedulerService {
       this.utilsService.isTimeDay(dateScheduler)
     ) {
       const messageContent = `@here Our meeting room is `;
-      await this.sendMeetingMessage(
+      const sent = await this.sendMeetingMessage(
         data,
         listVoiceChannelAvalable,
         messageContent,
       );
+      if (!sent) return;
 
       let newCreatedTimestampRepeat = data.createdTimestamp;
       const newDate = new Date(currentDate);
@@ -393,11 +392,12 @@ export class MeetingSchedulerService {
         (isRepeatMonthly && isCurrentDateScheduler)
       ) {
         const messageContent = `@here Our meeting room is `;
-        await this.sendMeetingMessage(
+        const sent = await this.sendMeetingMessage(
           data,
           listVoiceChannelAvalable,
           messageContent,
         );
+        if (!sent) return;
         await this.updateMeetingRepository(data);
       }
     }

@@ -6,6 +6,10 @@ import { VoiceUsersCacheService } from './voiceUserCache.services';
 
 type RoomReservationMap = Map<string, number>;
 type HolderReservationMap = Map<string, { channelId: string; expiresAt: number }>;
+type VoiceChannelUser = {
+  channel_id: string;
+  user_ids?: string[];
+};
 
 @Injectable()
 export class VoiceRoomAllocatorService {
@@ -91,6 +95,10 @@ export class VoiceRoomAllocatorService {
     }
   }
 
+  private getVoiceUserIds(voiceChannelUser: VoiceChannelUser) {
+    return voiceChannelUser.user_ids?.filter(Boolean) ?? [];
+  }
+
   reserveRoom(
     clanId: string,
     channelId: string,
@@ -137,11 +145,12 @@ export class VoiceRoomAllocatorService {
   }
 
   async getAvailableVoiceChannels(clanId: string) {
-    let listChannelVoiceUsers = [];
+    let listChannelVoiceUsers: VoiceChannelUser[] = [];
     try {
       listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(clanId);
     } catch (error) {
       this.logger.warn(`listMezonVoiceUsers failed for clan=${clanId}: ${String(error)}`);
+      return [];
     }
 
     const listVoiceChannel = await this.channelRepository.find({
@@ -150,14 +159,17 @@ export class VoiceRoomAllocatorService {
         clan_id: clanId,
       },
     });
-
     const listVoiceChannelIdUsed = new Set<string>();
     listChannelVoiceUsers.forEach((item) => {
-      if (item?.channel_id) {
+      if (item?.channel_id && this.getVoiceUserIds(item).length) {
         listVoiceChannelIdUsed.add(item.channel_id);
       }
     });
-
+    this.logger.debug(
+      `voice channel users clan=${clanId} channels=${listChannelVoiceUsers
+        .map((item) => `${item.channel_id}:${this.getVoiceUserIds(item).length}`)
+        .join(',')}`,
+    );
     return listVoiceChannel.filter(
       (item) =>
         !listVoiceChannelIdUsed.has(item.channel_id) &&

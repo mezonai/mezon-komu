@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
@@ -12,6 +13,7 @@ import { VoiceRoomAllocatorService } from 'src/bot/services/voiceRoomAllocator.s
 
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
+  private readonly logger = new Logger(MeetingCommand.name);
   private client: MezonClient;
   constructor(
     private meetingService: MeetingService,
@@ -42,7 +44,7 @@ export class MeetingCommand extends CommandMessage {
       try {
         listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
       } catch (error) {
-        console.log('listChannelVoiceUsers error', error);
+        this.logger.warn(`listChannelVoiceUsers error: ${String(error)}`);
       }
 
       const listVoiceChannel = await this.channelRepository.find({
@@ -53,7 +55,8 @@ export class MeetingCommand extends CommandMessage {
       });
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
-        if (!item.user_ids?.includes(message.sender_id)) {
+        const userIds = item.user_ids?.filter(Boolean) ?? [];
+        if (!userIds.includes(message.sender_id)) {
           return false;
         }
         const identifier = `${message.sender_id}-${item.channel_id}`;
@@ -63,7 +66,6 @@ export class MeetingCommand extends CommandMessage {
         }
         return false;
       });
-
       if (currentUserVoiceChannel.length) {
         let messageContent =
           currentUserVoiceChannel.length > 1

@@ -550,7 +550,7 @@ export class EventListenerChannelMessage {
     const message2 = await channel.messages.fetch(message.message_id);
     await message2.reply(
       {
-        t: messageContent + '#' + voiceChannel.channel_label,
+        t: messageContent + '#' + (voiceChannel?.channel_label || ''),
         hg: [
           {
             channelId: selectedChannel?.channel_id,
