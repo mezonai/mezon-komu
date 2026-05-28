@@ -119,6 +119,7 @@ export class EventListenerChannelMessage {
           userType: EUserType.MEZON,
         })
         .orWhere('user.deactive IS TRUE')
+        .orWhere('user.bot IS TRUE')
         .getMany();
       const clientId = client.map((item) => item.userId);
       const findChannel = await this.channelRepository.findOne({
