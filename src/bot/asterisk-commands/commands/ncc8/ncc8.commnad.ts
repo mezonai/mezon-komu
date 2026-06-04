@@ -35,7 +35,7 @@ export class Ncc8Command extends CommandMessage {
 
   async execute(args: string[], message: ChannelMessage) {
     if (
-      !['1827994776956309504', '1779815181480628224'].includes(
+      !['1827994776956309504', '1779815181480628224', '1820647107783036928', '1835567711413866496'].includes(
         message.sender_id,
       )
     )
