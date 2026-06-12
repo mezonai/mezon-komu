@@ -12,6 +12,11 @@ import { MezonTrackerStreaming, User } from '../models';
 import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
 import { Ncc8ScheduleConfigService } from './ncc8ScheduleConfig.service';
+import {
+  nccProfileDisplayNameSql,
+  nccProfileIdentifierSql,
+  nccProfileMatchesListSql,
+} from '../utils/user-clan-profile';
 
 @Injectable()
 export class ReportTrackerService {
@@ -70,15 +75,23 @@ export class ReportTrackerService {
       const { data } = result;
       const dataConverted = await Promise.all(
         data.map(async (item) => {
-          const findUser = await this.userRepository.findOne({
-            where: {
-              username: item.email,
-              user_type: EUserType.MEZON,
-            },
-          });
+          const findUser = await this.userRepository
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where('"user".username = :username', { username: item.email })
+            .andWhere('"user".user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
+            .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
+            .getRawOne<{ profileIdentifier: string }>();
           return {
             ...item,
-            email: findUser?.clan_nick || findUser?.username || item.email,
+            email: findUser?.profileIdentifier || item.email,
           };
         }),
       );
@@ -166,15 +179,23 @@ export class ReportTrackerService {
       const { data } = result;
       const dataConverted = await Promise.all(
         data.map(async (item) => {
-          const findUser = await this.userRepository.findOne({
-            where: {
-              username: item.email,
-              user_type: EUserType.MEZON,
-            },
-          });
+          const findUser = await this.userRepository
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where('"user".username = :username', { username: item.email })
+            .andWhere('"user".user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
+            .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
+            .getRawOne<{ profileIdentifier: string }>();
           return {
             spent_time: item.active_time,
-            email: findUser?.clan_nick || findUser?.username || item.email,
+            email: findUser?.profileIdentifier || item.email,
           };
         }),
       );
@@ -290,10 +311,16 @@ export class ReportTrackerService {
       );
       const rows = await this.userRepository
         .createQueryBuilder('u')
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = u."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
         .select([
           'u.username AS username',
           'u.email AS email',
-          `COALESCE(NULLIF(u.clan_nick, ''), u.username) AS name`,
+          `${nccProfileIdentifierSql('u')} AS name`,
         ])
         .where('u.username IN (:...usernames)', { usernames })
         .getRawMany<{ username: string; name: string }>();
@@ -429,20 +456,18 @@ export class ReportTrackerService {
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
       .map((item) => getUserNameByEmail(item.emailAddress));
-    const findUserWfh = await this.userRepository.find({
-      where: [
-        {
-          clan_nick: In(wfhUserEmail),
-          user_type: EUserType.MEZON,
-          deactive: false,
-        },
-        {
-          username: In(wfhUserEmail),
-          user_type: EUserType.MEZON,
-          deactive: false,
-        },
-      ],
-    });
+    const findUserWfh = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+      )
+      .where(nccProfileMatchesListSql('wfhUserEmail'), { wfhUserEmail })
+      .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
+      .andWhere('"user".deactive = :deactive', { deactive: false })
+      .getMany();
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
     // get data tracker
@@ -482,9 +507,21 @@ export class ReportTrackerService {
     const fifteenMinutes = 15 * 60 * 1000;
 
     for (const [userId, session] of userSessionMap.entries()) {
-      const findUser = await this.userRepository.findOne({
-        where: { userId, user_type: EUserType.MEZON },
-      });
+      const findUser = await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
+        .where('"user"."userId" = :userId', { userId })
+        .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
+        .select([
+          '"user"."userId" AS "userId"',
+          `${nccProfileDisplayNameSql()} AS "profileName"`,
+        ])
+        .getRawOne<{ userId: string; profileName: string }>();
       if (!findUser) continue;
 
       userIdJoinNcc8.push(userId);
@@ -496,7 +533,7 @@ export class ReportTrackerService {
         );
 
         timeTextArray.push(
-          `${findUser.clan_nick || findUser.display_name || findUser.username} - tham gia tổng ${totalTimeInMinutes} phút -> thiếu ${remainingTimeInMinutes} phút`,
+          `${findUser.profileName} - tham gia tổng ${totalTimeInMinutes} phút -> thiếu ${remainingTimeInMinutes} phút`,
         );
       }
 
@@ -515,7 +552,7 @@ export class ReportTrackerService {
           );
 
           lateTextArray.push(
-            `${findUser.clan_nick || findUser.display_name || findUser.username} - join lúc ${timeString} → vào muộn ${lateText}`,
+            `${findUser.profileName} - join lúc ${timeString} → vào muộn ${lateText}`,
           );
         }
       }
@@ -526,10 +563,19 @@ export class ReportTrackerService {
     );
     const userNotJoin = await Promise.all(
       userIdNotJoin.map(async (id) => {
-        const user = await this.userRepository.findOne({
-          where: { userId: id, user_type: EUserType.MEZON },
-        });
-        return user?.clan_nick || user?.display_name || user?.username;
+        const user = await this.userRepository
+          .createQueryBuilder('user')
+          .leftJoin(
+            'komu_user_clan_profile',
+            'ncc_profile',
+            'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+            { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+          )
+          .where('"user"."userId" = :userId', { userId: id })
+          .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
+          .select(`${nccProfileDisplayNameSql()} AS "profileName"`)
+          .getRawOne<{ profileName: string }>();
+        return user?.profileName;
       }),
     );
 

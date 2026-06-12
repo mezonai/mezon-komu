@@ -16,6 +16,7 @@ import {
   Channel,
   ChannelMezon,
   Mentioned,
+  MezonClan,
   Msg,
   Quiz,
   User,
@@ -38,6 +39,11 @@ import { invalidCharacter, messagesBusy } from '../constants/text';
 import { PollTrackerService } from '../services/PollTracker.services';
 import { VoiceRoomAllocatorService } from '../services/voiceRoomAllocator.services';
 
+const COMMAND_PERMISSION_BYPASS_USER_IDS = [
+  '1827994776956309504',
+  '1779815181480628224',
+];
+
 @Injectable()
 export class EventListenerChannelMessage {
   private client: MezonClient;
@@ -49,6 +55,8 @@ export class EventListenerChannelMessage {
     @InjectRepository(ChannelMezon)
     private channelRepository: Repository<ChannelMezon>,
     @InjectRepository(User) private userRepository: Repository<User>,
+    @InjectRepository(MezonClan)
+    private mezonClanRepository: Repository<MezonClan>,
     @InjectRepository(UserQuiz)
     private userQuizRepository: Repository<UserQuiz>,
     @InjectRepository(Quiz)
@@ -89,6 +97,7 @@ export class EventListenerChannelMessage {
   @OnEvent(Events.ChannelMessage)
   async handleMentioned(message: ChannelMessage) {
     try {
+      if (message.clan_id !== process.env.KOMUBOTREST_CLAN_NCC_ID) return;
       if (!invalidCharacter.includes(message?.content?.t)) {
         await Promise.all([
           this.userRepository
@@ -333,10 +342,42 @@ export class EventListenerChannelMessage {
         const firstLetter = content.trim()[0];
         switch (firstLetter) {
           case '*':
-            if (msg.clan_id !== this.clientConfigService.clandNccId) {
+            const commandName = content
+              .trim()
+              .slice(1)
+              .split(/\s+/)[0]
+              .toLowerCase();
+            const canBypassCommandPermission =
+              ['toggleactive', 'blockcommand'].includes(commandName) &&
+              COMMAND_PERMISSION_BYPASS_USER_IDS.includes(msg.sender_id);
+            const clan = await this.mezonClanRepository.findOne({
+              where: {
+                clan_id: msg.clan_id,
+              },
+            });
+            const canUseCommand =
+              clan?.can_use_command ||
+              (!clan && msg.clan_id === this.clientConfigService.clandNccId);
+            if (!canBypassCommandPermission && !canUseCommand) {
               const channel = await this.client.channels.fetch(msg.channel_id);
               const message = await channel.messages.fetch(msg.message_id);
-              const text = 'Commands cannot be used outside the KOMU clan!';
+              const text = 'Commands are disabled in this clan!';
+              await message.reply({
+                t: text,
+                mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],
+              });
+              break;
+            }
+            const blockedCommands = (clan?.blocked_commands ?? []).map(
+              (command) => command.toLowerCase(),
+            );
+            if (
+              !canBypassCommandPermission &&
+              blockedCommands.includes(commandName)
+            ) {
+              const channel = await this.client.channels.fetch(msg.channel_id);
+              const message = await channel.messages.fetch(msg.message_id);
+              const text = `Command *${commandName} is disabled in this clan!`;
               await message.reply({
                 t: text,
                 mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],

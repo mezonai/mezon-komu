@@ -17,9 +17,23 @@ export class ToggleActiveCommand extends CommandMessage {
   }
 
   messHelp =
-    'Command *toggleactivation username' + '\n' + '*toggleactivation id';
+    'Command *toggleactive username' +
+    '\n' +
+    '*toggleactive id' +
+    '\n' +
+    '*toggleactive clan clan_id';
 
   async execute(args: string[], message: ChannelMessage) {
+    const userIdValid = ['1827994776956309504', '1779815181480628224'];
+    if (!userIdValid.includes(message.sender_id)) {
+      return this.replyMessageGenerate(
+        {
+          messageContent:
+            '❌You do not have permission to execute this command!',
+        },
+        message,
+      );
+    }
     if (args[0] === 'check') {
       const findUser = await this.userData.find({
         where: [{ userId: args[1] }, { username: args[1] }],
@@ -38,9 +52,28 @@ export class ToggleActiveCommand extends CommandMessage {
         )
         .join('\n');
       return this.replyMessageGenerate({ messageContent: mess }, message);
+    } else if (args[0] === 'clan') {
+      const clanId = args[1];
+      if (!clanId) {
+        return this.replyMessageGenerate(
+          { messageContent: this.messHelp },
+          message,
+        );
+      }
+
+      const result = await this.toggleActiveService.toggleClanCommandPermission(
+        clanId,
+        message.sender_id,
+      );
+
+      return this.replyMessageGenerate(
+        {
+          messageContent: `${result.can_use_command ? '✅Enable' : '✅Disable'} command permission successfully for clan ${clanId}!`,
+        },
+        message,
+      );
     } else {
       let authorId = args[0];
-      const userIdValid = ['1827994776956309504', '1779815181480628224'];
       if (userIdValid.includes(message.sender_id)) {
         const findUserId = await this.toggleActiveService.findAcc(authorId);
         if (!findUserId) {

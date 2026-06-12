@@ -9,6 +9,7 @@ import { VoiceUsersCacheService } from './voiceUserCache.services';
 import { EMarkdownType, MezonClient } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { UpdateTimeType } from './opentalk.services';
+import { nccProfileIdentifierSql } from '../utils/user-clan-profile';
 
 @Injectable()
 export class VoiceSessionTrackingService {
@@ -181,12 +182,22 @@ export class VoiceSessionTrackingService {
       date: string;
     }> = [];
     const userIds = Array.from(userMap.keys());
+    if (!userIds.length) return result;
 
-    const users = await this.userRepository.find({
-      where: {
-        userId: In(userIds),
-      },
-    });
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+      )
+      .where('"user"."userId" IN (:...userIds)', { userIds })
+      .select([
+        '"user"."userId" AS "userId"',
+        `${nccProfileIdentifierSql()} AS "profileIdentifier"`,
+      ])
+      .getRawMany<{ userId: string; profileIdentifier: string }>();
 
     const userDict = new Map(users.map((u) => [u.userId, u]));
 
@@ -196,7 +207,7 @@ export class VoiceSessionTrackingService {
 
       result.push({
         user_id,
-        email: user.clan_nick || user.username,
+        email: user.profileIdentifier,
         totalTime: Math.floor(totalMs / 60000),
         date: dateStr,
       });

@@ -13,6 +13,8 @@ export const TABLE = {
   VOICE: 'komu_voices',
   USERQUIZ: 'komu_userQuiz',
   USER: 'komu_user',
+  USER_CLAN_PROFILE: 'komu_user_clan_profile',
+  MEZON_CLAN: 'komu_clan',
   UPLOADFILE: 'komu_uploadFile',
   TX8: 'komu_tx8',
   SUGG: 'sugg',

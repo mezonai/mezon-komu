@@ -12,6 +12,7 @@ import {
   Order,
   Remind,
   User,
+  UserClanProfile,
   VoiceChannels,
   WorkFromHome,
   CompanyTrip,
@@ -48,6 +49,7 @@ import {
   MentionedPmConfirm,
   QuizMsg,
   MezonBotMessage,
+  MezonClan,
   RoleMezon,
   DynamicMezon,
   News,
@@ -144,6 +146,7 @@ import { FineReportSchedulerService } from './scheduler/fine-report.scheduler.se
 import { EventRole } from './listeners/role.handle';
 import { EventRoleAsign } from './listeners/roleasign.handle';
 import { WeatherCommand } from './asterisk-commands/commands/weather/weather.command';
+import { BlockCommand } from './asterisk-commands/commands/blockcommand/blockcommand.command';
 import { DynamicCommand } from './asterisk-commands/commands/register/register.command';
 import { DynamicExcuteCommand } from './asterisk-commands/commands/dynamic/dynamic.command';
 import { DynamicCommandService } from './services/dynamic.service';
@@ -200,6 +203,7 @@ import { Ncc8ScheduleConfigService } from './services/ncc8ScheduleConfig.service
       Leave,
       Holiday,
       User,
+      UserClanProfile,
       Meeting,
       VoiceChannels,
       WorkFromHome,
@@ -236,6 +240,7 @@ import { Ncc8ScheduleConfigService } from './services/ncc8ScheduleConfig.service
       QuizMsg,
       ChannelDMMezon,
       MezonBotMessage,
+      MezonClan,
       RoleMezon,
       DynamicMezon,
       News,
@@ -336,6 +341,7 @@ import { Ncc8ScheduleConfigService } from './services/ncc8ScheduleConfig.service
     Ncc8SchedulerService,
     FineReportSchedulerService,
     WeatherCommand,
+    BlockCommand,
     DynamicCommandService,
     NewsScheduler,
     EventClanEventCreated,

@@ -11,6 +11,7 @@ import { TimeSheetService } from '../services/timesheet.services';
 import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
 import { Ncc8ScheduleConfigService } from '../services/ncc8ScheduleConfig.service';
+import { nccProfileMatchesListSql } from '../utils/user-clan-profile';
 
 @Injectable()
 export class StreamingEvent extends BaseHandleEvent {
@@ -70,11 +71,15 @@ export class StreamingEvent extends BaseHandleEvent {
 
       const findUserWfh = await this.userRepository
         .createQueryBuilder('user')
-        .where(
-          '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))',
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
         )
-        .andWhere('user.user_type = :userType')
+        .where(nccProfileMatchesListSql('wfhUserEmail'))
+        .andWhere('"user".user_type = :userType')
         .setParameters({
+          nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
           wfhUserEmail,
           userType: EUserType.MEZON,
         })
@@ -82,7 +87,9 @@ export class StreamingEvent extends BaseHandleEvent {
       const userIdList = findUserWfh.map((user) => user.userId);
 
       const user = await this.client.users.fetch(data.user_id);
-      user.sendDM({ t: "🎉 Joining NCC8 successfully. Let's chill with NCC8!" });
+      user.sendDM({
+        t: "🎉 Joining NCC8 successfully. Let's chill with NCC8!",
+      });
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
       const existing = await this.mezonTrackerStreamingRepository.findOne({

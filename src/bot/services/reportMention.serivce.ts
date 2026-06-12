@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import moment from 'moment';
 import { UtilsService } from './utils.services';
 import { TimeSheetService } from './timesheet.services';
+import { nccProfileIdentifierSql } from '../utils/user-clan-profile';
 
 @Injectable()
 export class ReportMentionService {
@@ -33,6 +34,12 @@ export class ReportMentionService {
     const mentionFullday = await this.wfhRepository
       .createQueryBuilder('wfh')
       .innerJoinAndSelect('komu_user', 'm', 'wfh.userId = m.userId')
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = m."userId" AND ncc_profile.clan_id = :nccClanId',
+        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+      )
       .where(
         '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) OR ("status" = :statusAPPROVED AND pmconfirm = :pmconfirm AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay)',
         {
@@ -50,8 +57,14 @@ export class ReportMentionService {
         },
       )
       .groupBy('m.email, m.deactive')
+      .addGroupBy('m.clan_nick')
+      .addGroupBy('m.username')
+      .addGroupBy('ncc_profile.clan_nick')
+      .addGroupBy('ncc_profile.username')
       .addGroupBy('wfh.userId')
-      .select('wfh.userId, COUNT(wfh.userId) as total, m.email, m.deactive')
+      .select(
+        `wfh.userId, COUNT(wfh.userId) as total, ${nccProfileIdentifierSql('m')} AS email, m.deactive`,
+      )
       .orderBy('total', 'DESC')
       .execute();
 
