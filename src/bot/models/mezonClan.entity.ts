@@ -16,6 +16,9 @@ export class MezonClan {
   @Column({ nullable: true, default: false })
   can_use_command: boolean;
 
+  @Column('text', { array: true, nullable: true })
+  blocked_commands: string[];
+
   @Column({ type: 'numeric', nullable: true })
   createdAt: number;
 }

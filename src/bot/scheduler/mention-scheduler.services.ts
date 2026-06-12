@@ -145,11 +145,11 @@ export class MentionSchedulerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :clanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :clanId',
               { clanId },
             )
-            .where('user.userId = :userId', { userId })
-            .andWhere('user.user_type = :userType', {
+            .where('"user"."userId" = :userId', { userId })
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .select(`${nccProfileDisplayNameSql()} AS "profileName"`)

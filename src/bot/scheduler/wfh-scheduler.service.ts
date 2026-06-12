@@ -69,13 +69,13 @@ export class WFHSchedulerService {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
           { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
         )
         .leftJoin(
           'komu_userQuiz',
           'm_bot',
-          'user.last_bot_message_id = "m_bot"."message_id" AND user.userId = "m_bot"."userId"',
+          '"user".last_bot_message_id = "m_bot"."message_id" AND "user"."userId" = "m_bot"."userId"',
         )
         .where(
           userOff && userOff.length > 0
@@ -83,11 +83,11 @@ export class WFHSchedulerService {
             : '1=1',
           { userOff },
         )
-        .andWhere('user.user_type = :userType', {
+        .andWhere('"user".user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
-        .andWhere('user.deactive IS NOT TRUE')
-        .andWhere('user.last_message_id IS NOT NULL')
+        .andWhere('"user".deactive IS NOT TRUE')
+        .andWhere('"user".last_message_id IS NOT NULL')
         .andWhere(
           '(m_bot.createAt <= :thirtyMinutesAgo OR m_bot.createAt IS NULL)',
           { thirtyMinutesAgo },
@@ -100,16 +100,16 @@ export class WFHSchedulerService {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
           { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
         )
         .where(
           userLastSendIds && userLastSendIds.length > 0
-            ? 'user.userId IN (:...userIds)'
+            ? '"user"."userId" IN (:...userIds)'
             : '1=1',
           { userIds: userLastSendIds },
         )
-        .andWhere('user.user_type = :userType', {
+        .andWhere('"user".user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
         .andWhere(
@@ -119,7 +119,7 @@ export class WFHSchedulerService {
           { wfhUserEmail },
         )
         .andWhere(
-          '(user.last_message_time <= :thirtyMinutesAgo OR user.last_message_time IS NULL)',
+          '("user".last_message_time <= :thirtyMinutesAgo OR "user".last_message_time IS NULL)',
           { thirtyMinutesAgo },
         )
         .getMany();
@@ -152,13 +152,13 @@ export class WFHSchedulerService {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
           { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
         )
         .innerJoin(
           'komu_userQuiz',
           'm_bot',
-          'user.last_bot_message_id = "m_bot"."message_id" AND user.userId = "m_bot"."userId"',
+          '"user".last_bot_message_id = "m_bot"."message_id" AND "user"."userId" = "m_bot"."userId"',
         )
         .where(
           wfhUserEmail && wfhUserEmail.length > 0
@@ -168,10 +168,10 @@ export class WFHSchedulerService {
             wfhUserEmail,
           },
         )
-        .andWhere('user.deactive IS NOT TRUE')
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .andWhere('user.botPing = :botPing', { botPing: true })
-        .andWhere('user.last_bot_message_id IS NOT NULL')
+        .andWhere('"user".deactive IS NOT TRUE')
+        .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
+        .andWhere('"user"."botPing" = :botPing', { botPing: true })
+        .andWhere('"user".last_bot_message_id IS NOT NULL')
         .andWhere(
           '(m_bot.createAt <= :thirtyMinutesAgo and m_bot.createAt >= :firstTime and m_bot.createAt <= :lastTime)',
           {
@@ -256,7 +256,7 @@ export class WFHSchedulerService {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
           { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
         )
         .where(
@@ -265,7 +265,7 @@ export class WFHSchedulerService {
             : '1=1',
           { userOff },
         )
-        .andWhere('user.user_type = :userType', {
+        .andWhere('"user".user_type = :userType', {
           userType: EUserType.MEZON.toString(),
         })
         .andWhere(
@@ -276,7 +276,7 @@ export class WFHSchedulerService {
             wfhUserEmail,
           },
         )
-        .andWhere('user.deactive IS NOT TRUE')
+        .andWhere('"user".deactive IS NOT TRUE')
         .select('*')
         .execute();
       await this.sendQuizzesWithLimit(userSend, false);

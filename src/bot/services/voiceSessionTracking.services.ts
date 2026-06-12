@@ -189,12 +189,12 @@ export class VoiceSessionTrackingService {
       .leftJoin(
         'komu_user_clan_profile',
         'ncc_profile',
-        'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+        'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
         { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
       )
-      .where('user.userId IN (:...userIds)', { userIds })
+      .where('"user"."userId" IN (:...userIds)', { userIds })
       .select([
-        'user.userId AS "userId"',
+        '"user"."userId" AS "userId"',
         `${nccProfileIdentifierSql()} AS "profileIdentifier"`,
       ])
       .getRawMany<{ userId: string; profileIdentifier: string }>();

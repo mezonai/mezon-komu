@@ -74,10 +74,10 @@ export class StreamingEvent extends BaseHandleEvent {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
         )
         .where(nccProfileMatchesListSql('wfhUserEmail'))
-        .andWhere('user.user_type = :userType')
+        .andWhere('"user".user_type = :userType')
         .setParameters({
           nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
           wfhUserEmail,

@@ -140,12 +140,12 @@ export class SendMessageSchedulerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
             .where(nccProfileMatchesListSql('emails'), { emails: [email] })
-            .andWhere('user.deactive IS NOT TRUE')
-            .andWhere('user.user_type = :userType', {
+            .andWhere('"user".deactive IS NOT TRUE')
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .getOne();
@@ -189,14 +189,14 @@ export class SendMessageSchedulerService {
           .leftJoin(
             'komu_user_clan_profile',
             'ncc_profile',
-            'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+            'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
             { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
           )
           .where(nccProfileMatchesListSql('emails'), {
             emails: [item.email.slice(0, -9)],
           })
-          .andWhere('user.deactive IS NOT TRUE')
-          .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+          .andWhere('"user".deactive IS NOT TRUE')
+          .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
           .select('*')
           .addSelect(nccProfileDisplayNameSql(), 'profileName')
           .getRawOne();
@@ -276,14 +276,14 @@ export class SendMessageSchedulerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
             .where(nccProfileMatchesListSql('komuUserNames'), {
               komuUserNames: [user.komuUserName],
             })
-            .andWhere('user.deactive IS NOT TRUE')
-            .andWhere('user.user_type = :userType', {
+            .andWhere('"user".deactive IS NOT TRUE')
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             });
           if (userOffFullday && userOffFullday?.length > 0) {
@@ -336,16 +336,16 @@ export class SendMessageSchedulerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
             .where(nccProfileMatchesListSql('komuUserNames'), {
               komuUserNames: [user.komuUserName],
             })
-            .andWhere('user.user_type = :userType', {
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
-            .andWhere('user.deactive IS NOT TRUE');
+            .andWhere('"user".deactive IS NOT TRUE');
           if (userOffFullday && userOffFullday?.length > 0) {
             query.andWhere(nccProfileNotMatchesListSql('userOffFullday'), {
               userOffFullday,
@@ -385,14 +385,14 @@ export class SendMessageSchedulerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
             .where(nccProfileMatchesListSql('usernames'), {
               usernames: [username],
             })
-            .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
-            .andWhere('user.user_type = :userType', {
+            .andWhere('("user".deactive IS NULL OR "user".deactive = FALSE)')
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .getOne();

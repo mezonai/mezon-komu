@@ -80,11 +80,11 @@ export class ReportTrackerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
-            .where('user.username = :username', { username: item.email })
-            .andWhere('user.user_type = :userType', {
+            .where('"user".username = :username', { username: item.email })
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
@@ -184,11 +184,11 @@ export class ReportTrackerService {
             .leftJoin(
               'komu_user_clan_profile',
               'ncc_profile',
-              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
               { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
-            .where('user.username = :username', { username: item.email })
-            .andWhere('user.user_type = :userType', {
+            .where('"user".username = :username', { username: item.email })
+            .andWhere('"user".user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
@@ -461,12 +461,12 @@ export class ReportTrackerService {
       .leftJoin(
         'komu_user_clan_profile',
         'ncc_profile',
-        'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+        'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
         { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
       )
       .where(nccProfileMatchesListSql('wfhUserEmail'), { wfhUserEmail })
-      .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-      .andWhere('user.deactive = :deactive', { deactive: false })
+      .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
+      .andWhere('"user".deactive = :deactive', { deactive: false })
       .getMany();
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
@@ -512,13 +512,13 @@ export class ReportTrackerService {
         .leftJoin(
           'komu_user_clan_profile',
           'ncc_profile',
-          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
           { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
         )
-        .where('user.userId = :userId', { userId })
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .where('"user"."userId" = :userId', { userId })
+        .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
         .select([
-          'user.userId AS "userId"',
+          '"user"."userId" AS "userId"',
           `${nccProfileDisplayNameSql()} AS "profileName"`,
         ])
         .getRawOne<{ userId: string; profileName: string }>();
@@ -568,11 +568,11 @@ export class ReportTrackerService {
           .leftJoin(
             'komu_user_clan_profile',
             'ncc_profile',
-            'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+            'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
             { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
           )
-          .where('user.userId = :userId', { userId: id })
-          .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+          .where('"user"."userId" = :userId', { userId: id })
+          .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
           .select(`${nccProfileDisplayNameSql()} AS "profileName"`)
           .getRawOne<{ profileName: string }>();
         return user?.profileName;

@@ -348,7 +348,7 @@ export class EventListenerChannelMessage {
               .split(/\s+/)[0]
               .toLowerCase();
             const canBypassCommandPermission =
-              commandName === 'toggleactive' &&
+              ['toggleactive', 'blockcommand'].includes(commandName) &&
               COMMAND_PERMISSION_BYPASS_USER_IDS.includes(msg.sender_id);
             const clan = await this.mezonClanRepository.findOne({
               where: {
@@ -362,6 +362,22 @@ export class EventListenerChannelMessage {
               const channel = await this.client.channels.fetch(msg.channel_id);
               const message = await channel.messages.fetch(msg.message_id);
               const text = 'Commands are disabled in this clan!';
+              await message.reply({
+                t: text,
+                mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],
+              });
+              break;
+            }
+            const blockedCommands = (clan?.blocked_commands ?? []).map(
+              (command) => command.toLowerCase(),
+            );
+            if (
+              !canBypassCommandPermission &&
+              blockedCommands.includes(commandName)
+            ) {
+              const channel = await this.client.channels.fetch(msg.channel_id);
+              const message = await channel.messages.fetch(msg.message_id);
+              const text = `Command *${commandName} is disabled in this clan!`;
               await message.reply({
                 t: text,
                 mk: [{ type: EMarkdownType.PRE, s: 0, e: text.length }],
