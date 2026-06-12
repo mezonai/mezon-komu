@@ -13,6 +13,11 @@ import moment from 'moment';
 import { MessageQueue } from '../services/messageQueue.service';
 import { Cron } from '@nestjs/schedule';
 import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
+import {
+  nccProfileDisplayNameSql,
+  nccProfileMatchesListSql,
+  nccProfileNotMatchesListSql,
+} from '../utils/user-clan-profile';
 
 @Injectable()
 export class WFHSchedulerService {
@@ -62,13 +67,19 @@ export class WFHSchedulerService {
       const userLastSend = await this.userRepository
         .createQueryBuilder('user')
         .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
+        .leftJoin(
           'komu_userQuiz',
           'm_bot',
           'user.last_bot_message_id = "m_bot"."message_id" AND user.userId = "m_bot"."userId"',
         )
         .where(
           userOff && userOff.length > 0
-            ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
+            ? nccProfileNotMatchesListSql('userOff')
             : '1=1',
           { userOff },
         )
@@ -86,6 +97,12 @@ export class WFHSchedulerService {
       const userLastSendIds = userLastSend.map((user) => user?.userId);
       const userSend = await this.userRepository
         .createQueryBuilder('user')
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
         .where(
           userLastSendIds && userLastSendIds.length > 0
             ? 'user.userId IN (:...userIds)'
@@ -97,7 +114,7 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))'
+            ? nccProfileMatchesListSql('wfhUserEmail')
             : '1=1',
           { wfhUserEmail },
         )
@@ -132,6 +149,12 @@ export class WFHSchedulerService {
     if (wfhUserEmail.length > 0) {
       const users = await this.userRepository
         .createQueryBuilder('user')
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
         .innerJoin(
           'komu_userQuiz',
           'm_bot',
@@ -139,7 +162,7 @@ export class WFHSchedulerService {
         )
         .where(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))'
+            ? nccProfileMatchesListSql('wfhUserEmail')
             : '1=1',
           {
             wfhUserEmail,
@@ -158,6 +181,8 @@ export class WFHSchedulerService {
           },
         )
         .select('*')
+        .addSelect('m_bot."createAt"', 'quizCreateAt')
+        .addSelect(nccProfileDisplayNameSql(), 'profileName')
         .execute();
 
       for (const user of users) {
@@ -167,8 +192,10 @@ export class WFHSchedulerService {
             { botPing: false },
           );
 
-          const content = `@${user?.clan_nick || user?.username} không trả lời tin nhắn WFH lúc ${moment(
-            parseInt(user.createAt.toString()),
+          const userName =
+            user?.profileName || user?.clan_nick || user?.username;
+          const content = `@${userName} không trả lời tin nhắn WFH lúc ${moment(
+            parseInt((user.quizCreateAt || user.createAt).toString()),
           )
             .utcOffset(420)
             .format('YYYY-MM-DD HH:mm:ss')}!\n`;
@@ -197,7 +224,7 @@ export class WFHSchedulerService {
               {
                 user_id: user?.userId,
                 s: 0,
-                e: (user?.clan_nick || user?.username).length + 1,
+                e: userName.length + 1,
               },
             ],
           };
@@ -226,9 +253,15 @@ export class WFHSchedulerService {
       );
       const userSend = await this.userRepository
         .createQueryBuilder('user')
+        .leftJoin(
+          'komu_user_clan_profile',
+          'ncc_profile',
+          'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+        )
         .where(
           userOff && userOff.length > 0
-            ? '(user.clan_nick NOT IN (:...userOff) OR user.username NOT IN (:...userOff))'
+            ? nccProfileNotMatchesListSql('userOff')
             : '1=1',
           { userOff },
         )
@@ -237,7 +270,7 @@ export class WFHSchedulerService {
         })
         .andWhere(
           wfhUserEmail && wfhUserEmail.length > 0
-            ? '(user.clan_nick NOT IN (:...wfhUserEmail) OR user.username NOT IN (:...wfhUserEmail))'
+            ? nccProfileNotMatchesListSql('wfhUserEmail')
             : '1=1',
           {
             wfhUserEmail,

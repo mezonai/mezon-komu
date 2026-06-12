@@ -15,6 +15,7 @@ import { EMessageMode, EUserType } from '../constants/configs';
 import { MessageQueue } from '../services/messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
 import { ChannelMezon } from '../models';
+import { nccProfileDisplayNameSql } from '../utils/user-clan-profile';
 
 @Injectable()
 export class MentionSchedulerService {
@@ -66,11 +67,11 @@ export class MentionSchedulerService {
 
   async notifyUser(user) {
     try {
-      const authorName = (await this.getUserData(user.authorId))?.userName;
-      if (!authorName) return;
       const findChannel = await this.channelRepository.findOne({
         where: { channel_id: user.channelId },
       });
+      const authorName = (await this.getUserData(user.authorId))?.userName;
+      if (!authorName) return;
       const isThread =
         findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
         (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');
@@ -79,7 +80,8 @@ export class MentionSchedulerService {
       } `;
       const messageToUser: ReplyMezonMessage = {
         userId: user.mentionUserId,
-        textContent: textContent + `# (${findChannel?.channel_label || ''})` + ` nhé!`, // '#' at message is channel, auto fill at FE,
+        textContent:
+          textContent + `# (${findChannel?.channel_label || ''})` + ` nhé!`, // '#' at message is channel, auto fill at FE,
         messOptions: {
           hg: [
             {
@@ -136,9 +138,27 @@ export class MentionSchedulerService {
       const userData = await this.userRepository.findOne({
         where: { userId, user_type: EUserType.MEZON },
       });
+      const clanId = process.env.KOMUBOTREST_CLAN_NCC_ID;
+      const profile = clanId
+        ? await this.userRepository
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :clanId',
+              { clanId },
+            )
+            .where('user.userId = :userId', { userId })
+            .andWhere('user.user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
+            .select(`${nccProfileDisplayNameSql()} AS "profileName"`)
+            .getRawOne<{ profileName: string }>()
+        : null;
       return {
         userData,
         userName:
+          profile?.profileName ||
           userData?.clan_nick ||
           userData?.display_name ||
           userData?.username ||
@@ -151,15 +171,15 @@ export class MentionSchedulerService {
 
   async createWFHWarning(user) {
     try {
+      const findChannel = await this.channelRepository.findOne({
+        where: { channel_id: user.channelId },
+      });
       const { userData, userName } = await this.getUserData(user.mentionUserId);
       const authorName = (await this.getUserData(user.authorId)).userName;
       if (!userName || !authorName) return;
       const timestamp = moment(parseInt(user.createdTimestamp.toString()))
         .utcOffset(420)
         .format('YYYY-MM-DD HH:mm:ss');
-      const findChannel = await this.channelRepository.findOne({
-        where: { channel_id: user.channelId },
-      });
       const isThread =
         findChannel?.channel_type === ChannelType.CHANNEL_TYPE_THREAD ||
         (findChannel?.parent_id !== '0' && findChannel?.parent_id !== '');

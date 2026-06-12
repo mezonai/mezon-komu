@@ -22,6 +22,7 @@ import { MessageQueue } from '../services/messageQueue.service';
 import { TimeSheetService } from '../services/timesheet.services';
 import { NCC8Service } from '../services/ncc8.services';
 import { Ncc8ScheduleConfigService } from '../services/ncc8ScheduleConfig.service';
+import { nccProfileMatchesListSql } from '../utils/user-clan-profile';
 
 @Injectable()
 export class Ncc8SchedulerService {
@@ -54,7 +55,9 @@ export class Ncc8SchedulerService {
   @Cron('29 11 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8JoinScheduler() {
     const vietnamDate = new Date(Date.now() + 7 * 60 * 60 * 1000);
-    if (!this.ncc8ScheduleConfigService.isEnabledWeekday(vietnamDate.getUTCDay())) {
+    if (
+      !this.ncc8ScheduleConfigService.isEnabledWeekday(vietnamDate.getUTCDay())
+    ) {
       return;
     }
 
@@ -67,16 +70,20 @@ export class Ncc8SchedulerService {
 
     const findUserWfh = await this.userRepository
       .createQueryBuilder('user')
-      .where(
-        '(user.clan_nick IN (:...wfhUserEmail) OR user.username IN (:...wfhUserEmail))',
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
       )
+      .where(nccProfileMatchesListSql('wfhUserEmail'))
       .andWhere('user.user_type = :userType')
       .setParameters({
+        nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
         wfhUserEmail,
         userType: EUserType.MEZON,
       })
       .getMany();
-    const text = "[WARNING] Ncc8 will play in 1 minute, please go to ";
+    const text = '[WARNING] Ncc8 will play in 1 minute, please go to ';
     const channelLabel = '#ncc8-radio';
     const textConfirm =
       "\nMake sure you've got message `Joining NCC8 successfully` when NCC8 start!";

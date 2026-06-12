@@ -14,6 +14,11 @@ import { EMessageMode, EUserType } from '../constants/configs';
 import { TimeSheetService } from '../services/timesheet.services';
 import { MessageQueue } from '../services/messageQueue.service';
 import { ReplyMezonMessage } from '../asterisk-commands/dto/replyMessage.dto';
+import {
+  nccProfileDisplayNameSql,
+  nccProfileMatchesListSql,
+  nccProfileNotMatchesListSql,
+} from '../utils/user-clan-profile';
 
 @Injectable()
 export class SendMessageSchedulerService {
@@ -131,11 +136,18 @@ export class SendMessageSchedulerService {
           );
 
           const checkUser = await this.userRepository
-            .createQueryBuilder()
-            .where(`"clan_nick" = :email`, { email: email })
-            .andWhere(`"deactive" IS NOT TRUE`)
-            .andWhere('"user_type" = :userType', { userType: EUserType.MEZON })
-            .select()
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where(nccProfileMatchesListSql('emails'), { emails: [email] })
+            .andWhere('user.deactive IS NOT TRUE')
+            .andWhere('user.user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
             .getOne();
           if (
             !checkUser ||
@@ -173,13 +185,20 @@ export class SendMessageSchedulerService {
     await Promise.all(
       data.result.map(async (item) => {
         const birthday = await this.userRepository
-          .createQueryBuilder()
-          .where('"clan_nick" = :email', {
-            email: item.email.slice(0, -9),
+          .createQueryBuilder('user')
+          .leftJoin(
+            'komu_user_clan_profile',
+            'ncc_profile',
+            'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+            { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+          )
+          .where(nccProfileMatchesListSql('emails'), {
+            emails: [item.email.slice(0, -9)],
           })
-          .andWhere('"deactive" IS NOT TRUE')
-          .andWhere('"user_type" = :userType', { userType: EUserType.MEZON })
+          .andWhere('user.deactive IS NOT TRUE')
+          .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
           .select('*')
+          .addSelect(nccProfileDisplayNameSql(), 'profileName')
           .getRawOne();
         if (!birthday || birthday.user_type !== EUserType.MEZON) return;
         const resultBirthday = await this.birthdayRepository.find();
@@ -206,6 +225,7 @@ export class SendMessageSchedulerService {
         )
           return;
         const userName =
+          item?.user?.profileName ||
           item?.user?.clan_nick ||
           item?.user?.display_name ||
           item?.user?.username;
@@ -252,19 +272,27 @@ export class SendMessageSchedulerService {
       await Promise.all(
         listsUser.data.map(async (user) => {
           const query = this.userRepository
-            .createQueryBuilder()
-            .where('"clan_nick" = :username', {
-              username: user.komuUserName,
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where(nccProfileMatchesListSql('komuUserNames'), {
+              komuUserNames: [user.komuUserName],
             })
-            .andWhere('"deactive" IS NOT TRUE')
-            .andWhere('"user_type" = :userType', { userType: EUserType.MEZON });
+            .andWhere('user.deactive IS NOT TRUE')
+            .andWhere('user.user_type = :userType', {
+              userType: EUserType.MEZON,
+            });
           if (userOffFullday && userOffFullday?.length > 0) {
-            query.andWhere('"clan_nick" NOT IN (:...userOffFullday)', {
+            query.andWhere(nccProfileNotMatchesListSql('userOffFullday'), {
               userOffFullday: userOffFullday,
             });
           }
 
-          const checkUser = await query.select('*').getRawOne();
+          const checkUser = await query.getOne();
           if (
             checkUser &&
             checkUser.userId &&
@@ -305,15 +333,21 @@ export class SendMessageSchedulerService {
         userListNotCheckOut.map(async (user) => {
           const query = this.userRepository
             .createQueryBuilder('user')
-            .where('user.clan_nick = :komuUserName', {
-              komuUserName: user.komuUserName,
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where(nccProfileMatchesListSql('komuUserNames'), {
+              komuUserNames: [user.komuUserName],
             })
             .andWhere('user.user_type = :userType', {
               userType: EUserType.MEZON,
             })
             .andWhere('user.deactive IS NOT TRUE');
           if (userOffFullday && userOffFullday?.length > 0) {
-            query.andWhere('user.clan_nick NOT IN (:...userOffFullday)', {
+            query.andWhere(nccProfileNotMatchesListSql('userOffFullday'), {
               userOffFullday,
             });
           }
@@ -348,10 +382,15 @@ export class SendMessageSchedulerService {
         try {
           const userdb = await this.userRepository
             .createQueryBuilder('user')
-            .where(
-              '(user.clan_nick = :username OR user.username = :username)',
-              { username },
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = user."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
             )
+            .where(nccProfileMatchesListSql('usernames'), {
+              usernames: [username],
+            })
             .andWhere('(user.deactive IS NULL OR user.deactive = FALSE)')
             .andWhere('user.user_type = :userType', {
               userType: EUserType.MEZON,

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { WorkFromHome } from 'src/bot/models/wfh.entity';
 import { Repository } from 'typeorm';
 import { UtilsService } from '../services/utils.services';
+import { nccProfileDisplayNameSql } from './user-clan-profile';
 
 @Injectable()
 export class ReportWFHService {
@@ -31,6 +32,12 @@ export class ReportWFHService {
     const wfhFullday = await this.wfhRepository
       .createQueryBuilder('wfh')
       .innerJoin('komu_user', 'm', 'wfh.userId = m.userId')
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = m."userId" AND ncc_profile.clan_id = :nccClanId',
+        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+      )
       .where(
         '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
           'OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
@@ -50,13 +57,16 @@ export class ReportWFHService {
         },
       )
       .groupBy('wfh.userId')
+      .addGroupBy('ncc_profile.clan_nick')
+      .addGroupBy('ncc_profile.display_name')
+      .addGroupBy('ncc_profile.username')
       .addGroupBy('m.clan_nick')
       .addGroupBy('m.display_name')
       .addGroupBy('m.username')
       .select([
         'wfh.userId AS userId',
         'COUNT(wfh.userId) AS total',
-        `COALESCE(NULLIF(m.clan_nick, ''), NULLIF(m.display_name, ''), m.username) AS name`,
+        `${nccProfileDisplayNameSql('m')} AS name`,
       ])
       .orderBy('total', 'DESC')
       .getRawMany();
@@ -77,7 +87,7 @@ export class ReportWFHService {
         if (wfhFullday.slice(i * 50, (i + 1) * 50).length === 0) break;
         mess = wfhFullday
           .slice(i * 50, (i + 1) * 50)
-          .map((wfh) => `${wfh.username} - (${wfh.total})`)
+          .map((wfh) => `${wfh.name} - (${wfh.total})`)
           .join('\n');
         listMessage.push(
           'Những người bị phạt vì không trả lời wfh trong ngày hôm nay' +
@@ -158,6 +168,12 @@ export class ReportWFHService {
     const result = await this.wfhRepository
       .createQueryBuilder('wfh')
       .innerJoin('komu_user', 'm', 'wfh.userId = m.userId')
+      .leftJoin(
+        'komu_user_clan_profile',
+        'ncc_profile',
+        'ncc_profile."userId" = m."userId" AND ncc_profile.clan_id = :nccClanId',
+        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+      )
       .where(
         '("status" = :statusACCEPT AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
           'OR ("status" = :statusACTIVE AND "type" = :type AND wfh.createdAt >= :firstDay AND wfh.createdAt <= :lastDay) ' +
@@ -177,11 +193,14 @@ export class ReportWFHService {
         },
       )
       .groupBy('wfh.userId')
+      .addGroupBy('ncc_profile.clan_nick')
+      .addGroupBy('ncc_profile.display_name')
+      .addGroupBy('ncc_profile.username')
       .addGroupBy('m.clan_nick')
       .addGroupBy('m.display_name')
       .addGroupBy('m.username')
       .select([
-        `COALESCE(NULLIF(m.clan_nick, ''), NULLIF(m.display_name, ''), m.username) AS name`,
+        `${nccProfileDisplayNameSql('m')} AS name`,
         'COUNT(wfh.userId) as count',
       ])
       .orderBy('count', 'DESC')

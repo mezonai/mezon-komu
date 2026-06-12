@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EUserType } from 'src/bot/constants/configs';
+import { MezonClan } from 'src/bot/models';
 import { User } from 'src/bot/models/user.entity';
 import { Repository } from 'typeorm';
 
@@ -9,6 +10,8 @@ export class ToggleActiveService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(MezonClan)
+    private readonly mezonClanRepository: Repository<MezonClan>,
   ) {}
 
   async findAcc(authorId) {
@@ -23,6 +26,49 @@ export class ToggleActiveService {
 
   async ActiveAcc(id) {
     return await this.userRepository.update(id, { deactive: false });
+  }
+
+  async toggleClanCommandPermission(
+    clanId: string,
+    owner = '',
+    clanName = '',
+  ) {
+    const clan = await this.mezonClanRepository.findOne({
+      where: {
+        clan_id: clanId,
+      },
+    });
+
+    if (!clan) {
+      await this.mezonClanRepository.insert({
+        clan_id: clanId,
+        clan_name: clanName,
+        owner,
+        can_use_command: true,
+        createdAt: Date.now(),
+      });
+
+      return {
+        clan_id: clanId,
+        clan_name: clanName,
+        owner,
+        can_use_command: true,
+      };
+    }
+
+    const canUseCommand = !clan.can_use_command;
+    await this.mezonClanRepository.update(clan.clan_id, {
+      clan_name: clan.clan_name || clanName,
+      owner: clan.owner || owner,
+      can_use_command: canUseCommand,
+    });
+
+    return {
+      clan_id: clan.clan_id,
+      clan_name: clan.clan_name || clanName,
+      owner: clan.owner || owner,
+      can_use_command: canUseCommand,
+    };
   }
 
   async checkrole(authorId) {
