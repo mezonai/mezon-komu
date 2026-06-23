@@ -63,6 +63,9 @@ export class SendMessageSchedulerService {
     this.addCronJob('happyBirthday', '00 09 * * 0-6', () =>
       this.happyBirthday(),
     );
+    this.addCronJob('remindCheckin', '45 8 * * 1-5', () =>
+      this.remindCheckin(),
+    );
     this.addCronJob('remindCheckout', '00 18 * * 1-5', () =>
       this.remindCheckout(),
     );
@@ -363,6 +366,62 @@ export class SendMessageSchedulerService {
       );
     } catch (error) {
       console.error('Error in remindCheckout:', error);
+    }
+  }
+
+  async remindCheckin() {
+    if (await this.utilsService.checkHoliday()) return;
+    try {
+      const listsUser = await this.axiosClientService.get(
+        this.clientConfigService.checkout.api_url,
+        {
+          httpsAgent: this.clientConfigService.https,
+          headers: {
+            'X-Secret-Key': `${this.clientConfigService.komubotRestSecretKey}`,
+          },
+        },
+      );
+      const userListNotCheckIn = listsUser.data.filter(
+        (user) => user.checkin === null,
+      );
+      const { notSendUser } = await this.timeSheetService.getUserOffWork(null);
+      await Promise.all(
+        userListNotCheckIn.map(async (user) => {
+          const query = this.userRepository
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+            )
+            .where(nccProfileMatchesListSql('komuUserNames'), {
+              komuUserNames: [user.komuUserName],
+            })
+            .andWhere('"user".user_type = :userType', {
+              userType: EUserType.MEZON,
+            })
+            .andWhere('"user".deactive IS NOT TRUE');
+          if (notSendUser && notSendUser?.length > 0) {
+            query.andWhere(nccProfileNotMatchesListSql('notSendUser'), {
+              notSendUser,
+            });
+          }
+
+          const checkUser = await query.select('user').getOne();
+          if (checkUser?.userId && checkUser.user_type === EUserType.MEZON) {
+            const user = await this.client.users.fetch(checkUser?.userId);
+            await user.sendDM(
+              {
+                t: 'Đừng quên checkin trước khi bắt đầu làm việc nhé!!!',
+              },
+              checkUser.buzzCheckin ? 8 : undefined,
+            );
+          }
+        }),
+      );
+    } catch (error) {
+      console.error('Error in remindCheckin:', error);
     }
   }
 

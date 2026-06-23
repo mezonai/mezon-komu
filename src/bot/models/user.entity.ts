@@ -125,6 +125,9 @@ export class User {
   @Column({ default: true })
   buzzNcc8: boolean;
 
+  @Column({ default: false })
+  buzzCheckin: boolean;
+
   @Column({
     type: 'numeric',
     precision: 30,

@@ -533,7 +533,7 @@ export class EventListenerChannelMessage {
             }
             const messageToUser: ReplyMezonMessage = {
               userId: msg.sender_id,
-              textContent: userQuiz['answer'] ? mess : '',
+              textContent: userQuiz['answer'] ? mess : 'Bạn vui lòng trả lời đúng số thứ tự các đáp án câu hỏi',
               messOptions: messOptions,
               attachments: [],
               refs: refGenerate(msg),

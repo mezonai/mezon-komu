@@ -21,6 +21,8 @@ export class ToggleBuzzCommand extends CommandMessage {
       'Command: *togglebuzz daily' +
       '\n' +
       'Command: *togglebuzz ncc8' +
+      '\n' +
+      'Command: *togglebuzz checkin' +
       '';
     if (args[0] === 'daily') {
       const findUser = await this.userRepository.findOne({
@@ -50,6 +52,21 @@ export class ToggleBuzzCommand extends CommandMessage {
         (findUser?.buzzNcc8
           ? 'Disable BUZZ ncc8 successful!'
           : 'Enable BUZZ ncc8 successful!') +
+        '';
+    }
+    if (args[0] === 'checkin') {
+      const findUser = await this.userRepository.findOne({
+        where: { userId: message.sender_id, user_type: EUserType.MEZON },
+      });
+      await this.userRepository.update(
+        { userId: message.sender_id },
+        { buzzCheckin: !findUser?.buzzCheckin },
+      );
+      messageContent =
+        '' +
+        (findUser?.buzzCheckin
+          ? 'Disable BUZZ checkin successful!'
+          : 'Enable BUZZ checkin successful!') +
         '';
     }
 
