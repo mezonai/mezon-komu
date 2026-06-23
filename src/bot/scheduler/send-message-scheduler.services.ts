@@ -63,8 +63,13 @@ export class SendMessageSchedulerService {
     this.addCronJob('happyBirthday', '00 09 * * 0-6', () =>
       this.happyBirthday(),
     );
-    this.addCronJob('remindCheckin', '45 8 * * 1-5', () =>
+    this.addCronJob('remindCheckinEarly', '25 8 * * 1-5', () =>
       this.remindCheckin(),
+    );
+    this.addCronJob('remindCheckin', '55 8 * * 1-5', () =>
+      this.remindCheckin(
+        'Hãy check out trước 9h để  không bị tạm dừng quyền WFH trong vòng 01 tuần bạn nhé!!!',
+      ),
     );
     this.addCronJob('remindCheckout', '00 18 * * 1-5', () =>
       this.remindCheckout(),
@@ -369,7 +374,9 @@ export class SendMessageSchedulerService {
     }
   }
 
-  async remindCheckin() {
+  async remindCheckin(
+    messageContent = 'Đừng quên checkin trước khi bắt đầu làm việc nhé!!!',
+  ) {
     if (await this.utilsService.checkHoliday()) return;
     try {
       const listsUser = await this.axiosClientService.get(
@@ -413,7 +420,7 @@ export class SendMessageSchedulerService {
             const user = await this.client.users.fetch(checkUser?.userId);
             await user.sendDM(
               {
-                t: 'Đừng quên checkin trước khi bắt đầu làm việc nhé!!!',
+                t: messageContent,
               },
               checkUser.buzzCheckin ? 8 : undefined,
             );
