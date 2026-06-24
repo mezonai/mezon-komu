@@ -325,7 +325,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '\n(Câu hỏi đã được trả lời)',
         },
       ];
-      const channel = await this.client.channels.fetch(channelDmId);
+      const dmClan = this.client.clans.get('0')
+      const channel = await dmClan.channels.fetch(channelDmId);
       const message = await channel.messages.fetch(data.message_id);
       await message.update({ embed });
       this.messageQueue.addMessage(messageToUser);
@@ -338,8 +339,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       );
       const user = await this.client.users.fetch(data.user_id);
       await user.sendDM({
-        t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này!',
+        t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này! (không bị machleo)',
       });
+      const dmClan = this.client.clans.get('0')
+      const channel = await dmClan.channels.fetch(user.dmChannelId);
+      console.log('Error channel', channel.id, channel.channel_type)
       console.log('Error handleMessageButtonClicked', error);
     }
   }
