@@ -213,9 +213,8 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     try {
       const args = data.button_id.split('_');
       if (args[0] !== 'question') return;
-      const user = await this.client.users.fetch(data.user_id);
       const answer = args[1];
-      const channelDmId = user.dmChannelId;
+      const channelDmId = data.channel_id;
       const color = args[3] || '#57F287';
       await this.userRepository.update(
         { userId: data.user_id },
@@ -325,8 +324,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             '\n(Câu hỏi đã được trả lời)',
         },
       ];
-      const dmClan = this.client.clans.get('0')
-      const channel = await dmClan.channels.fetch(channelDmId);
+      const channel = await this.client.channels.fetch(channelDmId);
       const message = await channel.messages.fetch(data.message_id);
       await message.update({ embed });
       this.messageQueue.addMessage(messageToUser);
@@ -341,8 +339,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       await user.sendDM({
         t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này! (không bị machleo)',
       });
-      const dmClan = this.client.clans.get('0')
-      const channel = await dmClan.channels.fetch(user.dmChannelId);
+      const channel = await this.client.channels.fetch(data.channel_id);
       console.log('Error channel', channel.id, channel.channel_type)
       console.log('Error handleMessageButtonClicked', error);
     }
