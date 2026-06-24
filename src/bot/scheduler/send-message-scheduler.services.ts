@@ -66,11 +66,6 @@ export class SendMessageSchedulerService {
     this.addCronJob('remindCheckinEarly', '25 8 * * 1-5', () =>
       this.remindCheckin(),
     );
-    this.addCronJob('remindCheckin', '55 8 * * 1-5', () =>
-      this.remindCheckin(
-        'Hãy check out trước 9h để  không bị tạm dừng quyền WFH trong vòng 01 tuần bạn nhé!!!',
-      ),
-    );
     this.addCronJob('remindCheckout', '00 18 * * 1-5', () =>
       this.remindCheckout(),
     );
