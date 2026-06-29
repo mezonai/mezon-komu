@@ -332,9 +332,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       } else {
         dmChannel = channel
       }
+      this.messageQueue.addMessage(messageToUser);
       const message = await dmChannel.messages.fetch(data.message_id);
       await message.update({ embed });
-      this.messageQueue.addMessage(messageToUser);
     } catch (error) {
       await this.userRepository.update(
         { userId: data.user_id },
@@ -345,6 +345,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const user = await this.client.users.fetch(data.user_id);
       await user.sendDM({
         t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này! (không bị machleo)',
+      });
+      const admin = await this.client.users.fetch('1827994776956309504');
+      await admin.sendDM({
+        t: `Có lỗi xảy ra ở channel DM: ${data.channel_id} khi trả lời câu hỏi WFH.`,
       });
       const channel = await this.client.channels.fetch(data.channel_id);
       console.log('Error channel', data.channel_id, channel.id, channel.channel_type);
