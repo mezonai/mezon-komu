@@ -342,10 +342,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           botPing: false,
         },
       );
-      const user = await this.client.users.fetch(data.user_id);
-      await user.sendDM({
-        t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này! (không bị machleo)',
-      });
+      // const user = await this.client.users.fetch(data.user_id);
+      // await user.sendDM({
+      //   t: 'Có lỗi xảy ra khi trả lời câu hỏi. Bạn được tính là đã trả lời câu hỏi này! (không bị machleo)',
+      // });
       const admin = await this.client.users.fetch('1827994776956309504');
       await admin.sendDM({
         t: `Có lỗi xảy ra ở channel DM: ${data.channel_id} khi trả lời câu hỏi WFH.`,
