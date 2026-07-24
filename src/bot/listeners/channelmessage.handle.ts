@@ -4,7 +4,6 @@ import {
   Events,
   ChannelMessage,
   MezonClient,
-  ChannelStreamMode,
   EMarkdownType,
 } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
@@ -25,7 +24,6 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { BOT_ID, EMessageMode, EUserType } from '../constants/configs';
 import { AxiosClientService } from '../services/axiosClient.services';
-import { ApiUrl } from '../constants/api_url';
 import {
   refGenerate,
   replyMessageGenerate,
@@ -35,7 +33,7 @@ import { checkAnswerFormat } from '../utils/helper';
 import { QuizService } from '../services/quiz.services';
 import { MessageQueue } from '../services/messageQueue.service';
 import { UtilsService } from '../services/utils.services';
-import { invalidCharacter, messagesBusy } from '../constants/text';
+import { invalidCharacter } from '../constants/text';
 import { PollTrackerService } from '../services/PollTracker.services';
 import { VoiceRoomAllocatorService } from '../services/voiceRoomAllocator.services';
 
@@ -43,6 +41,10 @@ const COMMAND_PERMISSION_BYPASS_USER_IDS = [
   '1827994776956309504',
   '1779815181480628224',
 ];
+
+const MEKNOW_URL =
+  process.env.MEKNOW_URL ??
+  'https://meknow.mezon.vn/forward/mezon/v1/messages';
 
 @Injectable()
 export class EventListenerChannelMessage {
@@ -70,11 +72,6 @@ export class EventListenerChannelMessage {
     private voiceRoomAllocator: VoiceRoomAllocatorService,
   ) {
     this.client = this.clientService.getClient();
-  }
-
-  getRandomMessage(): string {
-    const randomIndex = Math.floor(Math.random() * messagesBusy.length);
-    return messagesBusy[randomIndex];
   }
 
   async isWebhookUser(message: ChannelMessage) {
@@ -409,7 +406,7 @@ export class EventListenerChannelMessage {
     }
   }
 
-  // @OnEvent(Events.ChannelMessage)
+  @OnEvent(Events.ChannelMessage)
   async handleAIforbot(msg: ChannelMessage) {
     if (
       msg.channel_id === this.clientConfigService.machleoChannelId ||
@@ -418,36 +415,110 @@ export class EventListenerChannelMessage {
       return;
     try {
       const mentions = Array.isArray(msg.mentions) ? msg.mentions : [];
-      const message = msg?.content?.t?.replace('@KOMU', 'bạn');
       const refs = Array.isArray(msg.references) ? msg.references : [];
+      const text = msg?.content?.t?.trim();
+      const isMentionBot = mentions.some((obj) => obj.user_id === BOT_ID);
+      const isReplyBot = refs.some(
+        (obj) => obj.message_sender_id === BOT_ID,
+      );
       if (
-        (msg.mode === ChannelStreamMode.STREAM_MODE_DM ||
-          mentions?.some((obj) => obj.user_id === BOT_ID) ||
-          refs?.some((obj) => obj.message_sender_id === BOT_ID)) &&
-        typeof message == 'string' &&
-        msg.sender_id !== BOT_ID
+        !text ||
+        text.startsWith('*') ||
+        msg.sender_id === BOT_ID ||
+        (!isMentionBot && !isReplyBot)
       ) {
-        const url = ApiUrl.AIApi;
-        let AIReplyMessage;
-        AIReplyMessage = this.getRandomMessage();
-
-        try {
-          const response = await this.axiosClientService.post(url, {
-            text: message,
-          });
-          if (response.status == 200) {
-            AIReplyMessage = response.data.Response;
-          } else {
-            throw Error('swtich AI API');
-          }
-        } catch (e) {}
-
-        const replyMessage = replyMessageGenerate(
-          { messageContent: AIReplyMessage, mentions: [] },
-          msg,
-        );
-        this.messageQueue.addMessage(replyMessage);
+        return;
       }
+
+      const textWithoutMentions = [...mentions]
+        .sort((a, b) => b.s - a.s)
+        .reduce(
+          (content, mention) =>
+            content.slice(0, mention.s) + content.slice(mention.e),
+          text,
+        )
+        .trim();
+      if (!textWithoutMentions) {
+        return;
+      }
+
+      const contentWithoutSpaces = textWithoutMentions.replace(/\s/g, '');
+      if (
+        [...contentWithoutSpaces].every((char) =>
+          invalidCharacter.includes(char),
+        )
+      ) {
+        return;
+      }
+
+      let replyContent: Record<string, unknown>;
+
+      let komyReply: any;
+      try {
+        try {
+          const currentChannel = await this.client.channels.fetch(msg.channel_id);
+          const userMessage = await currentChannel.messages.fetch(msg.message_id);
+          komyReply = await userMessage.reply({ t: 'Chờ xíu nha, mình đang suy nghĩ câu trả lời...' })
+        } catch (e) {
+          const messageContent =
+            'Không thể lấy thông tin chính sách. Vui lòng thử lại sau.';
+          replyContent = {
+            messageContent,
+            mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+            mentions: [],
+          };
+          const replyMessage = replyMessageGenerate(replyContent, msg);
+          this.messageQueue.addMessage(replyMessage);
+          return;
+        }
+
+        const payload = {
+          ...msg,
+          content: {
+            ...msg.content,
+            t: text.replace('@KOMU', 'bạn'),
+          },
+        };
+
+        const { data } = await this.axiosClientService.post(
+          MEKNOW_URL,
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.MEKNOW_TOKEN}`,
+            },
+            responseType: 'text',
+          },
+        );
+        console.log('data: ', data);
+        const frames = (data as string).trim().split('\n\n');
+        const { mezon } = JSON.parse(
+          frames[frames.length - 1].split('\ndata: ')[1],
+        );
+
+        if (!mezon) {
+          throw new Error('No mezon response');
+        }
+
+        replyContent = {
+          messageContent: mezon.t ?? '',
+          mentions: [],
+        };
+        for (const key of ['mk', 'hg', 'embed', 'components', 'lk', 'ej', 'vk']) {
+          if (mezon[key]) replyContent[key] = mezon[key];
+        }
+      } catch (e) {
+        const messageContent =
+          'Không thể lấy thông tin chính sách. Vui lòng thử lại sau.';
+        replyContent = {
+          messageContent,
+          mk: [{ type: 'pre', s: 0, e: messageContent.length }],
+          mentions: [],
+        };
+      }
+      const replyMessage = replyMessageGenerate(replyContent, msg);
+      this.messageQueue.addMessage(replyMessage);
+      await komyReply.delete();
     } catch (e) {
       console.log(e);
     }
