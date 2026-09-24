@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { FFmpegService } from '../services/ffmpeg.service';
-import { getRandomColor, getUserNameByEmail, sleep } from '../utils/helper';
+import { getRandomColor, getUserNameByEmail } from '../utils/helper';
 import { Ncc8, Uploadfile, User } from '../models';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -120,11 +120,8 @@ export class Ncc8SchedulerService {
       return;
     }
 
-    if (this.ncc8Service.getSocket()) {
-      this.ncc8Service.stopNcc8();
-    }
-    await sleep(1000);
-    this.ncc8Service.playNcc8(latestNcc8.url);
+    await this.ncc8Service.stopNcc8();
+    await this.ncc8Service.playNcc8(latestNcc8.url);
   }
 
   // @Cron('5 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })

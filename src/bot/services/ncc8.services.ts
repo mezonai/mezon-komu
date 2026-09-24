@@ -1,67 +1,89 @@
-import { Injectable } from '@nestjs/common';
-import axios from 'axios';
+import { Injectable, Logger } from '@nestjs/common';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
-import * as fs from 'fs';
-import WebSocket from 'ws';
 import { MezonClientService } from 'src/mezon/services/client.service';
+import { SfuAudioPublisher } from './sfu/sfu-audio-publisher';
 
 @Injectable()
 export class NCC8Service {
-  private ws: WebSocket;
+  private readonly logger = new Logger(NCC8Service.name);
+  private publisher?: SfuAudioPublisher;
+  private operation: Promise<void> = Promise.resolve();
 
   constructor(private clientService: MezonClientService) {
     ffmpeg.setFfmpegPath(ffmpegPath);
     ffmpeg.setFfprobePath(process.env.FFPROBE_PATH || '/usr/bin/ffprobe');
   }
 
-  getSocket() {
-    return this.ws;
-  }
+  playNcc8(fileUrl: string): Promise<void> {
+    return this.enqueue(async () => {
+      await this.stopCurrentPublisher();
 
-  connectSocket() {
-    const token = this.clientService.getToken();
-    this.ws = new WebSocket(
-      `wss://stn.mezon.ai/ws?token=${token ?? process.env.BOT_TOKEN}`,
-    );
-  }
+      const channelId = process.env.MEZON_NCC8_CHANNEL_ID;
+      if (!channelId) {
+        throw new Error('MEZON_NCC8_CHANNEL_ID is not configured.');
+      }
 
-  wsSend(filePath: string, key: any) {
-    const params = {
-      ChannelId: process.env.MEZON_NCC8_CHANNEL_ID,
-      Password: '',
-      FileUrl: filePath,
-    };
+      const response = await this.clientService.getClient().generateMeetToken({
+        channel_id: channelId,
+        room_name: '',
+        metadata: '',
+      });
+      console.log('response', response)
+      if (!response?.token) {
+        throw new Error('Mezon returned an empty SFU meet token.');
+      }
 
-    const messageSocket = {
-      ClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
-      ChannelId: process.env.MEZON_NCC8_CHANNEL_ID,
-      UserId: process.env.BOT_KOMU_ID,
-      Value: params,
-    };
+      const publisher = new SfuAudioPublisher({
+        signalingUrl: process.env.MEZON_SFU_URL || 'wss://sfu.mezon.vn/ws',
+        roomId: channelId,
+        token: response.token,
+        mediaUrl: fileUrl,
+        onEnded: (error) => {
+          if (this.publisher === publisher) {
+            this.publisher = undefined;
+          }
+          if (error) {
+            this.logger.error(
+              'NCC8 SFU publisher stopped unexpectedly.',
+              error,
+            );
+          } else {
+            this.logger.log('NCC8 SFU stream finished.');
+          }
+        },
+      });
 
-    const json = JSON.stringify({ ...messageSocket, ...key });
-    console.log('json', json);
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(json);
-    } else {
-      console.debug('ws: send not ready, skipping...', json);
-    }
-  }
-
-  stopNcc8() {
-    this.connectSocket();
-    this.ws.on('open', () => {
-      this.wsSend('', { Key: 'stop_publisher' });
+      this.publisher = publisher;
+      try {
+        await publisher.start();
+        this.logger.log('NCC8 is publishing audio through Mezon SFU.');
+      } catch (error) {
+        if (this.publisher === publisher) {
+          this.publisher = undefined;
+        }
+        throw error;
+      }
     });
-    
   }
 
-  playNcc8(filePath: string) {
-    this.connectSocket();
-    this.ws.on('open', () => {
-      this.wsSend(filePath, { Key: 'connect_publisher' });
-    });
+  stopNcc8(): Promise<void> {
+    return this.enqueue(() => this.stopCurrentPublisher());
+  }
+
+  private enqueue(action: () => Promise<void>): Promise<void> {
+    const next = this.operation.then(action, action);
+    this.operation = next.catch(() => undefined);
+    return next;
+  }
+
+  private async stopCurrentPublisher(): Promise<void> {
+    const publisher = this.publisher;
+    this.publisher = undefined;
+    if (!publisher) return;
+
+    await publisher.close();
+    this.logger.log('NCC8 SFU publisher stopped.');
   }
 
   async convertMp3ToOgg(mp3Path: string): Promise<string> {

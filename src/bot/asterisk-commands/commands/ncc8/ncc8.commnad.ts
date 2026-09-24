@@ -29,8 +29,8 @@ export class Ncc8Command extends CommandMessage {
   }
 
   @Cron('11 12 * * 1,3,5', { timeZone: 'Asia/Ho_Chi_Minh' })
-  stopNCC8Schedule() {
-    this.ncc8Service.stopNcc8();
+  async stopNCC8Schedule() {
+    await this.ncc8Service.stopNcc8();
   }
 
   async execute(args: string[], message: ChannelMessage) {
@@ -84,7 +84,15 @@ export class Ncc8Command extends CommandMessage {
     }
 
     const textContent = 'Go to #ncc8-radio';
-    this.ncc8Service.playNcc8(ncc8.url);
+    try {
+      await this.ncc8Service.playNcc8(ncc8.url);
+    } catch (error) {
+      console.error('Failed to publish NCC8 through SFU:', error);
+      return this.replyText(
+        '❌ Cannot connect NCC8 to the Mezon SFU.',
+        message,
+      );
+    }
     return this.replyMessageGenerate(
       {
         messageContent: textContent,
@@ -100,8 +108,8 @@ export class Ncc8Command extends CommandMessage {
     );
   }
 
-  private handleStop() {
-    this.ncc8Service.wsSend('', { Key: 'stop_publisher' });
+  private async handleStop() {
+    await this.ncc8Service.stopNcc8();
   }
 
   private async handleAdd(args: string[], message: ChannelMessage) {
