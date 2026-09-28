@@ -108,11 +108,16 @@ export class OpentalkCommand extends CommandMessage {
     }
 
     if (args[0] === 'list') {
-      const events = await this.eventRepo
+      const query = this.eventRepo
         .createQueryBuilder('e')
         .orderBy('e.id', 'DESC')
-        .limit(15)
-        .getMany();
+        .limit(15);
+
+      if (args[1]?.toLowerCase() === 'active') {
+        query.where('e.active = :active', { active: true });
+      }
+
+      const events = await query.getMany();
 
       if (!events.length) {
         const text = 'Không có events!';
