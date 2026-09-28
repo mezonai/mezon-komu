@@ -151,12 +151,15 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'up') {
       const userId = args[1];
       const min = +args[2];
-      await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
-        userId,
-        min,
-        UpdateTimeType.UP,
-      );
-      const messageContent = `Tăng ${min} success! ${userId}`;
+      const adjusted =
+        await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
+          userId,
+          min,
+          UpdateTimeType.UP,
+        );
+      const messageContent = adjusted
+        ? `Tăng ${min} success! ${userId}`
+        : `Không thể tăng thời gian cho ${userId}. Kiểm tra user ID và số phút.`;
       return this.replyMessageGenerate(
         {
           messageContent,
@@ -169,12 +172,15 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'down') {
       const userId = args[1];
       const min = +args[2];
-      await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
-        userId,
-        min,
-        UpdateTimeType.DOWN,
-      );
-      const messageContent = `Giảm ${min} success! ${userId}`;
+      const adjusted =
+        await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
+          userId,
+          min,
+          UpdateTimeType.DOWN,
+        );
+      const messageContent = adjusted
+        ? `Giảm ${min} success! ${userId}`
+        : `Không thể giảm thời gian cho ${userId}. Kiểm tra user ID và số phút.`;
       return this.replyMessageGenerate(
         {
           messageContent,

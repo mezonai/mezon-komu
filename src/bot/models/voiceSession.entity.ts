@@ -28,4 +28,7 @@ export class VoiceSession {
 
   @Column({ type: 'timestamp', nullable: true })
   left_at: Date;
+
+  @Column({ type: 'integer', default: 0 })
+  manual_adjustment_minutes: number;
 }

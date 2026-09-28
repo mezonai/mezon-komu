@@ -141,6 +141,7 @@ export class VoiceSessionTrackingService {
         sessions AS (
           SELECT
             s.user_id,
+            s.manual_adjustment_minutes,
             GREATEST(
               s.joined_at,
               b.t1,
@@ -175,9 +176,10 @@ export class VoiceSessionTrackingService {
           SUM(
             GREATEST(
               0,
-              EXTRACT(EPOCH FROM (effective_end - effective_start))
+              EXTRACT(EPOCH FROM (effective_end - effective_start)) * 1000
+                + COALESCE(manual_adjustment_minutes, 0) * 60 * 1000
             )
-          ) * 1000 AS total_ms
+          ) AS total_ms
         FROM sessions
         GROUP BY user_id
         `,
@@ -196,14 +198,16 @@ export class VoiceSessionTrackingService {
   }
 
   async buildVoiceReportResult(userMap: Map<string, number>, dateStr: string) {
-    const result: Array<{
+    type VoiceReportResult = {
       user_id: string;
       email: string;
       totalTime: number;
       date: string;
-    }> = [];
+    };
+
+    const resultByEmail = new Map<string, VoiceReportResult>();
     const userIds = Array.from(userMap.keys());
-    if (!userIds.length) return result;
+    if (!userIds.length) return [];
 
     const users = await this.userRepository
       .createQueryBuilder('user')
@@ -226,15 +230,21 @@ export class VoiceSessionTrackingService {
       const user = userDict.get(user_id);
       if (!user) continue;
 
-      result.push({
+      const result = {
         user_id,
         email: user.profileIdentifier,
         totalTime: Math.floor(totalMs / 60000),
         date: dateStr,
-      });
+      };
+      const emailKey = result.email.trim().toLowerCase();
+      const currentResult = resultByEmail.get(emailKey);
+
+      if (!currentResult || result.totalTime > currentResult.totalTime) {
+        resultByEmail.set(emailKey, result);
+      }
     }
 
-    return result;
+    return Array.from(resultByEmail.values());
   }
 
   async reportVoiceTimeByDay(dateStr: string) {
@@ -423,8 +433,8 @@ export class VoiceSessionTrackingService {
     userId: string,
     minute: number,
     type: UpdateTimeType,
-  ) {
-    if (minute <= 0) return;
+  ): Promise<boolean> {
+    if (!Number.isFinite(minute) || minute <= 0) return false;
 
     const latestSession = await this.voiceSessionRepo.findOne({
       where: {
@@ -437,16 +447,26 @@ export class VoiceSessionTrackingService {
       } as any,
     });
 
-    if (!latestSession) return;
+    if (!latestSession) return false;
 
-    const direction = type === UpdateTimeType.DOWN ? -1 : 1;
-    const deltaMs = direction * minute * 60 * 1000;
+    const currentAdjustment = latestSession.manual_adjustment_minutes ?? 0;
 
-    const newLeftAtMs = latestSession.left_at!.getTime() + deltaMs;
-    if (newLeftAtMs <= latestSession.joined_at.getTime()) {
-      latestSession.left_at = latestSession.joined_at;
+    if (type === UpdateTimeType.UP) {
+      latestSession.manual_adjustment_minutes = currentAdjustment + minute;
     } else {
-      latestSession.left_at = new Date(newLeftAtMs);
+      const adjustmentReduction = Math.min(currentAdjustment, minute);
+      latestSession.manual_adjustment_minutes =
+        currentAdjustment - adjustmentReduction;
+
+      const remainingMinute = minute - adjustmentReduction;
+      if (remainingMinute > 0) {
+        const newLeftAtMs =
+          latestSession.left_at!.getTime() - remainingMinute * 60 * 1000;
+        latestSession.left_at =
+          newLeftAtMs <= latestSession.joined_at.getTime()
+            ? latestSession.joined_at
+            : new Date(newLeftAtMs);
+      }
     }
 
     await this.voiceSessionRepo.save(latestSession);
@@ -454,5 +474,6 @@ export class VoiceSessionTrackingService {
     this.logger.log(
       `Adjusted voice time user=${userId} type=${type} minute=${minute}`,
     );
+    return true;
   }
 }
