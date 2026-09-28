@@ -4,18 +4,26 @@ import { Events, VoiceJoinedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
 import { MezonClientService } from 'src/mezon/services/client.service';
 import { VoiceSessionTrackingService } from '../services/voiceSessionTracking.services';
+import { VoiceUsersCacheService } from '../services/voiceUserCache.services';
 
 @Injectable()
 export class EventVoiceJoined extends BaseHandleEvent {
   constructor(
     clientService: MezonClientService,
     private voiceSessionTrackingService: VoiceSessionTrackingService,
+    private voiceUsersCacheService: VoiceUsersCacheService,
   ) {
     super(clientService);
   }
 
   @OnEvent(Events.VoiceJoinedEvent)
   async handleVoiceJoined(data: VoiceJoinedEvent) {
+    this.voiceUsersCacheService.applyVoiceJoined(
+      data.clan_id,
+      data.voice_channel_id,
+      data.user_id,
+    );
+
     if (data.clan_id !== process.env.KOMUBOTREST_CLAN_NCC_ID) return;
     await this.voiceSessionTrackingService.onVoiceJoined({
       clan_id: data.clan_id,
