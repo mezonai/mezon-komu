@@ -60,6 +60,16 @@ export class TimeSheetService {
     return contentObj;
   };
 
+  getProjectsIncludingTasks = async (emailAddress: string) => {
+    const url = `${process.env.TIMESHEET_API}Mezon/GetProjectsIncludingTasks?emailAddress=${encodeURIComponent(emailAddress)}`;
+    return this.axiosClientService.get(url, {
+      headers: {
+        securityCode: process.env.SECURITY_CODE,
+        accept: 'application/json',
+      },
+    });
+  };
+
   logTimeSheetForTask = async (
     note,
     emailAddress,

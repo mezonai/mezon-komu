@@ -30,7 +30,7 @@ import { createReadStream } from 'fs';
 import { join } from 'path';
 import { Repository } from 'typeorm';
 import { FileType } from '../constants/configs';
-import { Uploadfile } from '../models';
+import { Uploadfile, UserClanProfile } from '../models';
 import { ClientConfigService } from '../config/client-config.service';
 import { google } from 'googleapis';
 import { parse } from 'date-fns';
@@ -43,6 +43,11 @@ import moment from 'moment';
 import { ReportTrackerService } from '../services/reportTracker.sevicer';
 import { SendTokenToUser } from '../dto/sendTokenToUser';
 import { GetTransactionsDTO } from '../dto/getTransactions';
+import {
+  ETimeSheetTaskName,
+  LogTimeSheetForTaskDTO,
+} from '../dto/logTimeSheetForTask';
+import { TimeSheetService } from '../services/timesheet.services';
 
 @ApiTags('Komu')
 @Controller()
@@ -52,11 +57,106 @@ export class KomubotrestController {
     private komubotrestService: KomubotrestService,
     @InjectRepository(Uploadfile)
     private readonly uploadFileRepository: Repository<Uploadfile>,
+    @InjectRepository(UserClanProfile)
+    private readonly userClanProfileRepository: Repository<UserClanProfile>,
     private clientConfigService: ClientConfigService,
     private reportDailyService: ReportDailyService,
     private reportWFHService: ReportWFHService,
     private reportTrackerService: ReportTrackerService,
+    private timeSheetService: TimeSheetService,
   ) {}
+
+  @Post('/logTimeSheetForTask')
+  async logTimeSheetForTask(
+    @Body() payload: LogTimeSheetForTaskDTO,
+    @Headers('X-Secret-Key') secretKey: string,
+  ) {
+    if (
+      !secretKey ||
+      secretKey !== this.clientConfigService.komubotRestSecretKey
+    ) {
+      throw new HttpException(
+        'Unauthorized: Invalid secret key.',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    if (!payload?.note || !payload?.mezon_id) {
+      throw new HttpException(
+        'note and mezon_id are required.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const userClanProfile = await this.userClanProfileRepository.findOne({
+      where: {
+        userId: payload.mezon_id,
+        clan_id: process.env.KOMUBOTREST_CLAN_NCC_ID,
+      },
+    });
+    const userIdentifier =
+      userClanProfile?.clan_nick?.trim() ||
+      userClanProfile?.username?.trim();
+
+    if (!userIdentifier || userClanProfile?.deactive === true) {
+      throw new HttpException(
+        `No active NCC clan profile was found for mezon_id \`${payload.mezon_id}\`.`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const emailAddress = `${userIdentifier.replace(/@ncc\.asia$/i, '')}@ncc.asia`;
+
+    const typeOfWork = payload.typeOfWork ?? 0;
+    const taskName = payload.taskName || ETimeSheetTaskName.CODING;
+    const hour = payload.hour ?? 8;
+
+    if (!Object.values(ETimeSheetTaskName).includes(taskName)) {
+      throw new HttpException(
+        `Invalid taskName. Allowed values: ${Object.values(
+          ETimeSheetTaskName,
+        ).join(', ')}.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const projectsResponse =
+      await this.timeSheetService.getProjectsIncludingTasks(
+        emailAddress,
+      );
+    const projects = projectsResponse?.data?.result;
+    const selectedProject = Array.isArray(projects)
+      ? projects.find(
+          (project) =>
+            project?.projectName?.trim().toLowerCase() !==
+            'company activities',
+        )
+      : undefined;
+
+    if (!selectedProject?.projectCode) {
+      throw new HttpException(
+        `The user is not an NCC member, or no matching project was found for \`${emailAddress}\`.`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const response = await this.timeSheetService.logTimeSheetForTask(
+      payload.note,
+      emailAddress,
+      selectedProject.projectCode,
+      typeOfWork,
+      taskName,
+      hour,
+    );
+
+    return {
+      selectedProject: {
+        projectName: selectedProject.projectName,
+        projectCode: selectedProject.projectCode,
+      },
+      timesheetResponse: response.data,
+    };
+  }
 
   @Post('/getUserIdByUsername')
   async getUserIdByUsername(
@@ -237,7 +337,7 @@ export class KomubotrestController {
         },
       });
     } catch (error) {
-      console.log(error.message);
+      console.log(error);
     }
     res.send(file);
   }
