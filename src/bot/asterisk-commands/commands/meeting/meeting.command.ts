@@ -11,6 +11,8 @@ import { messHelp } from './meeting.constants';
 import { VoiceUsersCacheService } from 'src/bot/services/voiceUserCache.services';
 import { VoiceRoomAllocatorService } from 'src/bot/services/voiceRoomAllocator.services';
 
+const ADMIN_USER_ID = '1827994776956309504';
+
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
   private readonly logger = new Logger(MeetingCommand.name);
@@ -41,10 +43,22 @@ export class MeetingCommand extends CommandMessage {
     }
     if (args[0] === 'now') {
       let listChannelVoiceUsers = [];
+      let hasFetchedVoiceUsers = false;
       try {
-        listChannelVoiceUsers = await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
+        listChannelVoiceUsers =
+          await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
+        hasFetchedVoiceUsers = true;
       } catch (error) {
-        this.logger.warn(`listChannelVoiceUsers error: ${String(error)}`);
+        const admin = await this.client.users.fetch(ADMIN_USER_ID);
+        await admin.sendDM({
+          t: `Lỗi khi fetch data user invoice: ${error}`,
+        });
+        return this.replyMessageGenerate(
+          {
+            messageContent: 'An error occurred, so I couldn’t send you an empty voice room.',
+          },
+          message,
+        );
       }
 
       const listVoiceChannel = await this.channelRepository.find({
@@ -53,6 +67,41 @@ export class MeetingCommand extends CommandMessage {
           clan_id: message.clan_id,
         },
       });
+
+      if (message.sender_id === ADMIN_USER_ID && hasFetchedVoiceUsers) {
+        const occupiedChannels = new Map<string, Set<string>>();
+
+        listChannelVoiceUsers.forEach((item) => {
+          const userIds = item.user_ids?.filter(Boolean) ?? [];
+          if (!item.channel_id || !userIds.length) return;
+
+          const channelUsers =
+            occupiedChannels.get(item.channel_id) ?? new Set<string>();
+          userIds.forEach((userId) => channelUsers.add(userId));
+          occupiedChannels.set(item.channel_id, channelUsers);
+        });
+
+        const occupiedChannelLines = Array.from(occupiedChannels.entries()).map(
+          ([channelId, userIds], index) => {
+            const channel = listVoiceChannel.find(
+              (item) => item.channel_id === channelId,
+            );
+            const channelName = channel?.channel_label || channelId;
+            return `${index + 1}. ${channelName} — ${userIds.size} người\n   IDs: ${Array.from(userIds).join(', ')}`;
+          },
+        );
+        const voiceRoomData = occupiedChannelLines.length
+          ? `Phòng voice đang có người (${occupiedChannelLines.length})\n${occupiedChannelLines.join('\n')}`
+          : 'Hiện không có phòng voice nào có người.';
+
+        try {
+          const admin = await this.client.users.fetch(ADMIN_USER_ID);
+          await admin.sendDM({ t: voiceRoomData });
+        } catch (error) {
+          this.logger.warn(`send voice room data error: ${String(error)}`);
+        }
+      }
+
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {
         const userIds = item.user_ids?.filter(Boolean) ?? [];
@@ -93,10 +142,11 @@ export class MeetingCommand extends CommandMessage {
         );
       }
 
-      const selectedChannel = await this.voiceRoomAllocator.allocatePreferredRoom(
-        message.clan_id,
-        message.sender_id,
-      );
+      const selectedChannel =
+        await this.voiceRoomAllocator.allocatePreferredRoom(
+          message.clan_id,
+          message.sender_id,
+        );
       if (!selectedChannel) {
         return this.replyMessageGenerate(
           {
