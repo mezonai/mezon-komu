@@ -1,4 +1,3 @@
-import { Logger } from '@nestjs/common';
 import { ChannelMessage, MezonClient } from 'mezon-sdk';
 import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
@@ -15,7 +14,6 @@ const ADMIN_USER_ID = '1827994776956309504';
 
 @Command('meeting')
 export class MeetingCommand extends CommandMessage {
-  private readonly logger = new Logger(MeetingCommand.name);
   private client: MezonClient;
   constructor(
     private meetingService: MeetingService,
@@ -41,37 +39,22 @@ export class MeetingCommand extends CommandMessage {
         message,
       );
     }
-    if (args[0] === 'now') {
-      let listChannelVoiceUsers = [];
-      let hasFetchedVoiceUsers = false;
-      try {
-        listChannelVoiceUsers =
-          await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
-        hasFetchedVoiceUsers = true;
-      } catch (error) {
-        const admin = await this.client.users.fetch(ADMIN_USER_ID);
-        await admin.sendDM({
-          t: `Lỗi khi fetch data user invoice: ${error}`,
-        });
-        return this.replyMessageGenerate(
-          {
-            messageContent: 'An error occurred, so I couldn’t send you an empty voice room.',
+    if (args[0] === 'cache') {
+      if (message.sender_id !== ADMIN_USER_ID) return;
+
+      const cachedVoiceUsers =
+        this.voiceUsersService.getCachedMezonVoiceUsers(message.clan_id);
+      let voiceRoomData = 'Chưa có dữ liệu cache voice cho clan này.';
+
+      if (cachedVoiceUsers) {
+        const listVoiceChannel = await this.channelRepository.find({
+          where: {
+            channel_type: In([4, 10]),
+            clan_id: message.clan_id,
           },
-          message,
-        );
-      }
-
-      const listVoiceChannel = await this.channelRepository.find({
-        where: {
-          channel_type: In([4, 10]),
-          clan_id: message.clan_id,
-        },
-      });
-
-      if (message.sender_id === ADMIN_USER_ID && hasFetchedVoiceUsers) {
+        });
         const occupiedChannels = new Map<string, Set<string>>();
-
-        listChannelVoiceUsers.forEach((item) => {
+        cachedVoiceUsers.forEach((item) => {
           const userIds = item.user_ids?.filter(Boolean) ?? [];
           if (!item.channel_id || !userIds.length) return;
 
@@ -90,17 +73,38 @@ export class MeetingCommand extends CommandMessage {
             return `${index + 1}. ${channelName} — ${userIds.size} người\n   IDs: ${Array.from(userIds).join(', ')}`;
           },
         );
-        const voiceRoomData = occupiedChannelLines.length
-          ? `Phòng voice đang có người (${occupiedChannelLines.length})\n${occupiedChannelLines.join('\n')}`
-          : 'Hiện không có phòng voice nào có người.';
-
-        try {
-          const admin = await this.client.users.fetch(ADMIN_USER_ID);
-          await admin.sendDM({ t: voiceRoomData });
-        } catch (error) {
-          this.logger.warn(`send voice room data error: ${String(error)}`);
-        }
+        voiceRoomData = occupiedChannelLines.length
+          ? `Cache phòng voice đang có người (${occupiedChannelLines.length})\n${occupiedChannelLines.join('\n')}`
+          : 'Cache hiện không có phòng voice nào có người.';
       }
+
+      const admin = await this.client.users.fetch(ADMIN_USER_ID);
+      return admin.sendDM({ t: voiceRoomData });
+    }
+
+    if (args[0] === 'now') {
+      let listChannelVoiceUsers = [];
+      try {
+        listChannelVoiceUsers =
+          await this.voiceUsersService.listMezonVoiceUsers(message.clan_id);
+      } catch (error) {
+        const admin = await this.client.users.fetch(ADMIN_USER_ID);
+        await admin.sendDM({
+          t: `Lỗi khi fetch data user invoice: ${error}`,
+        });
+        return this.replyMessageGenerate(
+          {
+            messageContent: 'An error occurred, so I couldn’t send you an empty voice room.',
+          },
+          message,
+        );
+      }
+      const listVoiceChannel = await this.channelRepository.find({
+        where: {
+          channel_type: In([4, 10]),
+          clan_id: message.clan_id,
+        },
+      });
 
       const filter = new Set();
       const currentUserVoiceChannel = listChannelVoiceUsers.filter((item) => {

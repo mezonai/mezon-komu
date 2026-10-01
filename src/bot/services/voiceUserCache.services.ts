@@ -12,7 +12,6 @@ type VoiceCacheMutation = {
 
 type CacheEntry = {
   value?: VoiceUser[];
-  updatedAt: number;
   inFlight?: Promise<VoiceUser[]>;
   pendingMutations?: VoiceCacheMutation[];
 };
@@ -20,7 +19,6 @@ type CacheEntry = {
 @Injectable()
 export class VoiceUsersCacheService {
   private readonly logger = new Logger(VoiceUsersCacheService.name);
-  private readonly TTL_MS = 2000;
   private readonly cache = new Map<string, CacheEntry>();
   private client: MezonClient;
 
@@ -72,13 +70,12 @@ export class VoiceUsersCacheService {
     const key = `${clanId}:${ChannelType.CHANNEL_TYPE_GMEET_VOICE}`;
     const entry = this.cache.get(key);
 
-    // Do not create a partial cache from a single event. The next consumer will
-    // fetch the complete snapshot from the API.
+    // Start tracking events once a consumer has initiated the first API fetch,
+    // even if that fetch returns an empty snapshot.
     if (!entry) return;
 
     if (entry.value) {
       this.applyMutation(entry.value, mutation);
-      entry.updatedAt = Date.now();
     }
 
     // Preserve events received while an API request is in flight so the API
@@ -103,16 +100,11 @@ export class VoiceUsersCacheService {
     fetcher: () => Promise<VoiceUser[]>,
   ): Promise<VoiceUser[]> {
     const key = `${clanId}:${channelType}`;
-    const now = Date.now();
 
     let entry = this.cache.get(key);
     if (!entry) {
-      entry = { updatedAt: 0 };
+      entry = { value: [] };
       this.cache.set(key, entry);
-    }
-
-    if (entry.value && now - entry.updatedAt <= this.TTL_MS) {
-      return entry.value;
     }
 
     if (entry.inFlight) {
@@ -122,17 +114,18 @@ export class VoiceUsersCacheService {
     entry.inFlight = (async () => {
       try {
         const fresh = (await fetcher()) ?? [];
-        entry!.pendingMutations?.forEach((mutation) =>
-          this.applyMutation(fresh, mutation),
-        );
-        entry!.pendingMutations = [];
-        entry!.value = fresh;
-        entry!.updatedAt = Date.now();
-        return entry!.value;
+        if (fresh.length > 0) {
+          entry!.pendingMutations?.forEach((mutation) =>
+            this.applyMutation(fresh, mutation),
+          );
+          entry!.value = fresh;
+        }
+        return entry!.value ?? [];
       } catch (err) {
         this.logger.warn(`Fetch voice users failed for ${key}: ${String(err)}`);
         throw err;
       } finally {
+        entry!.pendingMutations = [];
         entry!.inFlight = undefined;
       }
     })();
@@ -140,7 +133,23 @@ export class VoiceUsersCacheService {
     return entry.inFlight;
   }
 
+  async initializeCache(clanId: string) {
+    if (!clanId) {
+      this.logger.warn('Voice cache initialization skipped: clan ID is missing.');
+      return;
+    }
+
+    try {
+      await this.listMezonVoiceUsers(clanId);
+    } catch (error) {
+      this.logger.warn(
+        `Voice cache initialization failed for clan=${clanId}: ${String(error)}`,
+      );
+    }
+  }
+
   async listMezonVoiceUsers(clanId: string) {
+    console.log('Call api list voice user')
     return this.getVoiceUsers(
       clanId,
       ChannelType.CHANNEL_TYPE_GMEET_VOICE,
@@ -150,6 +159,16 @@ export class VoiceUsersCacheService {
         return res?.voice_channel_users ?? [];
       },
     );
+  }
+
+  getCachedMezonVoiceUsers(clanId: string): VoiceUser[] | undefined {
+    const value = this.cache.get(
+      `${clanId}:${ChannelType.CHANNEL_TYPE_GMEET_VOICE}`,
+    )?.value;
+    return value?.map((room) => ({
+      ...room,
+      user_ids: [...(room.user_ids ?? [])],
+    }));
   }
 
   invalidate(clanId: string, channelType: ChannelType) {
