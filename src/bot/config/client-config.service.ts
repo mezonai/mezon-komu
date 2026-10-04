@@ -175,7 +175,7 @@ export class ClientConfigService {
     this.hrmApiKey = `${configService.get<string>('HRM_API_KEY_SECRET')}`;
 
     this.komuTrackerApiKey = `${configService.get<string>(
-      'KOMUTRACKER_API_KEY_SECRET',
+      'KOMUTRACKER_API_KEY_SECRET_V2',
     )}`;
 
     this.komubotrestpass = `${configService.get<string>(

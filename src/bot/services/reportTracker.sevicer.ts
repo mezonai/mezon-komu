@@ -8,7 +8,7 @@ import { UtilsService } from './utils.services';
 import { TimeSheetService } from './timesheet.services';
 import { AxiosClientService } from './axiosClient.services';
 import { ClientConfigService } from '../config/client-config.service';
-import { MezonTrackerStreaming, User } from '../models';
+import { MezonTrackerStreaming, User, UserClanProfile } from '../models';
 import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
 import { Ncc8ScheduleConfigService } from './ncc8ScheduleConfig.service';
@@ -28,9 +28,11 @@ export class ReportTrackerService {
     private mezonTrackerStreamingRepository: Repository<MezonTrackerStreaming>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserClanProfile)
+    private userClanProfileRepository: Repository<UserClanProfile>,
     private timeSheetService: TimeSheetService,
     private ncc8ScheduleConfigService: Ncc8ScheduleConfigService,
-  ) {}
+  ) { }
 
   messTrackerHelp =
     '' +
@@ -56,13 +58,94 @@ export class ReportTrackerService {
   messHelpDate = '' + 'Không có bản ghi nào trong ngày này' + '';
   messHelpTime = '' + 'Không có bản ghi nào' + '';
 
+  formatTrackerDate(dayInput?: any): string {
+    let dayStr: any = dayInput;
+
+    if (Array.isArray(dayInput)) {
+      dayStr = dayInput[1] ?? dayInput[0];
+    } else if (typeof dayInput === 'object' && dayInput !== null) {
+      dayStr = dayInput.date ?? dayInput.day;
+    }
+
+    if (!dayStr || typeof dayStr !== 'string') {
+      return moment().format('YYYY-MM-DD');
+    }
+
+    dayStr = dayStr.trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dayStr)) {
+      return dayStr;
+    }
+
+    const ddmmyyyy = moment(dayStr, 'DD/MM/YYYY', true);
+    if (ddmmyyyy.isValid()) {
+      return ddmmyyyy.format('YYYY-MM-DD');
+    }
+
+    const parsed = moment(
+      dayStr,
+      ['YYYY/MM/DD', 'DD-MM-YYYY', 'MM/DD/YYYY'],
+      true,
+    );
+    if (parsed.isValid()) {
+      return parsed.format('YYYY-MM-DD');
+    }
+
+    const loose = moment(dayStr);
+    if (loose.isValid()) {
+      return loose.format('YYYY-MM-DD');
+    }
+
+    return moment().format('YYYY-MM-DD');
+  }
+
+  private async getTrackerProfileMap(
+    data: any[],
+  ): Promise<Map<string, string>> {
+    const mezonIds = Array.from(
+      new Set(data.map((x) => x.mezonId).filter(Boolean)),
+    );
+
+    if (!mezonIds.length) {
+      return new Map();
+    }
+
+    const profiles = await this.userClanProfileRepository
+      .createQueryBuilder('ncc_profile')
+      .where('ncc_profile.clan_id = :nccClanId', {
+        nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
+      })
+      .andWhere('ncc_profile.userId IN (:...mezonIds)', { mezonIds })
+      .select([
+        'ncc_profile.userId AS "userId"',
+        'ncc_profile.clan_nick AS "clan_nick"',
+        'ncc_profile.username AS "username"',
+      ])
+      .getRawMany<{
+        userId: string;
+        clan_nick: string;
+        username: string;
+      }>();
+
+    const profileByMezonId = new Map<string, string>();
+    for (const p of profiles) {
+      const name = (p.clan_nick && p.clan_nick.trim()) || p.username;
+      if (name) {
+        profileByMezonId.set(p.userId, name);
+      }
+    }
+
+    return profileByMezonId;
+  }
+
   async reportTracker(args, returnMsg = true) {
     try {
+      const dateFormatted = this.formatTrackerDate(args);
       const result = await this.axiosClientService.get(
-        `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
+        `https://tracker.komu.vn/api/0/reports/users?day=${dateFormatted}`,
         {
           headers: {
-            'X-Secret-Key': this.clientConfigService.komuTrackerApiKey,
+            'X-API-Key': this.clientConfigService.komuTrackerApiKey,
           },
         },
       );
@@ -73,44 +156,47 @@ export class ReportTrackerService {
         return [];
       }
       const { data } = result;
-      const dataConverted = await Promise.all(
-        data.map(async (item) => {
-          const findUser = await this.userRepository
-            .createQueryBuilder('user')
-            .leftJoin(
-              'komu_user_clan_profile',
-              'ncc_profile',
-              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
-              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
-            )
-            .where('"user".username = :username', { username: item.email })
-            .andWhere('"user".user_type = :userType', {
-              userType: EUserType.MEZON,
-            })
-            .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
-            .getRawOne<{ profileIdentifier: string }>();
-          return {
-            ...item,
-            email: findUser?.profileIdentifier || item.email,
-          };
-        }),
-      );
+      if (!Array.isArray(data) || !data.length) {
+        return returnMsg ? [this.messHelpTime] : [];
+      }
+
+      const profileByMezonId = await this.getTrackerProfileMap(data);
+
+      const dataConverted = data.map((item) => {
+        const profileIdentifier =
+          (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          item.name ||
+          item.email?.replace(/@ncc\.asia$/, '') ||
+          item.email;
+        const emailAddress = item.email?.includes('@')
+          ? item.email.toLowerCase()
+          : `${item.email}@ncc.asia`.toLowerCase();
+
+        return {
+          ...item,
+          userEmailAddress: emailAddress,
+          email: profileIdentifier,
+          str_active_time: item.active_time || '00:00:00',
+        };
+      });
 
       function processUserWfhs(data, wfhUsers, usersOffWork) {
         const userWfhs = [];
 
         for (const user of data) {
           const matchingWfhUser = wfhUsers.find(
-            (wfhUser) => wfhUser.emailAddress == user.email.concat('@ncc.asia'),
+            (wfhUser) =>
+              wfhUser.emailAddress?.toLowerCase() === user.userEmailAddress,
           );
 
           if (matchingWfhUser) {
             user.dateTypeName = matchingWfhUser.dateTypeName;
             userWfhs.push(user);
 
-            const matchingOffWorkUser = usersOffWork.find(
+            const matchingOffWorkUser = usersOffWork?.find(
               (offWorkUser) =>
-                offWorkUser.emailAddress == user.email.concat('@ncc.asia'),
+                offWorkUser.emailAddress?.toLowerCase() ===
+                user.userEmailAddress,
             );
 
             user.offWork =
@@ -152,7 +238,7 @@ export class ReportTrackerService {
         .join('\n');
 
       const parts = this.splitMessage(
-        `[Danh sách tracker ngày ${args[1] ?? 'hôm nay'} tổng là ${userWfhs.length - 1} người] \n\n${mess}`,
+        `[Danh sách tracker ngày ${args?.[1] ?? 'hôm nay'} tổng là ${userWfhs.length - 1} người] \n\n${mess}`,
         2000,
       );
       const listMessage = [];
@@ -167,38 +253,35 @@ export class ReportTrackerService {
 
   async reportTrackerList(args) {
     try {
+      const dateFormatted = this.formatTrackerDate(args);
       const result = await this.axiosClientService.get(
-        `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
+        `https://tracker.komu.vn/api/0/reports/users?day=${dateFormatted}`,
         {
           headers: {
-            'X-Secret-Key': this.clientConfigService.komuTrackerApiKey,
+            'X-API-Key': this.clientConfigService.komuTrackerApiKey,
           },
         },
       );
 
       const { data } = result;
-      const dataConverted = await Promise.all(
-        data.map(async (item) => {
-          const findUser = await this.userRepository
-            .createQueryBuilder('user')
-            .leftJoin(
-              'komu_user_clan_profile',
-              'ncc_profile',
-              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
-              { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
-            )
-            .where('"user".username = :username', { username: item.email })
-            .andWhere('"user".user_type = :userType', {
-              userType: EUserType.MEZON,
-            })
-            .select(`${nccProfileIdentifierSql()} AS "profileIdentifier"`)
-            .getRawOne<{ profileIdentifier: string }>();
-          return {
-            spent_time: item.active_time,
-            email: findUser?.profileIdentifier || item.email,
-          };
-        }),
-      );
+      if (!Array.isArray(data) || !data.length) {
+        return [];
+      }
+
+      const profileByMezonId = await this.getTrackerProfileMap(data);
+
+      const dataConverted = data.map((item) => {
+        const profileIdentifier =
+          (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          item.name ||
+          item.email?.replace(/@ncc\.asia$/, '') ||
+          item.email;
+
+        return {
+          spent_time: item.active_time,
+          email: profileIdentifier,
+        };
+      });
       return dataConverted;
     } catch (error) {
       console.log(error);
@@ -291,11 +374,12 @@ export class ReportTrackerService {
 
   async reportTrackerNot(args, returnMsg = true) {
     try {
+      const dateFormatted = this.formatTrackerDate(args);
       const result = await this.axiosClientService.get(
-        `http://tracker.komu.vn:5600/api/0/report?day=${args[1]}`,
+        `https://tracker.komu.vn/api/0/reports/users?day=${dateFormatted}`,
         {
           headers: {
-            'X-Secret-Key': this.clientConfigService.komuTrackerApiKey,
+            'X-API-Key': this.clientConfigService.komuTrackerApiKey,
           },
         },
       );
@@ -306,35 +390,34 @@ export class ReportTrackerService {
       }
 
       const { data } = result;
-      const usernames = Array.from(
-        new Set(data.map((x) => x.email).filter(Boolean)),
-      );
-      const rows = await this.userRepository
-        .createQueryBuilder('u')
-        .leftJoin(
-          'komu_user_clan_profile',
-          'ncc_profile',
-          'ncc_profile."userId" = u."userId" AND ncc_profile.clan_id = :nccClanId',
-          { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
-        )
-        .select([
-          'u.username AS username',
-          'u.email AS email',
-          `${nccProfileIdentifierSql('u')} AS name`,
-        ])
-        .where('u.username IN (:...usernames)', { usernames })
-        .getRawMany<{ username: string; name: string }>();
+      if (!Array.isArray(data) || !data.length) {
+        return [];
+      }
 
-      const nameByUsername = new Map(rows.map((r) => [r.username, r.name]));
+      const profileByMezonId = await this.getTrackerProfileMap(data);
 
-      const output = data.map((item) => ({
-        ...item,
-        email: nameByUsername.get(item.email) ?? item.email,
-      }));
+      const output = data.map((item) => {
+        const profileName =
+          (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          item.name ||
+          item.email?.replace(/@ncc\.asia$/, '') ||
+          item.email;
+        const emailAddress = item.email?.includes('@')
+          ? item.email.toLowerCase()
+          : `${item.email}@ncc.asia`.toLowerCase();
+
+        return {
+          ...item,
+          userEmailAddress: emailAddress,
+          email: profileName,
+          str_active_time: item.active_time || '00:00:00',
+        };
+      });
+
       const userWfhs = [];
       for (const e of output) {
         for (const wfhUser of wfhUsers) {
-          if (e.email.concat('@ncc.asia') == wfhUser.emailAddress) {
+          if (e.userEmailAddress === wfhUser.emailAddress?.toLowerCase()) {
             e['dateTypeName'] = wfhUser.dateTypeName;
             userWfhs.push(e);
             break;
@@ -352,11 +435,27 @@ export class ReportTrackerService {
       const listTrackerNot = [];
 
       for (let i = 0; i < userWfhs.length; i++) {
-        const match = userWfhs[i].str_active_time.match(regex);
-        const totalSeconds =
-          parseInt(match[1]) * 3600 +
-          parseInt(match[2]) * 60 +
-          parseInt(match[3]);
+        let totalSeconds = 0;
+        if (userWfhs[i].active_seconds !== undefined) {
+          totalSeconds = Math.round(Number(userWfhs[i].active_seconds) || 0);
+        } else if (userWfhs[i].str_active_time) {
+          const match = userWfhs[i].str_active_time.match(regex);
+          if (match) {
+            totalSeconds =
+              parseInt(match[1]) * 3600 +
+              parseInt(match[2]) * 60 +
+              parseInt(match[3]);
+          } else {
+            const parts = userWfhs[i].str_active_time.split(':');
+            if (parts.length === 3) {
+              totalSeconds =
+                parseInt(parts[0]) * 3600 +
+                parseInt(parts[1]) * 60 +
+                parseInt(parts[2]);
+            }
+          }
+        }
+
         if (
           (userWfhs[i].dateTypeName == 'Fullday' &&
             totalSeconds < secondsFullday) ||
@@ -372,8 +471,8 @@ export class ReportTrackerService {
       const usersOffWork = await this.getUserOffWork(args);
 
       for (const user of listTrackerNot) {
-        for (const e of usersOffWork) {
-          if (user.email.concat('@ncc.asia') == e.emailAddress) {
+        for (const e of usersOffWork || []) {
+          if (user.userEmailAddress === e.emailAddress?.toLowerCase()) {
             user.offWork = e?.message?.replace(/\[.*?\]\s*Off\s+/, '').trim();
             break;
           } else {
@@ -405,7 +504,7 @@ export class ReportTrackerService {
         )
         .join('\n');
       const parts = this.splitMessage(
-        `[Danh sách tracker không đủ thời gian ngày ${args[1] ?? 'hôm nay'} tổng là ${listTrackerNot.length - 1} người] \n\n${messRep}`,
+        `[Danh sách tracker không đủ thời gian ngày ${args?.[1] ?? 'hôm nay'} tổng là ${listTrackerNot.length - 1} người] \n\n${messRep}`,
         2000,
       );
       const listMessage = [];

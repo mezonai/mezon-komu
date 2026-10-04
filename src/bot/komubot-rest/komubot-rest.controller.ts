@@ -239,10 +239,17 @@ export class KomubotrestController {
   @Get('/getDailyReport')
   async getDailyReport(@Query() query: { date: string }) {
     console.log('getDailyReport', query);
-    const parsedDate = moment(query?.date, 'DD/MM/YYYY')
-      .startOf('day')
-      .toDate();
-    const formatedDate = query?.date;
+    const parsedMoment = moment(
+      query?.date,
+      ['DD/MM/YYYY', 'YYYY-MM-DD'],
+      true,
+    ).isValid()
+      ? moment(query?.date, ['DD/MM/YYYY', 'YYYY-MM-DD'], true)
+      : moment(query?.date);
+    const parsedDate = parsedMoment.startOf('day').toDate();
+    const formatedDate = parsedMoment.isValid()
+      ? parsedMoment.format('DD/MM/YYYY')
+      : query?.date;
 
     const [daily, mention, wfh, tracker] = await Promise.all([
       this.reportDailyService.getUserNotDaily(parsedDate),
