@@ -22,7 +22,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { SendMessageToChannelDTO } from '../dto/sendMessageToChannel';
-import { fileFilter, fileName, imageName } from '../utils/helper';
+import {
+  fileFilter,
+  fileName,
+  getUserNameByEmail,
+  imageName,
+} from '../utils/helper';
 import { RegexEmailPipe } from '../middleware/regex-email';
 import { Request, Response } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -30,7 +35,7 @@ import { createReadStream } from 'fs';
 import { join } from 'path';
 import { Repository } from 'typeorm';
 import { FileType } from '../constants/configs';
-import { Uploadfile, UserClanProfile } from '../models';
+import { Daily, Uploadfile, UserClanProfile } from '../models';
 import { ClientConfigService } from '../config/client-config.service';
 import { google } from 'googleapis';
 import { parse } from 'date-fns';
@@ -48,6 +53,10 @@ import {
   LogTimeSheetForTaskDTO,
 } from '../dto/logTimeSheetForTask';
 import { TimeSheetService } from '../services/timesheet.services';
+import {
+  checkTimeNotWFH,
+  checkTimeSheet,
+} from '../asterisk-commands/commands/daily/daily.functions';
 
 @ApiTags('Komu')
 @Controller()
@@ -59,12 +68,14 @@ export class KomubotrestController {
     private readonly uploadFileRepository: Repository<Uploadfile>,
     @InjectRepository(UserClanProfile)
     private readonly userClanProfileRepository: Repository<UserClanProfile>,
+    @InjectRepository(Daily)
+    private readonly dailyRepository: Repository<Daily>,
     private clientConfigService: ClientConfigService,
     private reportDailyService: ReportDailyService,
     private reportWFHService: ReportWFHService,
     private reportTrackerService: ReportTrackerService,
     private timeSheetService: TimeSheetService,
-  ) {}
+  ) { }
 
   @Post('/logTimeSheetForTask')
   async logTimeSheetForTask(
@@ -127,10 +138,10 @@ export class KomubotrestController {
     const projects = projectsResponse?.data?.result;
     const selectedProject = Array.isArray(projects)
       ? projects.find(
-          (project) =>
-            project?.projectName?.trim().toLowerCase() !==
-            'company activities',
-        )
+        (project) =>
+          project?.projectName?.trim().toLowerCase() !==
+          'company activities',
+      )
       : undefined;
 
     if (!selectedProject?.projectCode) {
@@ -149,12 +160,48 @@ export class KomubotrestController {
       hour,
     );
 
+    const username = userIdentifier.replace(/@ncc\.asia$/i, '');
+    const dailyContent = `*daily ${selectedProject.projectCode} ${moment().format('DD/MM/YYYY')}\n today:${payload.note}`;
+
+    await this.dailyRepository.insert({
+      userid: payload.mezon_id,
+      email: username,
+      daily: dailyContent,
+      createdAt: Date.now(),
+      channelid: null,
+    });
+
+    let isWFH = false;
+    try {
+      const wfhResult = await this.timeSheetService.findWFHUser();
+      const wfhUserEmail = (wfhResult || []).map((item) =>
+        getUserNameByEmail(item.emailAddress),
+      );
+      isWFH = wfhUserEmail.some(
+        (email) => email?.toLowerCase() === username.toLowerCase(),
+      );
+    } catch (error) {
+      console.error('Error finding WFH user in logTimeSheetForTask:', error);
+    }
+
+    const isValidTimeFrame = checkTimeSheet();
+    const isValidWFH = checkTimeNotWFH();
+    const isLate = isWFH ? !isValidTimeFrame : !isValidWFH;
+
+    let punish: string | null = null;
+    if (isLate) {
+      punish = isWFH
+        ? 'WFH daily is late. (Invalid daily time frame. Please daily at 7h30-9h30, 12h-17h. WFH not daily 20k/time.)'
+        : 'Daily is late. (Invalid daily time frame. Please daily at 7h30-17h. not daily 20k/time.)';
+    }
+
     return {
       selectedProject: {
         projectName: selectedProject.projectName,
         projectCode: selectedProject.projectCode,
       },
       timesheetResponse: response.data,
+      ...(isLate && { punish }),
     };
   }
 
