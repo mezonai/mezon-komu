@@ -4,7 +4,7 @@ import { CommandMessage } from '../../abstracts/command.abstract';
 import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/bot/models';
+import { User, UserClanProfile } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { EmbedProps, EUserType, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
@@ -19,6 +19,8 @@ export class UserInfoCommand extends CommandMessage {
     private readonly axiosClientService: AxiosClientService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserClanProfile)
+    private userClanProfileRepository: Repository<UserClanProfile>,
   ) {
     super();
   }
@@ -77,7 +79,14 @@ export class UserInfoCommand extends CommandMessage {
         message,
       );
 
-    const username = findUser.clan_nick || findUser.username
+    const clanProfile = await this.userClanProfileRepository.findOne({
+      where: {
+        userId: findUser.userId,
+        clan_id: message.clan_id,
+      },
+    });
+
+    const username = clanProfile?.clan_nick || findUser.clan_nick || findUser.username
 
     const email = username.toLowerCase() + '@ncc.asia';
     const { wiki, project, wikiApiKeySecret } = this.clientConfigService;
@@ -107,30 +116,36 @@ export class UserInfoCommand extends CommandMessage {
       (userData as any)?.data?.result?.phoneNumber ?? '(no information)';
     const fullName =
       (userData as any)?.data?.result?.employeeName ?? '(no information)';
+    const userAvatar = clanProfile?.clan_avatar || clanProfile?.avatar || findUser.avatar;
+
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `${findUser.clan_nick || findUser.username}'s infomation`,
+        title: `${clanProfile?.clan_nick || findUser.clan_nick || findUser.username}'s infomation`,
         author: {
-          name: findUser.clan_nick || findUser.username,
-          icon_url: findUser.avatar,
-          url: findUser.avatar,
+          name: clanProfile?.clan_nick || findUser.clan_nick || findUser.username,
+          icon_url: userAvatar,
+          url: userAvatar,
         },
         thumbnail: {
-          url: findUser.avatar,
+          url: userAvatar,
         },
         fields: [
+          {
+            name: `• Id`,
+            value: `  ${findUser.userId}`,
+          },
           {
             name: `• Username`,
             value: `  ${findUser.username}`,
           },
           {
-            name: `• Full Name`,
-            value: `  ${fullName}`,
+            name: `• Clan Nick`,
+            value: `  ${clanProfile?.clan_nick || findUser.clan_nick || '(no information)'}`,
           },
           {
-            name: `• Id`,
-            value: `  ${findUser.userId}`,
+            name: `• Full Name`,
+            value: `  ${fullName}`,
           },
           {
             name: `• Account creation`,

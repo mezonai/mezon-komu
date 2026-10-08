@@ -126,12 +126,32 @@ export class DailyCommand extends CommandMessage {
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
     const { project } = this.clientConfigService;
     const httpsAgent = this.clientConfigService.https;
-    const pmData = await this.axiosClientService.get(
-      `${project.api_url_getListProjectOfUser}?email=${ownerSenderDailyEmail}`,
-      {
-        httpsAgent,
-      },
-    );
+    let pmData;
+    let responseTasks;
+    try {
+      pmData = await this.axiosClientService.get(
+        `${project.api_url_getListProjectOfUser}?email=${ownerSenderDailyEmail}`,
+        {
+          httpsAgent,
+        },
+      );
+      const urlGetTasks = `${process.env.TIMESHEET_API}Mezon/GetProjectsIncludingTasks?emailAddress=${ownerSenderDailyEmail}`;
+      responseTasks = await this.axiosClientService.get(urlGetTasks, {
+        headers: {
+          securityCode: process.env.SECURITY_CODE,
+          accept: 'application/json',
+        },
+      });
+    } catch (error) {
+      const messageValidate = `Cannot find timesheet data for user \`${ownerSenderDailyEmail}\``;
+      return this.replyMessageGenerate(
+        {
+          messageContent: messageValidate,
+          mk: [{ type: 'pre', s: 0, e: messageValidate.length }],
+        },
+        message,
+      );
+    }
     const projectMetaData = pmData?.data?.result;
     const optionsProject = projectMetaData?.map((project) => ({
       label: project.projectName,
@@ -140,13 +160,6 @@ export class DailyCommand extends CommandMessage {
     const getProjectFromProjectOpt =
       findProjectByLabel(optionsProject, projectText) ||
       optionsProject[projectMetaData.length - 1];
-    const urlGetTasks = `${process.env.TIMESHEET_API}Mezon/GetProjectsIncludingTasks?emailAddress=${ownerSenderDailyEmail}`;
-    const responseTasks = await this.axiosClientService.get(urlGetTasks, {
-      headers: {
-        securityCode: process.env.SECURITY_CODE,
-        accept: 'application/json',
-      },
-    });
     const taskMetaData = responseTasks?.data?.result;
     const getTaskByProjectCode = taskMetaData?.find(
       (p) => p?.projectCode === getProjectFromProjectOpt?.value,
@@ -308,8 +321,19 @@ export class DailyCommand extends CommandMessage {
       },
     ];
     if (onlyDailySyntax || !messageValidate) {
-      const channel = await this.client.channels.fetch(message.channel_id);
-      await channel.sendEphemeral(message.sender_id, { embed, components });
+      try {
+        const channel = await this.client.channels.fetch(message.channel_id);
+        await channel.sendEphemeral(message.sender_id, { embed, components });
+      } catch (error) {
+        const messageValidate = 'Error sending Ephemeral message';
+        return this.replyMessageGenerate(
+          {
+            messageContent: messageValidate,
+            mk: [{ type: 'pre', s: 0, e: messageValidate.length }],
+          },
+          message,
+        );
+      }
     }
   }
 }

@@ -3,7 +3,7 @@ import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { UserStatusService } from '../user-status/userStatus.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/bot/models';
+import { User, UserClanProfile } from 'src/bot/models';
 import { Repository } from 'typeorm';
 import { EmbedProps, EUserType } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
@@ -16,6 +16,8 @@ export class AvatarCommand extends CommandMessage {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(UserClanProfile)
+    private userClanProfileRepository: Repository<UserClanProfile>,
     private clientService: MezonClientService,
   ) {
     super();
@@ -73,7 +75,16 @@ export class AvatarCommand extends CommandMessage {
         },
         message,
       );
-    if (!findUser.avatar) {
+    const clanProfile = await this.userClanProfileRepository.findOne({
+      where: {
+        userId: findUser.userId,
+        clan_id: message.clan_id,
+      },
+    });
+
+    const userAvatar = clanProfile?.clan_avatar || clanProfile?.avatar || findUser.avatar;
+
+    if (!userAvatar) {
       const messageContent =
         'Not found or this person has not uploaded an avatar yet!';
       return this.replyMessageGenerate(
@@ -84,17 +95,18 @@ export class AvatarCommand extends CommandMessage {
         message,
       );
     }
+
     const embed: EmbedProps[] = [
       {
         color: getRandomColor(),
-        title: `${findUser.clan_nick || findUser.username}'s avatar`,
+        title: `${clanProfile?.clan_nick || findUser.clan_nick || findUser.username}'s avatar`,
         author: {
-          name: findUser.clan_nick || findUser.username,
-          icon_url: findUser.avatar,
-          url: findUser.avatar,
+          name: clanProfile?.clan_nick || findUser.clan_nick || findUser.username,
+          icon_url: userAvatar,
+          url: userAvatar,
         },
         image: {
-          url: findUser.avatar,
+          url: userAvatar,
           width: '400px',
           height: '400px',
         },
