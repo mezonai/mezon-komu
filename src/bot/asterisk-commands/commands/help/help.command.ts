@@ -3,6 +3,7 @@ import { Command } from 'src/bot/base/commandRegister.decorator';
 import { CommandMessage } from '../../abstracts/command.abstract';
 import { CommandStorage } from 'src/bot/base/storage';
 import { DynamicCommandService } from 'src/bot/services/dynamic.service';
+import { HIDDEN_COMMAND_LIST } from 'src/bot/constants/configs';
 
 @Command('help')
 export class HelpCommand extends CommandMessage {
@@ -14,16 +15,8 @@ export class HelpCommand extends CommandMessage {
     const allCommands = CommandStorage.getAllCommands();
     const allCommandsCustom =
       this.dynamicCommandService.getDynamicCommandList();
-    const hidenCommandList = [
-      'holiday',
-      'register',
-      'toggleactive',
-      'checkchannel',
-      'toggleprivatechannel',
-      'togglechannel',
-    ];
     const allCommandKeys = Array.from(allCommands.keys()).filter(
-      (item) => !hidenCommandList.includes(item),
+      (item) => !HIDDEN_COMMAND_LIST.includes(item),
     );
     const messageContent =
       'KOMU - Help Menu' +

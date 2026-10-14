@@ -254,3 +254,20 @@ export enum PollType {
   SINGLE = 'SINGLE',
   MULTIPLE = 'MULTIPLE'
 }
+
+export const HIDDEN_COMMAND_LIST = [
+  'holiday',
+  'toggleactive',
+  'checkchannel',
+  'toggleprivatechannel',
+  'togglechannel',
+  'blockcommand',
+  'qr',
+  'music',
+  'ts',
+  'logts',
+  'w2request',
+  'dailypm',
+  'opt',
+  'thongbao',
+];
