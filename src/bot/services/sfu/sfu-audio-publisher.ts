@@ -142,6 +142,7 @@ export class SfuAudioPublisher {
           room: this.options.roomId,
           token: this.options.token,
           role: 'speaker',
+          media_pool_version: 1,
         });
         this.heartbeat = setInterval(() => {
           if (websocket.readyState === WebSocket.OPEN) {
@@ -178,6 +179,7 @@ export class SfuAudioPublisher {
     switch (message.type) {
       case 'joined':
         this.attachPeerConnection(message.iceServers ?? []);
+        this.sendJson({ type: 'mute', is_mute: false });
         break;
       case 'offer':
         await this.answerOffer(message);
@@ -209,6 +211,11 @@ export class SfuAudioPublisher {
 
     peerConnection.connectionStateChange.subscribe((state) => {
       if (state === 'connected') {
+        try {
+          this.sendJson({ type: 'mute', is_mute: false });
+        } catch {
+          // Socket might have closed
+        }
         this.resolveConnected?.();
         return;
       }
@@ -244,6 +251,7 @@ export class SfuAudioPublisher {
       sdp: this.peerConnection.localDescription?.sdp ?? answer.sdp,
       offer_generation: message.offer_generation ?? 0,
     });
+    this.sendJson({ type: 'mute', is_mute: false });
   }
 
   private async pumpAudio(): Promise<void> {
