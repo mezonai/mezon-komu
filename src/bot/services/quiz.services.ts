@@ -218,7 +218,7 @@ export class QuizService {
 
   async saveQuestionCorrect(userId, questionid, answerkey) {
     try {
-      await this.userQuizRepository
+      return await this.userQuizRepository
         .createQueryBuilder()
         .update(UserQuiz)
         .set({ correct: true, answer: answerkey, updateAt: Date.now() })
@@ -226,15 +226,17 @@ export class QuizService {
         .andWhere(`"quizId" = :quizId`, {
           quizId: questionid,
         })
+        .andWhere(`"answer" IS NULL`)
         .execute();
     } catch (error) {
       console.log(error);
+      return null;
     }
   }
 
   async saveQuestionInCorrect(userId, questionid, answerkey) {
     try {
-      await this.userQuizRepository
+      return await this.userQuizRepository
         .createQueryBuilder()
         .update(UserQuiz)
         .set({ correct: false, answer: answerkey, updateAt: Date.now() })
@@ -242,9 +244,11 @@ export class QuizService {
         .andWhere(`"quizId" = :quizId`, {
           quizId: questionid,
         })
+        .andWhere(`"answer" IS NULL`)
         .execute();
     } catch (error) {
       console.log(error);
+      return null;
     }
   }
   saveQuestion(userId, questionid, message_id, channel_id) {
