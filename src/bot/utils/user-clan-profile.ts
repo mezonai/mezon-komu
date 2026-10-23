@@ -26,7 +26,7 @@ export function nccProfileDisplayNameSql(
   profileAlias = NCC_PROFILE_ALIAS,
 ): string {
   const userAliasSql = aliasSql(userAlias);
-  return `COALESCE(NULLIF(${profileAlias}.clan_nick, ''), NULLIF(${profileAlias}.display_name, ''), NULLIF(${profileAlias}.username, ''), NULLIF(${userAliasSql}.clan_nick, ''), NULLIF(${userAliasSql}.display_name, ''), ${userAliasSql}.username)`;
+  return `COALESCE(NULLIF(${profileAlias}.clan_nick, ''), NULLIF(${userAliasSql}.clan_nick, ''), NULLIF(${profileAlias}.display_name, ''), NULLIF(${userAliasSql}.display_name, ''), NULLIF(${profileAlias}.username, ''), ${userAliasSql}.username)`;
 }
 
 export function nccProfileIdentifierSql(
@@ -34,7 +34,7 @@ export function nccProfileIdentifierSql(
   profileAlias = NCC_PROFILE_ALIAS,
 ): string {
   const userAliasSql = aliasSql(userAlias);
-  return `COALESCE(NULLIF(${profileAlias}.clan_nick, ''), NULLIF(${profileAlias}.username, ''), NULLIF(${userAliasSql}.clan_nick, ''), ${userAliasSql}.username)`;
+  return `COALESCE(NULLIF(${profileAlias}.clan_nick, ''), NULLIF(${userAliasSql}.clan_nick, ''), NULLIF(${profileAlias}.username, ''), ${userAliasSql}.username)`;
 }
 
 export function nccProfileMatchesListSql(

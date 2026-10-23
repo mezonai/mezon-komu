@@ -108,7 +108,7 @@ export class Ncc8SchedulerService {
     });
   }
 
-  // @Cron('30 11 * * 1,3', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('30 11 * * 1,3,5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
     const latestNcc8 = await this.ncc8Data.findOne({
       where: { isActive: true },

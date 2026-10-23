@@ -13,6 +13,7 @@ import { getUserNameByEmail } from '../utils/helper';
 import { EUserType } from '../constants/configs';
 import { Ncc8ScheduleConfigService } from './ncc8ScheduleConfig.service';
 import {
+  addNccClanProfileJoin,
   nccProfileDisplayNameSql,
   nccProfileIdentifierSql,
   nccProfileMatchesListSql,
@@ -105,37 +106,56 @@ export class ReportTrackerService {
     const mezonIds = Array.from(
       new Set(data.map((x) => x.mezonId).filter(Boolean)),
     );
+    const usernames = Array.from(
+      new Set(
+        data
+          .map((x) => (x.email ? x.email.replace(/@ncc\.asia$/, '') : x.name))
+          .filter(Boolean),
+      ),
+    );
 
-    if (!mezonIds.length) {
+    if (!mezonIds.length && !usernames.length) {
       return new Map();
     }
 
-    const profiles = await this.userClanProfileRepository
-      .createQueryBuilder('ncc_profile')
-      .where('ncc_profile.clan_id = :nccClanId', {
-        nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
-      })
-      .andWhere('ncc_profile.userId IN (:...mezonIds)', { mezonIds })
+    const query = this.userRepository
+      .createQueryBuilder('user')
       .select([
-        'ncc_profile.userId AS "userId"',
-        'ncc_profile.clan_nick AS "clan_nick"',
-        'ncc_profile.username AS "username"',
-      ])
-      .getRawMany<{
-        userId: string;
-        clan_nick: string;
-        username: string;
-      }>();
+        '"user"."userId" AS "userId"',
+        '"user".username AS "username"',
+        `${nccProfileIdentifierSql()} AS "profileIdentifier"`,
+      ]);
 
-    const profileByMezonId = new Map<string, string>();
+    if (mezonIds.length && usernames.length) {
+      query.where(
+        '("user"."userId" IN (:...mezonIds) OR "user".username IN (:...usernames))',
+        { mezonIds, usernames },
+      );
+    } else if (mezonIds.length) {
+      query.where('"user"."userId" IN (:...mezonIds)', { mezonIds });
+    } else {
+      query.where('"user".username IN (:...usernames)', { usernames });
+    }
+
+    const profiles = await addNccClanProfileJoin(query).getRawMany<{
+      userId: string;
+      username: string;
+      profileIdentifier: string;
+    }>();
+
+    const profileMap = new Map<string, string>();
     for (const p of profiles) {
-      const name = (p.clan_nick && p.clan_nick.trim()) || p.username;
-      if (name) {
-        profileByMezonId.set(p.userId, name);
+      if (p.profileIdentifier) {
+        if (p.userId) {
+          profileMap.set(p.userId, p.profileIdentifier);
+        }
+        if (p.username) {
+          profileMap.set(p.username, p.profileIdentifier);
+        }
       }
     }
 
-    return profileByMezonId;
+    return profileMap;
   }
 
   async reportTracker(args, returnMsg = true) {
@@ -163,8 +183,10 @@ export class ReportTrackerService {
       const profileByMezonId = await this.getTrackerProfileMap(data);
 
       const dataConverted = data.map((item) => {
+        const rawEmail = item.email?.replace(/@ncc\.asia$/, '') || item.name;
         const profileIdentifier =
           (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          (rawEmail && profileByMezonId.get(rawEmail)) ||
           item.name ||
           item.email?.replace(/@ncc\.asia$/, '') ||
           item.email;
@@ -271,8 +293,10 @@ export class ReportTrackerService {
       const profileByMezonId = await this.getTrackerProfileMap(data);
 
       const dataConverted = data.map((item) => {
+        const rawEmail = item.email?.replace(/@ncc\.asia$/, '') || item.name;
         const profileIdentifier =
           (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          (rawEmail && profileByMezonId.get(rawEmail)) ||
           item.name ||
           item.email?.replace(/@ncc\.asia$/, '') ||
           item.email;
@@ -397,8 +421,10 @@ export class ReportTrackerService {
       const profileByMezonId = await this.getTrackerProfileMap(data);
 
       const output = data.map((item) => {
+        const rawEmail = item.email?.replace(/@ncc\.asia$/, '') || item.name;
         const profileName =
           (item.mezonId && profileByMezonId.get(item.mezonId)) ||
+          (rawEmail && profileByMezonId.get(rawEmail)) ||
           item.name ||
           item.email?.replace(/@ncc\.asia$/, '') ||
           item.email;
