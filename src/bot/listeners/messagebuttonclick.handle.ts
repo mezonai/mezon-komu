@@ -137,7 +137,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async hanndleButtonForm(data) {
     const userId = data?.user_id;
     const buttonId = data?.button_id;
-    if (!userId || !buttonId || userId !== '1827994776956309504') return;
+    if (!userId || !buttonId) return;
     const key = `${userId}:${buttonId}`;
     if (this.processingButtons.get(key)) {
       console.log('Ignore spam click: ', key);
@@ -158,7 +158,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
         }
       }
       if (buttonConfirmType === 'daily' || buttonConfirmType === 'dailyPm') {
-        const dailyKey = `${userId}:${data?.message_id}`;
+        const dailyKey = `${userId}:${data?.message_id || data?.button_id}`;
         if (this.processingDailyMessages.has(dailyKey)) {
           console.log('Ignore multiple clicks for daily: ', dailyKey);
           return;
@@ -220,7 +220,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
     } catch (error) {
       console.log('hanndleButtonForm ERROR', error);
     } finally {
-      const key = `${data?.user?.user_id}:${data?.button_id}`;
+      const key = `${userId}:${buttonId}`;
       this.processingButtons.delete(key);
     }
   }
@@ -557,67 +557,65 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   async handleSubmitDaily(data) {
-    const dailyKey = `${data.user_id}:${data.message_id}`;
+    const dailyKey = `${data.user_id}:${data.message_id || data.button_id}`;
     if (this.processingDailyMessages.has(dailyKey)) {
       console.log('Ignore multiple clicks for daily: ', dailyKey);
       return;
     }
     this.processingDailyMessages.add(dailyKey);
 
-    const senderId = data.user_id;
-    const botId = data.sender_id;
-    const channelId = data.channel_id;
-    const splitButtonId = data.button_id.split('_');
-    const messid = splitButtonId[1];
-    const clanIdValue = splitButtonId[2];
-    const modeValue = splitButtonId[3];
-    const codeMessValue = splitButtonId[4];
-    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
-    const ownerSenderDaily = splitButtonId[6];
-    const dateValue = splitButtonId[7];
-    const buttonType = splitButtonId[8];
-    const authorMessageId = splitButtonId[9];
-    const channel = await this.client.channels.fetch(channelId);
-    const messageAuthor = await channel.messages.fetch(authorMessageId);
-
-    const invalidLength =
-      '❌Please enter at least 100 characters in your daily text';
-    const missingField =
-      '❌Missing project, yesterday, today, block or task field';
-
-    const isOwner = ownerSenderDaily === senderId;
-    if (!isOwner) {
-      this.processingDailyMessages.delete(dailyKey);
-      return;
-    }
-    //init reply message
-    const getBotInformation = await this.userRepository.findOne({
-      where: { userId: botId },
-    });
-
-    const msg: ChannelMessage = {
-      message_id: data.message_id,
-      id: '',
-      channel_id: channelId,
-      channel_label: '',
-      code: codeMessValue,
-      create_time: '',
-      sender_id: botId,
-      username: getBotInformation.username,
-      avatar: getBotInformation.avatar,
-      content: { t: '' },
-      attachments: [{}],
-    };
-
-    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
-    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
     try {
+      const senderId = data.user_id;
+      const botId = data.sender_id;
+      const channelId = data.channel_id;
+      const splitButtonId = data.button_id.split('_');
+      const messid = splitButtonId[1];
+      const clanIdValue = splitButtonId[2];
+      const modeValue = splitButtonId[3];
+      const codeMessValue = splitButtonId[4];
+      const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+      const ownerSenderDaily = splitButtonId[6];
+      const dateValue = splitButtonId[7];
+      const buttonType = splitButtonId[8];
+      const authorMessageId = splitButtonId[9];
+      const channel = await this.client.channels.fetch(channelId);
+      const messageAuthor = await channel.messages.fetch(authorMessageId);
+
+      const invalidLength =
+        '❌Please enter at least 100 characters in your daily text';
+      const missingField =
+        '❌Missing project, yesterday, today, block or task field';
+
+      const isOwner = ownerSenderDaily === senderId;
+      if (!isOwner) {
+        return;
+      }
+      //init reply message
+      const getBotInformation = await this.userRepository.findOne({
+        where: { userId: botId },
+      });
+
+      const msg: ChannelMessage = {
+        message_id: data.message_id,
+        id: '',
+        channel_id: channelId,
+        channel_label: '',
+        code: codeMessValue,
+        create_time: '',
+        sender_id: botId,
+        username: getBotInformation.username,
+        avatar: getBotInformation.avatar,
+        content: { t: '' },
+        attachments: [{}],
+      };
+
+      const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+      const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
       if (!data.extra_data) {
         if (
           (!isOwner && (isCancel || isSubmit)) ||
           (isOwner && (isCancel || isSubmit))
         ) {
-          this.processingDailyMessages.delete(dailyKey);
           return;
         }
       }
@@ -657,12 +655,10 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             yesterdayValue?.length + todayValue?.length + blockValue?.length;
 
           if (!isOwner) {
-            this.processingDailyMessages.delete(dailyKey);
             return;
           }
 
           if (contentLength < 80) {
-            this.processingDailyMessages.delete(dailyKey);
             const messageInvalidLength = await messageAuthor.reply({
               t: invalidLength,
               mk: [
@@ -681,7 +677,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           }
 
           if (isMissingField) {
-            this.processingDailyMessages.delete(dailyKey);
             const messageMissingField = await messageAuthor.reply({
               t: missingField,
               mk: [
@@ -705,7 +700,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             .getOne();
 
           if (!findUser) {
-            this.processingDailyMessages.delete(dailyKey);
             return;
           }
 
@@ -800,14 +794,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           break;
       }
     } catch (error) {
-      this.processingDailyMessages.delete(dailyKey);
       console.error('Error in handleSubmitDaily:', error.message);
     } finally {
-      if (this.processingDailyMessages.has(dailyKey)) {
-        setTimeout(() => {
-          this.processingDailyMessages.delete(dailyKey);
-        }, 60000);
-      }
+      this.processingDailyMessages.delete(dailyKey);
     }
   }
 
@@ -862,7 +851,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       const typeRequest = args[0];
       const typeRequestDayEnum =
         ERequestAbsenceDayType[
-          typeRequest as keyof typeof ERequestAbsenceDayType
+        typeRequest as keyof typeof ERequestAbsenceDayType
         ];
       // Find absence data
       const findAbsenceData = await this.absenceDayRequestRepository.findOne({
@@ -2056,61 +2045,59 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   }
 
   async handleSubmitDailyPm(data) {
-    const dailyKey = `${data.user_id}:${data.message_id}`;
+    const dailyKey = `${data.user_id}:${data.message_id || data.button_id}`;
     if (this.processingDailyMessages.has(dailyKey)) {
       console.log('Ignore multiple clicks for dailyPm: ', dailyKey);
       return;
     }
     this.processingDailyMessages.add(dailyKey);
 
-    const senderId = data.user_id;
-    const botId = data.sender_id;
-    const channelId = data.channel_id;
-    const splitButtonId = data.button_id.split('_');
-    const messid = splitButtonId[1];
-    const clanIdValue = splitButtonId[2];
-    const modeValue = splitButtonId[3];
-    const codeMessValue = splitButtonId[4];
-    const isPublicValue = splitButtonId[5] === 'false' ? false : true;
-    const ownerSenderDaily = splitButtonId[6];
-    const dateValue = splitButtonId[7];
-    const buttonType = splitButtonId[8];
-    const missingField =
-      'Missing project, yesterday, today, block or task field';
-
-    const isOwner = ownerSenderDaily === senderId;
-    if (!isOwner) {
-      this.processingDailyMessages.delete(dailyKey);
-      return;
-    }
-    //init reply message
-    const getBotInformation = await this.userRepository.findOne({
-      where: { userId: botId },
-    });
-
-    const msg: ChannelMessage = {
-      message_id: data.message_id,
-      id: '',
-      channel_id: channelId,
-      channel_label: '',
-      code: codeMessValue,
-      create_time: '',
-      sender_id: botId,
-      username: getBotInformation.username,
-      avatar: getBotInformation.avatar,
-      content: { t: '' },
-      attachments: [{}],
-    };
-
-    const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
-    const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
     try {
+      const senderId = data.user_id;
+      const botId = data.sender_id;
+      const channelId = data.channel_id;
+      const splitButtonId = data.button_id.split('_');
+      const messid = splitButtonId[1];
+      const clanIdValue = splitButtonId[2];
+      const modeValue = splitButtonId[3];
+      const codeMessValue = splitButtonId[4];
+      const isPublicValue = splitButtonId[5] === 'false' ? false : true;
+      const ownerSenderDaily = splitButtonId[6];
+      const dateValue = splitButtonId[7];
+      const buttonType = splitButtonId[8];
+      const missingField =
+        'Missing project, yesterday, today, block or task field';
+
+      const isOwner = ownerSenderDaily === senderId;
+      if (!isOwner) {
+        return;
+      }
+      //init reply message
+      const getBotInformation = await this.userRepository.findOne({
+        where: { userId: botId },
+      });
+
+      const msg: ChannelMessage = {
+        message_id: data.message_id,
+        id: '',
+        channel_id: channelId,
+        channel_label: '',
+        code: codeMessValue,
+        create_time: '',
+        sender_id: botId,
+        username: getBotInformation.username,
+        avatar: getBotInformation.avatar,
+        content: { t: '' },
+        attachments: [{}],
+      };
+
+      const isCancel = buttonType === EUnlockTimeSheet.CANCEL.toLowerCase();
+      const isSubmit = buttonType === EUnlockTimeSheet.SUBMIT.toLowerCase();
       if (!data.extra_data) {
         if (
           (!isOwner && (isCancel || isSubmit)) ||
           (isOwner && (isCancel || isSubmit))
         ) {
-          this.processingDailyMessages.delete(dailyKey);
           return;
         }
       }
@@ -2148,11 +2135,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           const contentGenerated = `*daily ${projectCode} ${dateValue}\n yesterday:${yesterdayValue}\n today:${todayValue}\n block:${blockValue}`;
 
           if (!isOwner) {
-            this.processingDailyMessages.delete(dailyKey);
             return;
           }
           if (isMissingField) {
-            this.processingDailyMessages.delete(dailyKey);
             const replyMessageMissingField = createReplyMessage(
               missingField,
               clanIdValue,
@@ -2171,7 +2156,6 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
             .getRawOne();
 
           if (!findUser) {
-            this.processingDailyMessages.delete(dailyKey);
             return;
           }
 
@@ -2260,14 +2244,9 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           break;
       }
     } catch (error) {
-      this.processingDailyMessages.delete(dailyKey);
       console.error('Error in handleSubmitDailyPm:', error.message);
     } finally {
-      if (this.processingDailyMessages.has(dailyKey)) {
-        setTimeout(() => {
-          this.processingDailyMessages.delete(dailyKey);
-        }, 60000);
-      }
+      this.processingDailyMessages.delete(dailyKey);
     }
   }
 
@@ -2346,7 +2325,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
   async handleSelectPoll(data) {
     try {
       await this.pollService.handleSelectPoll(data);
-    } catch (error) {}
+    } catch (error) { }
   }
 
   async handleCreatePoll(data) {
