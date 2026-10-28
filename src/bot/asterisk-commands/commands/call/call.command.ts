@@ -118,6 +118,9 @@ export class CallCommand extends CommandMessage {
         if (currentUserVoiceChannel.length) {
           const messageContent = `Komu is connecting the call between ${message.username} and ${findUser.username}\n`;
           const userIdCall = [message.sender_id, findUser.userId];
+          const voiceCh = await this.client.channels
+            .fetch(currentUserVoiceChannel[0].channel_id)
+            .catch(() => null);
           userIdCall.forEach((id) => {
             const messageToUser: ReplyMezonMessage = {
               userId: id,
@@ -126,6 +129,12 @@ export class CallCommand extends CommandMessage {
                 hg: [
                   {
                     channelId: currentUserVoiceChannel[0].channel_id,
+                    clanId:
+                      voiceCh?.clan?.id ||
+                      message.clan_id ||
+                      process.env.KOMUBOTREST_CLAN_NCC_ID,
+                    channelLabel: voiceCh?.name || '',
+                    channelType: voiceCh?.channel_type ?? 10,
                     s: messageContent.length, // replace to '#' in text
                     e: messageContent.length + 1, // replace to '#' in text
                   },
@@ -166,6 +175,9 @@ export class CallCommand extends CommandMessage {
               hg: [
                 {
                   channelId: selectedChannel.channel_id,
+                  clanId: selectedChannel.clan_id || message.clan_id,
+                  channelLabel: selectedChannel.channel_label || '',
+                  channelType: selectedChannel.channel_type ?? 10,
                   s: messageContent.length, // replace to '#' in text
                   e: messageContent.length + 1, // replace to '#' in text
                 },

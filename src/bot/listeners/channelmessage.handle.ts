@@ -800,13 +800,16 @@ export class EventListenerChannelMessage {
         hg: [
           {
             channelId: selectedChannel?.channel_id,
+            clanId: voiceChannel?.clan_id || process.env.KOMUBOTREST_CLAN_NCC_ID,
+            channelLabel: voiceChannel?.channel_label || '',
+            channelType: voiceChannel?.channel_type ?? 10,
             s: messageContent.length,
             e:
               messageContent.length +
               1 +
               (voiceChannel?.channel_label || '').length,
           },
-        ],
+        ] as any,
       },
       [{ user_id: process.env.MEZON_HERE_USER_ID, s: 0, e: 5 }],
     );

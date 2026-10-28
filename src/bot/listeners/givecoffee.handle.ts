@@ -59,6 +59,13 @@ export class EventGiveCoffee extends BaseHandleEvent {
           hg: [
             {
               channelId: data.channel_id,
+              clanId: findChannel?.clan_id || data.clan_id,
+              channelLabel: findChannel?.channel_label || '',
+              channelType:
+                findChannel?.channel_type ??
+                (isThread
+                  ? ChannelType.CHANNEL_TYPE_THREAD
+                  : ChannelType.CHANNEL_TYPE_CHANNEL),
               s:
                 messageContent.length -
                 (2 + (findChannel?.channel_label || '').length), // replace to '#' in text

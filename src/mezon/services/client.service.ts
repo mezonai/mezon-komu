@@ -39,8 +39,43 @@ export class MezonClientService {
     return this.client;
   }
 
+  async enrichHg(hg: any[]): Promise<any[]> {
+    if (!Array.isArray(hg) || !hg.length) return hg;
+    await Promise.all(
+      hg.map(async (item) => {
+        if (!item || typeof item !== 'object' || !item.channelId) return;
+        const needsClanId = !item.clanId;
+        const needsLabel =
+          item.channelLabel === undefined ||
+          item.channelLabel === null ||
+          item.channelLabel === '';
+        const needsType =
+          item.channelType === undefined || item.channelType === null;
+        if (needsClanId || needsLabel || needsType) {
+          try {
+            const ch = await this.client.channels
+              .fetch(item.channelId)
+              .catch(() => null);
+            if (ch) {
+              if (needsClanId)
+                item.clanId = ch.clan?.id || (ch as any)?.clan_id || '';
+              if (needsLabel)
+                item.channelLabel = ch.name || (ch as any)?.channel_label || '';
+              if (needsType)
+                item.channelType = ch.channel_type ?? (ch as any)?.type ?? 0;
+            }
+          } catch (_) {}
+        }
+      }),
+    );
+    return hg;
+  }
+
   async sendMessage(replyMessage: ReplyMezonMessage) {
     try {
+      if (replyMessage?.msg?.hg) {
+        await this.enrichHg(replyMessage.msg.hg);
+      }
       const channel = await this.client.channels.fetch(replyMessage.channel_id);
       if (replyMessage?.ref?.length && replyMessage?.message_id) {
         const message = await channel.messages.fetch(replyMessage.message_id);
@@ -71,6 +106,9 @@ export class MezonClientService {
   async sendMessageToUser(messageToUser: ReplyMezonMessage) {
     const user = await this.client.users.fetch(messageToUser.userId);
     try {
+      if (messageToUser?.messOptions?.hg) {
+        await this.enrichHg(messageToUser.messOptions.hg);
+      }
       return await user.sendDM({
         t: messageToUser.textContent,
         ...messageToUser.messOptions,

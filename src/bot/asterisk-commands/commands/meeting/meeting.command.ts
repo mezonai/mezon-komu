@@ -131,6 +131,9 @@ export class MeetingCommand extends CommandMessage {
           messageContent += `Everyone please join the voice channel #${findChannel?.channel_label || ''}\n`;
           return {
             channelId: item.channel_id,
+            clanId: findChannel?.clan_id || message.clan_id,
+            channelLabel: findChannel?.channel_label || '',
+            channelType: findChannel?.channel_type ?? 10,
             s:
               messageContent.length -
               (2 + (findChannel?.channel_label || '').length),
@@ -171,6 +174,9 @@ export class MeetingCommand extends CommandMessage {
           hg: [
             {
               channelId: selectedChannel?.channel_id,
+              clanId: findChannel?.clan_id || message.clan_id,
+              channelLabel: findChannel?.channel_label || '',
+              channelType: findChannel?.channel_type ?? 10,
               s: messageContent.length, // replace to '#' in text
               e:
                 messageContent.length +

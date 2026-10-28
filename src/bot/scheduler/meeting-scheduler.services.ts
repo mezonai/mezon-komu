@@ -200,6 +200,9 @@ export class MeetingSchedulerService {
         hg: [
           {
             channelId: selectedChannel?.channel_id,
+            clanId: voiceChannel?.clan_id || this.clientConfig.clandNccId,
+            channelLabel: voiceChannel?.channel_label || '',
+            channelType: voiceChannel?.channel_type ?? 10,
             s: messageContent.length,
             e:
               messageContent.length +

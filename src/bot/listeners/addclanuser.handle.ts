@@ -40,16 +40,23 @@ export class EventAddClanUser extends BaseHandleEvent {
       const randomIndexVoiceChannel = Math.floor(
         Math.random() * textWelcome.length,
       );
+      const welcomeChannelId = process.env.MEZON_WELCOME_CHANNEL_ID;
+      const welcomeCh = await this.client.channels
+        .fetch(welcomeChannelId)
+        .catch(() => null);
       const user = await this.client.users.fetch(data?.user?.user_id);
       const messageDM = await user.sendDM({
         t: textWelcome[randomIndexVoiceChannel] + 'Welcome nhé!',
         hg: [
           {
-            channelId: process.env.MEZON_WELCOME_CHANNEL_ID,
+            channelId: welcomeChannelId,
+            clanId: welcomeCh?.clan?.id || process.env.KOMUBOTREST_CLAN_NCC_ID,
+            channelLabel: welcomeCh?.name || 'Welcome',
+            channelType: welcomeCh?.channel_type ?? 1,
             s: textWelcome[randomIndexVoiceChannel].length,
             e: textWelcome[randomIndexVoiceChannel].length + 7,
           },
-        ],
+        ] as any,
       });
       const dataInsert = {
         user_id: data?.user?.user_id,

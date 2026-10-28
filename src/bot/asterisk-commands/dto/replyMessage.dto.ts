@@ -5,6 +5,15 @@ import {
   ChannelMessageContent,
 } from 'mezon-sdk';
 
+export interface ChannelHashtag {
+  channelId: string;
+  clanId: string;
+  channelLabel: string;
+  channelType: number;
+  s: number;
+  e: number;
+}
+
 export interface ReplyMezonMessage {
   clan_id?: string;
   channel_id?: string;

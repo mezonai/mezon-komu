@@ -97,6 +97,9 @@ export class Ncc8SchedulerService {
           hg: [
             {
               channelId: process.env.MEZON_NCC8_CHANNEL_ID,
+              clanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
+              channelLabel: 'ncc8-radio',
+              channelType: 6,
               s: text.length,
               e: text.length + channelLabel.length,
             },

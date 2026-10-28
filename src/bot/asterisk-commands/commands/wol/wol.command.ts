@@ -29,6 +29,9 @@ export class WolCommand extends CommandMessage {
           hg: [
             {
               channelId: process.env.MEZON_WOL_CHANNEL_ID,
+              clanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
+              channelLabel: 'wake-on-lan',
+              channelType: 7,
               s: messageContent.length - 4,
               e: messageContent.length,
             },

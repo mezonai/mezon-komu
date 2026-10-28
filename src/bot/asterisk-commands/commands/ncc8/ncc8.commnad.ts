@@ -99,6 +99,9 @@ export class Ncc8Command extends CommandMessage {
         hg: [
           {
             channelId: this.clientConfigService.ncc8ChannelId,
+            clanId: this.clientConfigService.clandNccId,
+            channelLabel: 'ncc8-radio',
+            channelType: 6,
             s: 6,
             e: textContent.length + 1,
           },

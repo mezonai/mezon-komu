@@ -47,6 +47,9 @@ export class MessageCommand {
         try {
           const user = await this.client.users.fetch(message.userId);
           if (!user) return;
+          if (message?.messOptions?.hg) {
+            await this.clientService.enrichHg(message.messOptions.hg);
+          }
           await user.sendDM(
             {
               t: message?.textContent ?? '',
@@ -56,7 +59,7 @@ export class MessageCommand {
           );
         } catch (error) {
           const user = await this.client.users?.fetch('1827994776956309504')
-          user.sendDM({t: `Không fetch đc user ${message.userId}`})
+          user.sendDM({ t: `Không fetch đc user ${message.userId}` })
           // await this.userRepository.update(
           //   { userId: message.userId },
           //   { botPing: false, user_type: null },

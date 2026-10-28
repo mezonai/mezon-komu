@@ -86,6 +86,13 @@ export class MentionSchedulerService {
           hg: [
             {
               channelId: user.channelId,
+              clanId: findChannel?.clan_id || this.clientConfig.clandNccId,
+              channelLabel: findChannel?.channel_label || '',
+              channelType:
+                findChannel?.channel_type ??
+                (isThread
+                  ? ChannelType.CHANNEL_TYPE_THREAD
+                  : ChannelType.CHANNEL_TYPE_CHANNEL),
               s: textContent.length, // replace to '#' in text
               e: textContent.length + 1, // replace to '#' in text
             },
@@ -198,8 +205,15 @@ export class MentionSchedulerService {
         hg: [
           {
             channelId: user.channelId,
+            clanId: findChannel?.clan_id || this.clientConfig.clandNccId,
+            channelLabel: findChannel?.channel_label || '',
+            channelType:
+              findChannel?.channel_type ??
+              (isThread
+                ? ChannelType.CHANNEL_TYPE_THREAD
+                : ChannelType.CHANNEL_TYPE_CHANNEL),
             s: content.length, // replace to '#' in text
-            e: content.length + 1 + (findChannel.channel_label ?? '').length, // replace to '#' in text
+            e: content.length + 1 + (findChannel?.channel_label ?? '').length, // replace to '#' in text
           },
         ],
       };
