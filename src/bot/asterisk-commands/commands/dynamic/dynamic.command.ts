@@ -79,7 +79,7 @@ export class DynamicExcuteCommand extends CommandMessage {
       ].includes(extension); // use with contentType=binary/octet-stream
       const response = await axios.head(url);
       const attachmentSize = await this.getAttachmentSize(url);
-      let contentType = response.headers['content-type'];
+      let contentType = String(response.headers['content-type'] ?? '');
 
       if (contentType.includes('binary/octet-stream')) {
         if (isImage) {

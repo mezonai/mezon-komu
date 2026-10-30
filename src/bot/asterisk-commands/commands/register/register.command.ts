@@ -203,7 +203,7 @@ export class DynamicCommand extends CommandMessage {
       }
       const output = args.slice(1).join(' ');
       const response = await axios.head(output);
-      const contentType = response.headers['content-type'];
+      const contentType = String(response.headers['content-type'] ?? '');
       const extension = output.split('.').pop()?.toLowerCase();
       const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(
         extension,
