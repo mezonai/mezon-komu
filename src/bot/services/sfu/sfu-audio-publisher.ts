@@ -49,7 +49,7 @@ export class SfuAudioPublisher {
   private resolveConnected?: () => void;
   private rejectConnected?: (error: Error) => void;
 
-  constructor(private readonly options: SfuAudioPublisherOptions) {}
+  constructor(private readonly options: SfuAudioPublisherOptions) { }
 
   async start(): Promise<void> {
     if (!this.options.token.trim()) {
@@ -64,6 +64,7 @@ export class SfuAudioPublisher {
           signal: this.abortController.signal,
         },
       );
+
       this.mediaStream = response.data;
 
       const connectedPromise = new Promise<void>((resolve, reject) => {

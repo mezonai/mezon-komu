@@ -1,13 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
-import { MezonClientService } from 'src/mezon/services/client.service';
-import { SfuAudioPublisher } from './sfu/sfu-audio-publisher';
+import { MezonClientService } from '../../mezon/services/client.service';
+import { WhipMediaPublisher } from './sfu/whip-media-publisher';
+import { MediaPreparer, StreamPipeline } from './sfu/media-preparer';
 
 @Injectable()
 export class NCC8Service {
   private readonly logger = new Logger(NCC8Service.name);
-  private publisher?: SfuAudioPublisher;
+  private publisher?: WhipMediaPublisher;
+  private currentPipeline?: StreamPipeline;
   private operation: Promise<void> = Promise.resolve();
 
   constructor(private clientService: MezonClientService) {
@@ -24,32 +26,43 @@ export class NCC8Service {
         throw new Error('MEZON_NCC8_CHANNEL_ID is not configured.');
       }
 
-      const response = await this.clientService.getClient().generateMeetToken({
+      this.logger.log(`Opening real-time stream from URL ${fileUrl.split('?')[0]}...`);
+      const pipeline = await MediaPreparer.openPipeline(fileUrl);
+      this.currentPipeline = pipeline;
+
+      this.logger.log(
+        `Pipeline ready (hasVideo=${pipeline.hasVideo}). Requesting WHIP grant...`,
+      );
+
+      const response = await this.clientService.getClient().getStreamPlayback({
         channel_id: channelId,
-        room_name: '',
-        metadata: '',
+        publish: true,
       });
-      console.log('response', response)
-      if (!response?.token) {
-        throw new Error('Mezon returned an empty SFU meet token.');
+
+      this.logger.log('getStreamPlayback response: ' + JSON.stringify(response));
+
+      if (!response?.token || !response?.whip_url) {
+        await pipeline.cleanup();
+        throw new Error('Mezon did not return a valid WHIP endpoint or token.');
       }
 
-      const publisher = new SfuAudioPublisher({
-        signalingUrl: process.env.MEZON_SFU_URL || 'wss://sfu.mezon.vn/ws',
-        roomId: channelId,
+      const publisher = new WhipMediaPublisher({
+        whipUrl: response.whip_url,
         token: response.token,
-        mediaUrl: fileUrl,
+        audioStream: pipeline.audioStream,
+        videoStream: pipeline.videoStream,
         onEnded: (error) => {
           if (this.publisher === publisher) {
             this.publisher = undefined;
           }
+          void pipeline.cleanup();
           if (error) {
             this.logger.error(
-              'NCC8 SFU publisher stopped unexpectedly.',
+              'NCC8 WHIP publisher stopped unexpectedly.',
               error,
             );
           } else {
-            this.logger.log('NCC8 SFU stream finished.');
+            this.logger.log('NCC8 WHIP stream finished.');
           }
         },
       });
@@ -57,11 +70,14 @@ export class NCC8Service {
       this.publisher = publisher;
       try {
         await publisher.start();
-        this.logger.log('NCC8 is publishing audio through Mezon SFU.');
+        this.logger.log(
+          `NCC8 is publishing live through Mezon WHIP (video=${pipeline.hasVideo}).`,
+        );
       } catch (error) {
         if (this.publisher === publisher) {
           this.publisher = undefined;
         }
+        void pipeline.cleanup();
         throw error;
       }
     });
@@ -80,10 +96,16 @@ export class NCC8Service {
   private async stopCurrentPublisher(): Promise<void> {
     const publisher = this.publisher;
     this.publisher = undefined;
+    if (this.currentPipeline) {
+      await this.currentPipeline.cleanup();
+      this.currentPipeline = undefined;
+    }
     if (!publisher) return;
 
     await publisher.close();
-    this.logger.log('NCC8 SFU publisher stopped.');
+    // Allow mezon-streaming-server to teardown edge session and clear HLS/WebRTC jitter buffer
+    await new Promise((r) => setTimeout(r, 600));
+    this.logger.log('NCC8 WHIP publisher stopped.');
   }
 
   async convertMp3ToOgg(mp3Path: string): Promise<string> {

@@ -84,8 +84,25 @@ export class Ncc8Command extends CommandMessage {
     }
 
     const textContent = 'Go to #ncc8-radio';
+    const cleanUrl = ncc8.url.split('?')[0];
+    let fileUrl = ncc8.url;
+
     try {
-      await this.ncc8Service.playNcc8(ncc8.url);
+      const cdnSig = await this.clientService.getClient().generateCDNSignature({
+        channel_id: message.channel_id,
+      });
+      if (cdnSig?.signature) {
+        const sig = cdnSig.signature.startsWith('?')
+          ? cdnSig.signature.slice(1)
+          : cdnSig.signature;
+        fileUrl = `${cleanUrl}?${sig}`;
+      }
+    } catch (error) {
+      console.warn('Failed to generate fresh CDN signature for play:', error);
+    }
+
+    try {
+      await this.ncc8Service.playNcc8(fileUrl);
     } catch (error) {
       console.error('Failed to publish NCC8 through SFU:', error);
       return this.replyText(
@@ -137,29 +154,53 @@ export class Ncc8Command extends CommandMessage {
       return this.replyText('❌ Please attach an NCC8 audio file.', message);
     }
 
+    const cleanUrl = attachment.url.split('?')[0];
+    let fileUrl = attachment.url;
+
     try {
-      const codecInfo = await this.ffmpegService.getVideoCodecInfo(
-        attachment.url,
-      );
-      if (codecInfo.audio.toLowerCase() !== 'opus') {
+      const cdnSig = await this.clientService.getClient().generateCDNSignature({
+        channel_id: message.channel_id,
+      });
+      if (cdnSig?.signature) {
+        const sig = cdnSig.signature.startsWith('?')
+          ? cdnSig.signature.slice(1)
+          : cdnSig.signature;
+        fileUrl = `${cleanUrl}?${sig}`;
+      } else {
         return this.replyText(
-          `❌ NCC8 audio codec must be Opus. Detected: ${
-            codecInfo.audio || 'unknown'
-          }.`,
+          '❌ Cannot generate CDN signature for the audio.',
           message,
         );
       }
     } catch (error) {
-      console.error('Failed to read NCC8 audio codec:', error);
+      console.error('Failed to generate CDN signature for NCC8 attachment:', error);
       return this.replyText(
-        '❌ Cannot read the attached audio codec.',
+        '❌ Cannot generate CDN signature for the audio.',
+        message,
+      );
+    }
+
+    try {
+      const codecInfo = await this.ffmpegService.getVideoCodecInfo(
+        fileUrl,
+      );
+      if (!codecInfo.audio && !codecInfo.video) {
+        return this.replyText(
+          '❌ Cannot detect audio or video stream in the attached file.',
+          message,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to read NCC8 media codec:', error);
+      return this.replyText(
+        '❌ Cannot read the attached media codec.',
         message,
       );
     }
 
     await this.ncc8Data.insert({
       ncc8Id,
-      url: attachment.url,
+      url: fileUrl,
       fileName: attachment.filename,
       author: message.username,
       isActive: true,
@@ -290,7 +331,7 @@ export class Ncc8Command extends CommandMessage {
       '*ncc8 playlist\n' +
       '*ncc8 playlist inactive\n' +
       '*ncc8 toggleactive DATABASE_ID\n' +
-      '*ncc8 stop\n'+
+      '*ncc8 stop\n' +
       'Example: *ncc8 play 190';
     return this.replyText(messageContent, message);
   }
