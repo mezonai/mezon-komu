@@ -84,25 +84,9 @@ export class Ncc8Command extends CommandMessage {
     }
 
     const textContent = 'Go to #ncc8-radio';
-    const cleanUrl = ncc8.url.split('?')[0];
-    let fileUrl = ncc8.url;
 
     try {
-      const cdnSig = await this.clientService.getClient().generateCDNSignature({
-        channel_id: message.channel_id,
-      });
-      if (cdnSig?.signature) {
-        const sig = cdnSig.signature.startsWith('?')
-          ? cdnSig.signature.slice(1)
-          : cdnSig.signature;
-        fileUrl = `${cleanUrl}?${sig}`;
-      }
-    } catch (error) {
-      console.warn('Failed to generate fresh CDN signature for play:', error);
-    }
-
-    try {
-      await this.ncc8Service.playNcc8(fileUrl);
+      await this.ncc8Service.playNcc8(ncc8.url);
     } catch (error) {
       console.error('Failed to publish NCC8 through SFU:', error);
       return this.replyText(
