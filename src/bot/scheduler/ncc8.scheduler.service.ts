@@ -113,18 +113,30 @@ export class Ncc8SchedulerService {
 
   @Cron('30 11 * * 1,3,5', { timeZone: 'Asia/Ho_Chi_Minh' })
   async ncc8Scheduler() {
-    const latestNcc8 = await this.ncc8Data.findOne({
-      where: { isActive: true },
-      order: { ncc8Id: 'DESC', id: 'DESC' },
-    });
+    console.log(`[Ncc8Scheduler] ncc8Scheduler triggered at ${new Date().toISOString()}`);
+    try {
+      const latestNcc8 = await this.ncc8Data.findOne({
+        where: { isActive: true },
+        order: { ncc8Id: 'DESC', id: 'DESC' },
+      });
 
-    if (!latestNcc8?.url) {
-      console.log('No active NCC8 found');
-      return;
+      if (!latestNcc8?.url) {
+        console.warn('[Ncc8Scheduler] No active NCC8 found in database.');
+        return;
+      }
+
+      console.log('[Ncc8Scheduler] Playing latest active NCC8:', {
+        id: latestNcc8.id,
+        ncc8Id: latestNcc8.ncc8Id,
+        url: latestNcc8.url.split('?')[0],
+      });
+
+      await this.ncc8Service.stopNcc8();
+      await this.ncc8Service.playNcc8(latestNcc8.url, latestNcc8.channelId);
+      console.log('[Ncc8Scheduler] Scheduled playNcc8 initiated successfully.');
+    } catch (error) {
+      console.error('[Ncc8Scheduler] Error during scheduled NCC8 playback:', error);
     }
-
-    await this.ncc8Service.stopNcc8();
-    await this.ncc8Service.playNcc8(latestNcc8.url);
   }
 
   // @Cron('5 12 * * 5', { timeZone: 'Asia/Ho_Chi_Minh' })

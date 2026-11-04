@@ -14,4 +14,7 @@ export class DynamicMezon {
 
   @Column({ type: "text", nullable: true })
   output: string;
+
+  @Column({ type: "text", nullable: true })
+  channelId: string;
 }

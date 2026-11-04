@@ -9,6 +9,7 @@ import { DynamicCommandService } from 'src/bot/services/dynamic.service';
 import axios from 'axios';
 import { CommandStorage } from 'src/bot/base/storage';
 import { EUserType } from 'src/bot/constants/configs';
+import { MezonClientService } from 'src/mezon/services/client.service';
 
 @Command('register')
 export class DynamicCommand extends CommandMessage {
@@ -18,6 +19,7 @@ export class DynamicCommand extends CommandMessage {
     private dynamicCommandService: DynamicCommandService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private clientService: MezonClientService,
   ) {
     super();
   }
@@ -34,7 +36,9 @@ export class DynamicCommand extends CommandMessage {
           message,
         );
       }
-      if (!args[0] || !args[1]) {
+      const attachmentUrl = message.attachments?.[0]?.url;
+      const rawOutput = args.slice(1).join(' ') || attachmentUrl;
+      if (!args[0] || (!args[1] && !attachmentUrl && !['check', 'delete', 'list'].includes(args[0]))) {
         const messageContent =
           '' +
           'Command: *register commandname url' +
@@ -201,10 +205,37 @@ export class DynamicCommand extends CommandMessage {
           message,
         );
       }
-      const output = args.slice(1).join(' ');
-      const response = await axios.head(output);
+      const output = rawOutput;
+      const cleanUrl = output.split('?')[0];
+      let checkUrl = output;
+
+      if (cleanUrl.includes('cdn.mezon.')) {
+        let fileChannelId = message.channel_id;
+        try {
+          const parts = new URL(cleanUrl).pathname.split('/').filter(Boolean);
+          if (parts.length >= 2 && /^\d+$/.test(parts[1])) {
+            fileChannelId = parts[1];
+          }
+        } catch {}
+
+        try {
+          const cdnSig = await this.clientService.getClient().generateCDNSignature({
+            channel_id: fileChannelId,
+          });
+          if (cdnSig?.signature) {
+            const sig = cdnSig.signature.startsWith('?')
+              ? cdnSig.signature.slice(1)
+              : cdnSig.signature;
+            checkUrl = `${cleanUrl}?${sig}`;
+          }
+        } catch (sigErr) {
+          console.error('[RegisterCommand] Failed to generate CDN signature for validation:', sigErr);
+        }
+      }
+
+      const response = await axios.head(checkUrl);
       const contentType = String(response.headers['content-type'] ?? '');
-      const extension = output.split('.').pop()?.toLowerCase();
+      const extension = cleanUrl.split('.').pop()?.toLowerCase();
       const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(
         extension,
       ); // use with contentType=binary/octet-stream
@@ -222,16 +253,12 @@ export class DynamicCommand extends CommandMessage {
         contentType.includes('video') ||
         (contentType.includes('binary/octet-stream') && (isImage || isVideo))
       ) {
-        await this.dynamicRepository
-          .createQueryBuilder(TABLE.DYNAMIC)
-          .insert()
-          .into(DynamicMezon)
-          .values({
-            userId: message.sender_id,
-            command: args[0],
-            output: JSON.stringify(output),
-          })
-          .execute();
+        await this.dynamicRepository.insert({
+          userId: message.sender_id,
+          command: args[0],
+          output: JSON.stringify(cleanUrl),
+          channelId: message.channel_id,
+        });
         const messageContent = '' + '✅ Dynamic saved.' + '';
         this.dynamicCommandService.initDynamicCommandList();
 

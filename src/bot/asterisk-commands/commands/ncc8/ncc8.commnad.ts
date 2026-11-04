@@ -41,8 +41,12 @@ export class Ncc8Command extends CommandMessage {
         '1820647107783036928',
         '1835567711413866496',
       ].includes(message.sender_id)
-    )
+    ) {
+      console.warn(
+        `[Ncc8Command] Sender ${message.sender_id} is not in authorized whitelist. Ignored.`,
+      );
       return;
+    }
 
     switch (args[0]) {
       case 'play':
@@ -76,6 +80,15 @@ export class Ncc8Command extends CommandMessage {
         : { ncc8Id: 'DESC', id: 'DESC' },
     });
 
+    console.log('[Ncc8Command] handlePlay found entry:', {
+      requestedId: args[1],
+      found: !!ncc8,
+      id: ncc8?.id,
+      ncc8Id: ncc8?.ncc8Id,
+      url: ncc8?.url?.split('?')[0],
+      hasSignature: !!ncc8?.url?.includes('?'),
+    });
+
     if (!ncc8?.url) {
       const notFoundMessage = args[1]
         ? `❌ NCC8 ${ncc8Id} not found.`
@@ -86,11 +99,13 @@ export class Ncc8Command extends CommandMessage {
     const textContent = 'Go to #ncc8-radio';
 
     try {
-      await this.ncc8Service.playNcc8(ncc8.url);
+      console.log(`[Ncc8Command] Calling ncc8Service.playNcc8...`);
+      await this.ncc8Service.playNcc8(ncc8.url, ncc8.channelId);
+      console.log(`[Ncc8Command] ncc8Service.playNcc8 completed.`);
     } catch (error) {
-      console.error('Failed to publish NCC8 through SFU:', error);
+      console.error('[Ncc8Command] Failed to publish NCC8 through SFU:', error);
       return this.replyText(
-        '❌ Cannot connect NCC8 to the Mezon SFU.',
+        `❌ Cannot connect NCC8 to the Mezon SFU: ${(error as any)?.message || error}`,
         message,
       );
     }
@@ -184,10 +199,11 @@ export class Ncc8Command extends CommandMessage {
 
     await this.ncc8Data.insert({
       ncc8Id,
-      url: fileUrl,
+      url: cleanUrl,
       fileName: attachment.filename,
       author: message.username,
       isActive: true,
+      channelId: message.channel_id,
     });
 
     return this.replyText(`✅ NCC8 ${ncc8Id} added successfully.`, message);
