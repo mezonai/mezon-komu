@@ -30,15 +30,7 @@ export function resolveBinary(name: 'ffmpeg' | 'ffprobe'): string {
     logger.log(`[resolveBinary] Found ${name} via ENV: ${envVar}`);
     return envVar;
   }
-  if (process.platform === 'win32') {
-    return `${name}.exe`;
-  }
-  const linuxPath = `/usr/bin/${name}`;
-  if (fs.existsSync(linuxPath)) {
-    logger.log(`[resolveBinary] Found ${name} via system path: ${linuxPath}`);
-    return linuxPath;
-  }
-  // Try static binaries from node_modules if present
+  // Try static binaries from node_modules first (modern static build with full codecs/filters)
   try {
     if (name === 'ffmpeg') {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -57,6 +49,14 @@ export function resolveBinary(name: 'ffmpeg' | 'ffprobe'): string {
     }
   } catch (err) {
     logger.warn(`[resolveBinary] Error finding static fallback for ${name}:`, err);
+  }
+  if (process.platform === 'win32') {
+    return `${name}.exe`;
+  }
+  const linuxPath = `/usr/bin/${name}`;
+  if (fs.existsSync(linuxPath)) {
+    logger.log(`[resolveBinary] Found ${name} via system path: ${linuxPath}`);
+    return linuxPath;
   }
   logger.warn(`[resolveBinary] Could not find ${name} at /usr/bin/${name} or static packages. Falling back to '${name}'.`);
   return name;
@@ -152,7 +152,7 @@ export class MediaPreparer {
     if (info.hasVideo) {
       ffmpegArgs.push(
         '-map', '0:v:0',
-        '-vf', 'fps=30:start_time=0,scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2:out_color_matrix=bt709:out_range=tv,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv',
+        '-vf', 'fps=30:start_time=0,scale=1280:720:force_original_aspect_ratio=decrease:out_color_matrix=bt709:out_range=tv,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv',
         '-pix_fmt', 'yuv420p',
         '-colorspace', 'bt709',
         '-color_primaries', 'bt709',
