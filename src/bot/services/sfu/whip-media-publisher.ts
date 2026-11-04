@@ -58,6 +58,7 @@ export class WhipMediaPublisher {
 
     try {
       const hasVideo = !!this.options.videoStream;
+      console.log(`[WhipMediaPublisher] Starting WHIP publication. URL: ${this.options.whipUrl}, hasVideo: ${hasVideo}`);
 
       // 1. Setup RTCPeerConnection with Opus and H.264 codecs
       const pc = new RTCPeerConnection({
@@ -90,6 +91,21 @@ export class WhipMediaPublisher {
       });
       this.peerConnection = pc;
 
+      pc.connectionStateChange.subscribe((state) => {
+        console.log(`[WhipMediaPublisher] pc.connectionStateChange -> ${state}`);
+      });
+      pc.iceConnectionStateChange.subscribe((state) => {
+        console.log(`[WhipMediaPublisher] pc.iceConnectionStateChange -> ${state}`);
+      });
+      pc.iceGatheringStateChange.subscribe((state) => {
+        console.log(`[WhipMediaPublisher] pc.iceGatheringStateChange -> ${state}`);
+      });
+      pc.onIceCandidate.subscribe((candidate) => {
+        if (candidate?.candidate) {
+          console.log(`[WhipMediaPublisher] Gathered local ICE candidate: ${candidate.candidate.trim()}`);
+        }
+      });
+
       // Add audio transceiver
       const audioTrack = new MediaStreamTrack({ kind: 'audio' });
       this.audioTrack = audioTrack;
@@ -108,28 +124,17 @@ export class WhipMediaPublisher {
         this.videoSsrc = videoTransceiver.sender.ssrc;
       }
 
-      const connectedPromise = new Promise<void>((resolve, reject) => {
-        pc.connectionStateChange.subscribe((state) => {
-          if (state === 'connected') {
-            resolve();
-          } else if (state === 'failed' || state === 'closed') {
-            if (!this.stopping) {
-              const err = new Error(`WHIP WebRTC connection ${state}.`);
-              reject(err);
-              void this.finish(err);
-            }
-          }
-        });
-      });
-
       // 2. Create Offer & gather ICE candidates
+      console.log('[WhipMediaPublisher] Creating local SDP offer...');
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
+      console.log('[WhipMediaPublisher] Gathering ICE candidates...');
       await this.waitForIceGatheringComplete(pc, 2000);
       const offerSdp = pc.localDescription?.sdp || offer.sdp;
 
       // 3. POST SDP Offer to WHIP endpoint
+      console.log(`[WhipMediaPublisher] Sending SDP offer to WHIP endpoint: ${this.options.whipUrl}...`);
       const whipRes = await axios.post<string>(this.options.whipUrl, offerSdp, {
         headers: {
           'Content-Type': 'application/sdp',
@@ -148,12 +153,12 @@ export class WhipMediaPublisher {
         whipRes.headers['location'] ||
         whipRes.headers['Location'] ||
         (whipRes.headers as any)?.get?.('location');
-      console.log('WHIP POST response status:', whipRes.status, 'Location header:', locHeader);
+      console.log('[WhipMediaPublisher] WHIP POST status:', whipRes.status, 'Location:', locHeader);
       if (locHeader) {
         this.resourceUrl = new URL(locHeader, this.options.whipUrl).toString();
-        console.log('Saved WHIP resourceUrl for session teardown:', this.resourceUrl);
+        console.log('[WhipMediaPublisher] WHIP resourceUrl for teardown:', this.resourceUrl);
       } else {
-        console.warn('WARNING: WHIP server returned NO Location header! Headers:', whipRes.headers);
+        console.warn('[WhipMediaPublisher] WHIP server returned NO Location header!');
       }
 
       const answerSdp = whipRes.data;
@@ -162,27 +167,46 @@ export class WhipMediaPublisher {
       }
 
       // 4. Set Remote SDP Answer
+      console.log('[WhipMediaPublisher] Setting remote SDP answer...');
       await pc.setRemoteDescription({
         type: 'answer',
         sdp: answerSdp,
       });
 
       // 5. Wait for WebRTC handshake
-      const timeout = setTimeout(() => {
-        throw new Error('Timed out while connecting to WHIP WebRTC peer.');
-      }, CONNECT_TIMEOUT_MS);
+      console.log(`[WhipMediaPublisher] Waiting up to ${CONNECT_TIMEOUT_MS}ms for WebRTC handshake...`);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          const timeoutErr = new Error(
+            `Timed out after ${CONNECT_TIMEOUT_MS}ms waiting for WHIP WebRTC peer connection. State: connectionState=${pc.connectionState}, iceConnectionState=${pc.iceConnectionState}`,
+          );
+          console.error(`[WhipMediaPublisher] ${timeoutErr.message}`);
+          reject(timeoutErr);
+        }, CONNECT_TIMEOUT_MS);
 
-      try {
-        await connectedPromise;
-      } finally {
-        clearTimeout(timeout);
-      }
+        pc.connectionStateChange.subscribe((state) => {
+          if (state === 'connected') {
+            clearTimeout(timer);
+            resolve();
+          } else if (state === 'failed' || state === 'closed') {
+            clearTimeout(timer);
+            if (!this.stopping) {
+              const err = new Error(`WHIP WebRTC connection ${state}. (iceState=${pc.iceConnectionState})`);
+              console.error(`[WhipMediaPublisher] Handshake aborted: ${err.message}`);
+              reject(err);
+              void this.finish(err);
+            }
+          }
+        });
+      });
 
+      console.log('[WhipMediaPublisher] WebRTC handshake connected successfully! Pumping media...');
       // 6. Pump media streams
       void this.pumpMedia()
         .then(() => this.finish())
         .catch((error) => this.finish(asError(error)));
     } catch (error) {
+      console.error('[WhipMediaPublisher] start() failed:', error);
       await this.close();
       throw error;
     }
@@ -279,15 +303,14 @@ export class WhipMediaPublisher {
   }
 
   private async pumpMedia(): Promise<void> {
-    const audioPromise = this.pumpAudio();
-    const videoPromise = this.videoTrack && this.options.videoStream
-      ? this.pumpVideo(this.videoTrack, this.options.videoStream)
-      : Promise.resolve();
-
-    await Promise.all([audioPromise, videoPromise]);
+    if (this.audioTrack) {
+      await this.pumpAudioAndVideo();
+    } else if (this.videoTrack && this.options.videoStream) {
+      await this.pumpVideoOnly(this.videoTrack, this.options.videoStream);
+    }
   }
 
-  private async pumpAudio(): Promise<void> {
+  private async pumpAudioAndVideo(): Promise<void> {
     if (!this.audioTrack) {
       throw new Error('Audio track is not initialized.');
     }
@@ -301,6 +324,17 @@ export class WhipMediaPublisher {
 
     this.lastAudioSequenceNumber = sequenceNumber;
     this.lastAudioTimestamp = timestamp;
+
+    const videoReader =
+      this.videoTrack && this.options.videoStream
+        ? new H264AccessUnitReader(this.options.videoStream)
+        : null;
+    const videoSender =
+      this.videoTrack && this.options.videoStream
+        ? new H264RtpSender(this.videoTrack, undefined, undefined, this.videoSsrc)
+        : null;
+    let videoTime = 0;
+    let keyframeFound = false;
 
     // 1. Prime stream and flush edge jitter buffer with silence
     for (let i = 0; i < 20; i++) {
@@ -326,9 +360,13 @@ export class WhipMediaPublisher {
 
     this.audioMediaSamples = 0;
     this.audioStarted = true;
+    let packetCount = 0;
+    let lastProgressLog = Date.now();
 
+    console.log('[WhipMediaPublisher] Starting unified audio-driven media loop (Mezube pattern)...');
     try {
       for await (const payload of readOggOpusPackets(this.options.audioStream)) {
+        packetCount++;
         const dueAt =
           timelineStartedAt + (sentSamples * 1000) / OPUS_CLOCK_RATE;
         const waitMs = dueAt - performance.now();
@@ -366,9 +404,43 @@ export class WhipMediaPublisher {
         if (lag > MAX_CATCH_UP_MS) {
           timelineStartedAt += lag;
         }
+
+        // 2. Video sync: Audio drives video release (Mezube single-loop pattern)
+        if (videoReader && videoSender) {
+          const audioTime =
+            (this.audioMediaSamples * VIDEO_CLOCK_RATE) / OPUS_CLOCK_RATE;
+          while (
+            videoTime < audioTime &&
+            !this.abortController.signal.aborted
+          ) {
+            const frame = await videoReader.readFrame();
+            if (!frame) break;
+
+            if (!keyframeFound) {
+              if (!frame.isKeyframe) continue;
+              keyframeFound = true;
+            }
+
+            const frameDuration =
+              audioTime - videoTime > 2 * VIDEO_FRAME_DURATION_TIMESTAMP
+                ? audioTime - videoTime
+                : VIDEO_FRAME_DURATION_TIMESTAMP;
+            videoSender.sendFrame(frame.data, frameDuration);
+            videoTime += frameDuration;
+          }
+        }
+
+        if (Date.now() - lastProgressLog > 10000) {
+          lastProgressLog = Date.now();
+          const streamedSec = (sentSamples / OPUS_CLOCK_RATE).toFixed(1);
+          console.log(
+            `[WhipMediaPublisher] Streamed: ${streamedSec}s (${packetCount} audio packets, videoTime=${(videoTime / VIDEO_CLOCK_RATE).toFixed(1)}s)`,
+          );
+        }
       }
 
-      // 2. Flush trailing silence when track reaches normal EOF
+      console.log(`[WhipMediaPublisher] Reached media EOF (${packetCount} packets sent). Flushing silence...`);
+      // 3. Flush trailing silence when track reaches normal EOF
       for (let i = 0; i < 40; i++) {
         this.audioTrack.writeRtp(
           new RtpPacket(
@@ -388,74 +460,43 @@ export class WhipMediaPublisher {
       this.lastAudioSequenceNumber = sequenceNumber;
       this.lastAudioTimestamp = timestamp;
     } catch (error) {
-      if (this.abortController.signal.aborted) return;
+      if (this.abortController.signal.aborted) {
+        console.log('[WhipMediaPublisher] pumpAudioAndVideo aborted cleanly.');
+        return;
+      }
+      console.error('[WhipMediaPublisher] pumpAudioAndVideo encountered error:', error);
       throw error;
     } finally {
       this.audioFinished = true;
     }
   }
 
-  private async pumpVideo(
+  private async pumpVideoOnly(
     videoTrack: MediaStreamTrack,
     videoStream: NodeJS.ReadableStream,
   ): Promise<void> {
     const reader = new H264AccessUnitReader(videoStream);
     const sender = new H264RtpSender(videoTrack, undefined, undefined, this.videoSsrc);
     let frameIndex = 0;
-    let timelineStartedAt = performance.now();
+    const timelineStartedAt = performance.now();
     let keyframeFound = false;
 
     try {
-      // 1. Wait until audio stream starts outputting media
-      while (
-        !this.abortController.signal.aborted &&
-        this.audioTrack &&
-        !this.audioStarted &&
-        !this.audioFinished
-      ) {
-        await delay(5, undefined, { signal: this.abortController.signal });
-      }
-
       while (!this.abortController.signal.aborted) {
         const frame = await reader.readFrame();
         if (!frame) break;
 
-        // Ensure we always start emitting on a keyframe
         if (!keyframeFound) {
-          if (!frame.isKeyframe) {
-            continue; // Skip until the first keyframe (SPS/PPS/IDR)
-          }
+          if (!frame.isKeyframe) continue;
           keyframeFound = true;
-          timelineStartedAt = performance.now();
         }
 
-        if (this.audioTrack) {
-          // Audio-driven clock (AV-sync): lock video frame release to audio sample progress
-          // 1 video frame at 30fps corresponds to exactly VIDEO_FRAME_SAMPLES (1600) audio samples at 48kHz
-          const targetAudioSamples = frameIndex * VIDEO_FRAME_SAMPLES;
-          while (
-            !this.abortController.signal.aborted &&
-            !this.audioFinished &&
-            this.audioMediaSamples < targetAudioSamples
-          ) {
-            const neededSamples = targetAudioSamples - this.audioMediaSamples;
-            const waitMs = Math.max(
-              1,
-              Math.min(20, Math.ceil((neededSamples * 1000) / OPUS_CLOCK_RATE)),
-            );
-            await delay(waitMs, undefined, {
-              signal: this.abortController.signal,
-            });
-          }
-        } else {
-          // Fallback wall-clock timer if publishing video-only
-          const dueAt = timelineStartedAt + (frameIndex * 1000) / VIDEO_FPS;
-          const waitMs = dueAt - performance.now();
-          if (waitMs > 0) {
-            await delay(waitMs, undefined, {
-              signal: this.abortController.signal,
-            });
-          }
+        const dueAt = timelineStartedAt + (frameIndex * 1000) / VIDEO_FPS;
+        const waitMs = dueAt - performance.now();
+        if (waitMs > 0) {
+          await delay(waitMs, undefined, {
+            signal: this.abortController.signal,
+          });
         }
 
         sender.sendFrame(frame.data, VIDEO_FRAME_DURATION_TIMESTAMP);

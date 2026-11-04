@@ -80,7 +80,7 @@ export class GrowingFileStream extends Readable {
           return;
         }
 
-        await new Promise((r) => setTimeout(r, 40));
+        await new Promise((r) => setTimeout(r, 10));
       }
     } catch (err: any) {
       this.destroy(err);

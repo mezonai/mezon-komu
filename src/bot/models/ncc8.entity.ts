@@ -22,4 +22,7 @@ export class Ncc8 {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  channelId: string;
 }

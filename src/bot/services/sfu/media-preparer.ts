@@ -27,6 +27,7 @@ export function resolveBinary(name: 'ffmpeg' | 'ffprobe'): string {
   const envVar =
     name === 'ffmpeg' ? process.env.FFMPEG_PATH : process.env.FFPROBE_PATH;
   if (envVar && fs.existsSync(envVar)) {
+    logger.log(`[resolveBinary] Found ${name} via ENV: ${envVar}`);
     return envVar;
   }
   if (process.platform === 'win32') {
@@ -34,8 +35,30 @@ export function resolveBinary(name: 'ffmpeg' | 'ffprobe'): string {
   }
   const linuxPath = `/usr/bin/${name}`;
   if (fs.existsSync(linuxPath)) {
+    logger.log(`[resolveBinary] Found ${name} via system path: ${linuxPath}`);
     return linuxPath;
   }
+  // Try static binaries from node_modules if present
+  try {
+    if (name === 'ffmpeg') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ffmpegStatic = require('ffmpeg-static');
+      if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
+        logger.log(`[resolveBinary] Found ffmpeg via ffmpeg-static: ${ffmpegStatic}`);
+        return ffmpegStatic;
+      }
+    } else if (name === 'ffprobe') {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const ffprobeStatic = require('ffprobe-static');
+      if (ffprobeStatic?.path && fs.existsSync(ffprobeStatic.path)) {
+        logger.log(`[resolveBinary] Found ffprobe via ffprobe-static: ${ffprobeStatic.path}`);
+        return ffprobeStatic.path;
+      }
+    }
+  } catch (err) {
+    logger.warn(`[resolveBinary] Error finding static fallback for ${name}:`, err);
+  }
+  logger.warn(`[resolveBinary] Could not find ${name} at /usr/bin/${name} or static packages. Falling back to '${name}'.`);
   return name;
 }
 
@@ -129,7 +152,7 @@ export class MediaPreparer {
     if (info.hasVideo) {
       ffmpegArgs.push(
         '-map', '0:v:0',
-        '-vf', 'fps=30:start_time=0,scale=1920:1080:force_original_aspect_ratio=decrease:force_divisible_by=2:out_color_matrix=bt709:out_range=tv,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv',
+        '-vf', 'fps=30:start_time=0,scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2:out_color_matrix=bt709:out_range=tv,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709:range=tv',
         '-pix_fmt', 'yuv420p',
         '-colorspace', 'bt709',
         '-color_primaries', 'bt709',
@@ -144,8 +167,8 @@ export class MediaPreparer {
         '-keyint_min', '60',
         '-sc_threshold', '0',
         '-crf', '23',
-        '-maxrate', '2500k',
-        '-bufsize', '2500k',
+        '-maxrate', '1800k',
+        '-bufsize', '1800k',
         '-x264-params', 'repeat-headers=1',
         '-bsf:v', 'h264_metadata=aud=insert',
         '-flush_packets', '1',
@@ -156,6 +179,7 @@ export class MediaPreparer {
 
     logger.log(`Launching background FFmpeg encode process...`);
     const ffmpegBin = resolveBinary('ffmpeg');
+    logger.log(`[MediaPreparer] Using ffmpeg binary: ${ffmpegBin}`);
     const proc = spawn(ffmpegBin, ffmpegArgs);
 
     let isFinished = false;
@@ -163,7 +187,8 @@ export class MediaPreparer {
     let lastStderr = '';
 
     proc.stderr.on('data', (d) => {
-      lastStderr = d.toString();
+      const chunk = d.toString();
+      lastStderr = (lastStderr + chunk).slice(-2000);
     });
 
     const writerPromise = new Promise<void>((resolve, reject) => {
@@ -184,9 +209,10 @@ export class MediaPreparer {
           resolve();
         } else if (!proc.killed) {
           procError = new Error(`FFmpeg exited with code ${code}: ${lastStderr.trim()}`);
-          logger.warn(procError.message);
+          logger.error(`[MediaPreparer] ${procError.message}`);
           reject(procError);
         } else {
+          logger.log('[MediaPreparer] FFmpeg process killed.');
           resolve();
         }
       });
@@ -194,7 +220,7 @@ export class MediaPreparer {
       proc.on('error', (err) => {
         isFinished = true;
         procError = err;
-        logger.error('FFmpeg process error:', err);
+        logger.error('[MediaPreparer] FFmpeg process spawn/runtime error:', err);
         reject(err);
       });
     });
@@ -249,24 +275,54 @@ export class MediaPreparer {
     h264Path: string | null,
     isFinished: () => boolean,
     getError: () => Error | null,
-    timeoutMs = 15000,
+    timeoutMs = 25000,
   ): Promise<void> {
     const start = Date.now();
+    let lastLogTime = 0;
     while (!isFinished()) {
       const err = getError();
-      if (err) throw err;
+      if (err) {
+        logger.error('[MediaPreparer] waitUntilPlayable error:', err);
+        throw err;
+      }
 
-      const oggOk = this.countMarkers(oggPath, Buffer.from('OggS')) >= 3;
-      const h264Ok =
-        !h264Path ||
-        this.countMarkers(h264Path, Buffer.from([0, 0, 1, 9])) >= 2;
+      const oggMarkers = this.countMarkers(oggPath, Buffer.from('OggS'));
+      const h264Markers = h264Path
+        ? this.countMarkers(h264Path, Buffer.from([0, 0, 1, 9]))
+        : 0;
+
+      // In Ogg Opus, Page 1 is OpusHead, Page 2 is OpusTags, and audio data starts from Page 3.
+      // FFmpeg packages ~50 Opus packets (~1 second of audio) per OggS page.
+      // So 5 OggS markers = OpusHead + OpusTags + ~3s of audio packets.
+      const oggOk =
+        oggMarkers >= 5 ||
+        (fs.existsSync(oggPath) && fs.statSync(oggPath).size >= 48 * 1024);
+      // For H264: 30 markers = 30 AUD frames (~1 second of 30fps video)
+      const h264Ok = !h264Path || h264Markers >= 30;
 
       if (oggOk && h264Ok) {
+        logger.log(
+          `[MediaPreparer] Playable buffer ready in ${Date.now() - start}ms (oggMarkers=${oggMarkers}, h264Markers=${h264Markers})`,
+        );
         return;
       }
 
+      const now = Date.now();
+      if (now - lastLogTime > 2000) {
+        lastLogTime = now;
+        const oggSize = fs.existsSync(oggPath) ? fs.statSync(oggPath).size : 0;
+        logger.log(
+          `[MediaPreparer] Buffering... elapsed=${now - start}ms, oggMarkers=${oggMarkers}/5 (size=${oggSize}B), h264Markers=${h264Markers}${h264Path ? '/30' : ''}`,
+        );
+      }
+
       if (Date.now() - start > timeoutMs) {
-        throw new Error('Media was not playable in time.');
+        const oggSize = fs.existsSync(oggPath) ? fs.statSync(oggPath).size : 0;
+        const timeoutErr = new Error(
+          `Media was not playable in time (${timeoutMs}ms). OGG size: ${oggSize}B (markers: ${oggMarkers}), H264 markers: ${h264Markers}`,
+        );
+        logger.error(`[MediaPreparer] ${timeoutErr.message}`);
+        throw timeoutErr;
       }
 
       await new Promise((r) => setTimeout(r, 60));
@@ -281,7 +337,7 @@ export class MediaPreparer {
     try {
       const fd = fs.openSync(filePath, 'r');
       const stat = fs.fstatSync(fd);
-      const readLen = Math.min(stat.size, 4 * 1024 * 1024);
+      const readLen = Math.min(stat.size, 8 * 1024 * 1024);
       const buf = Buffer.alloc(readLen);
       const bytesRead = fs.readSync(fd, buf, 0, buf.length, 0);
       fs.closeSync(fd);
@@ -303,6 +359,7 @@ export class MediaPreparer {
   private static probeMediaInfo(urlOrPath: string): Promise<MediaStreamInfo> {
     return new Promise((resolve) => {
       const ffprobeBin = resolveBinary('ffprobe');
+      logger.log(`[MediaPreparer] Probing codecs with ffprobe (${ffprobeBin})...`);
       const proc = spawn(ffprobeBin, [
         '-v', 'error',
         '-reconnect', '1',
@@ -313,7 +370,9 @@ export class MediaPreparer {
         urlOrPath,
       ]);
       let out = '';
+      let errOut = '';
       const timer = setTimeout(() => {
+        logger.warn('[MediaPreparer] ffprobe timed out after 6000ms. Fallback to audio-only.');
         try {
           proc.kill('SIGKILL');
         } catch {}
@@ -321,9 +380,11 @@ export class MediaPreparer {
       }, 6000);
 
       proc.stdout.on('data', (d) => (out += d.toString()));
+      proc.stderr.on('data', (d) => (errOut += d.toString()));
       proc.on('close', (code) => {
         clearTimeout(timer);
         if (code !== 0) {
+          logger.warn(`[MediaPreparer] ffprobe exited with code ${code}. Stderr: ${errOut.trim()}`);
           return resolve({ hasAudio: true, hasVideo: false });
         }
         try {
@@ -333,18 +394,21 @@ export class MediaPreparer {
           const audio = streams.find((s) => s.codec_type === 'audio');
           const video = streams.find((s) => s.codec_type === 'video');
 
+          logger.log(`[MediaPreparer] Probe success: audio=${audio?.codec_name || 'none'}, video=${video?.codec_name || 'none'}`);
           resolve({
             hasAudio: !!audio,
             audioCodec: audio?.codec_name?.toLowerCase(),
             hasVideo: !!video,
             videoCodec: video?.codec_name?.toLowerCase(),
           });
-        } catch {
+        } catch (jsonErr) {
+          logger.warn(`[MediaPreparer] Could not parse ffprobe output: ${jsonErr}`);
           resolve({ hasAudio: true, hasVideo: false });
         }
       });
-      proc.on('error', () => {
+      proc.on('error', (err) => {
         clearTimeout(timer);
+        logger.error('[MediaPreparer] ffprobe process spawn error:', err);
         resolve({ hasAudio: true, hasVideo: false });
       });
     });
