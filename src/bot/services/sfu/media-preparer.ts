@@ -30,33 +30,35 @@ export function resolveBinary(name: 'ffmpeg' | 'ffprobe'): string {
     logger.log(`[resolveBinary] Found ${name} via ENV: ${envVar}`);
     return envVar;
   }
-  // Try static binaries from node_modules first (modern static build with full codecs/filters)
+  if (process.platform === 'win32') {
+    return `${name}.exe`;
+  }
+  // Prioritize system package (/usr/bin) over static binary because static musl/GnuTLS builds
+  // (like johnvansickle static builds) can segfault (SIGSEGV 139) on HTTPS network requests on Linux.
+  const linuxPath = `/usr/bin/${name}`;
+  if (fs.existsSync(linuxPath)) {
+    logger.log(`[resolveBinary] Found ${name} via system path: ${linuxPath}`);
+    return linuxPath;
+  }
+  // Fallback to static binaries from node_modules if system binary is missing
   try {
     if (name === 'ffmpeg') {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const ffmpegStatic = require('ffmpeg-static');
       if (ffmpegStatic && fs.existsSync(ffmpegStatic)) {
-        logger.log(`[resolveBinary] Found ffmpeg via ffmpeg-static: ${ffmpegStatic}`);
+        logger.log(`[resolveBinary] Found ffmpeg via ffmpeg-static fallback: ${ffmpegStatic}`);
         return ffmpegStatic;
       }
     } else if (name === 'ffprobe') {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const ffprobeStatic = require('ffprobe-static');
       if (ffprobeStatic?.path && fs.existsSync(ffprobeStatic.path)) {
-        logger.log(`[resolveBinary] Found ffprobe via ffprobe-static: ${ffprobeStatic.path}`);
+        logger.log(`[resolveBinary] Found ffprobe via ffprobe-static fallback: ${ffprobeStatic.path}`);
         return ffprobeStatic.path;
       }
     }
   } catch (err) {
     logger.warn(`[resolveBinary] Error finding static fallback for ${name}:`, err);
-  }
-  if (process.platform === 'win32') {
-    return `${name}.exe`;
-  }
-  const linuxPath = `/usr/bin/${name}`;
-  if (fs.existsSync(linuxPath)) {
-    logger.log(`[resolveBinary] Found ${name} via system path: ${linuxPath}`);
-    return linuxPath;
   }
   logger.warn(`[resolveBinary] Could not find ${name} at /usr/bin/${name} or static packages. Falling back to '${name}'.`);
   return name;
@@ -132,11 +134,15 @@ export class MediaPreparer {
       if (fs.existsSync(h264PartPath)) fs.unlinkSync(h264PartPath);
     } catch {}
 
-    const ffmpegArgs: string[] = [
-      '-y',
-      '-reconnect', '1',
-      '-reconnect_streamed', '1',
-      '-reconnect_delay_max', '5',
+    const ffmpegArgs: string[] = ['-y'];
+    if (/^https?:\/\//i.test(urlOrPath)) {
+      ffmpegArgs.push(
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
+      );
+    }
+    ffmpegArgs.push(
       '-i', urlOrPath,
       '-map', '0:a:0?',
       '-af', 'aresample=async=1:first_pts=0',
@@ -144,10 +150,11 @@ export class MediaPreparer {
       '-b:a', '128k',
       '-ar', '48000',
       '-ac', '2',
+      '-page_duration', '40000',
       '-flush_packets', '1',
       '-f', 'ogg',
       oggPartPath,
-    ];
+    );
 
     if (info.hasVideo) {
       ffmpegArgs.push(
@@ -159,7 +166,8 @@ export class MediaPreparer {
         '-color_trc', 'bt709',
         '-color_range', 'tv',
         '-c:v', 'libx264',
-        '-preset', 'superfast',
+        '-preset', 'ultrafast',
+        '-tune', 'zerolatency',
         '-profile:v', 'baseline',
         '-level:v', '4.0',
         '-bf', '0',
@@ -192,7 +200,7 @@ export class MediaPreparer {
     });
 
     const writerPromise = new Promise<void>((resolve, reject) => {
-      proc.on('close', (code) => {
+      proc.on('close', (code, signal) => {
         isFinished = true;
         if (code === 0) {
           logger.log(`FFmpeg encode completed successfully for ${cleanUrl}.`);
@@ -208,7 +216,7 @@ export class MediaPreparer {
           }
           resolve();
         } else if (!proc.killed) {
-          procError = new Error(`FFmpeg exited with code ${code}: ${lastStderr.trim()}`);
+          procError = new Error(`FFmpeg exited with code ${code ?? signal}: ${lastStderr.trim()}`);
           logger.error(`[MediaPreparer] ${procError.message}`);
           reject(procError);
         } else {
@@ -292,13 +300,13 @@ export class MediaPreparer {
         : 0;
 
       // In Ogg Opus, Page 1 is OpusHead, Page 2 is OpusTags, and audio data starts from Page 3.
-      // FFmpeg packages ~50 Opus packets (~1 second of audio) per OggS page.
-      // So 5 OggS markers = OpusHead + OpusTags + ~3s of audio packets.
+      // With -page_duration 40000, pages are written in fine 40ms grains (~2 packets per page).
+      // We ensure at least 25 pages (~1s) or 32KB of audio data before starting.
       const oggOk =
-        oggMarkers >= 5 ||
-        (fs.existsSync(oggPath) && fs.statSync(oggPath).size >= 48 * 1024);
-      // For H264: 30 markers = 30 AUD frames (~1 second of 30fps video)
-      const h264Ok = !h264Path || h264Markers >= 30;
+        oggMarkers >= 25 ||
+        (fs.existsSync(oggPath) && fs.statSync(oggPath).size >= 32 * 1024);
+      // For H264: 45 markers = 45 AUD frames (~1.5s of 30fps video for safety buffer)
+      const h264Ok = !h264Path || h264Markers >= 45;
 
       if (oggOk && h264Ok) {
         logger.log(
@@ -312,7 +320,7 @@ export class MediaPreparer {
         lastLogTime = now;
         const oggSize = fs.existsSync(oggPath) ? fs.statSync(oggPath).size : 0;
         logger.log(
-          `[MediaPreparer] Buffering... elapsed=${now - start}ms, oggMarkers=${oggMarkers}/5 (size=${oggSize}B), h264Markers=${h264Markers}${h264Path ? '/30' : ''}`,
+          `[MediaPreparer] Buffering... elapsed=${now - start}ms, oggMarkers=${oggMarkers} (size=${oggSize}B), h264Markers=${h264Markers}${h264Path ? '/45' : ''}`,
         );
       }
 

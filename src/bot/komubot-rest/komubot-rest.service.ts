@@ -165,8 +165,8 @@ export class KomubotrestService {
       return;
     }
 
-    if (!sendMessageToUserDTO.username) {
-      res.status(400).send({ message: 'username can not be empty!' });
+    if (!sendMessageToUserDTO.userId && !sendMessageToUserDTO.username) {
+      res.status(400).send({ message: 'username or userId can not be empty!' });
       return;
     }
 
@@ -174,6 +174,7 @@ export class KomubotrestService {
       res.status(400).send({ message: 'Message can not be empty!' });
       return;
     }
+    const userId = sendMessageToUserDTO.userId;
     const username = sendMessageToUserDTO.username;
     let message = sendMessageToUserDTO.message;
     const options = sendMessageToUserDTO.options ?? {};
@@ -194,22 +195,36 @@ export class KomubotrestService {
     options.mk = [...options.mk, ...mkLink];
 
     try {
-      const findUser = await this.userRepository.findOne({
-        where: [
-          { clan_nick: username, user_type: EUserType.MEZON },
-          { display_name: username, user_type: EUserType.MEZON },
-          { username: username, user_type: EUserType.MEZON },
-        ],
+      let targetUserId = userId;
+      if (!targetUserId && username) {
+        const findUser = await this.userRepository.findOne({
+          where: [
+            { clan_nick: username, user_type: EUserType.MEZON },
+            { display_name: username, user_type: EUserType.MEZON },
+            { username: username, user_type: EUserType.MEZON },
+          ],
+        });
+        if (!findUser) {
+          return res.status(400).send({ message: 'User not found' });
+        }
+        targetUserId = findUser.userId;
+      }
+
+      let user: any = null;
+      try {
+        user = await this.client.users.fetch(targetUserId);
+      } catch (error) {
+        user = null;
+      }
+
+      if (!user) {
+        return res.status(400).send({ message: 'User not found' });
+      }
+
+      await user.sendDM({
+        t: message,
+        ...(options ? { ...options } : {}),
       });
-      if (!findUser) {
-        return res.status(400).send({ message: 'Not found User' });
-      };
-      const messageToUser: ReplyMezonMessage = {
-        userId: findUser.userId,
-        textContent: message,
-        messOptions: options ?? {},
-      };
-      this.messageQueue.addMessage(messageToUser);
       res.status(200).send({ message: 'Successfully!' });
     } catch (error) {
       console.log('error', error);
@@ -287,15 +302,6 @@ export class KomubotrestService {
       res.status(400).send({ message: 'ChannelId can not be empty!' });
       return;
     }
-
-    // if (sendMessageToChannelDTO.file) {
-    //   console.log('No supported file')
-    //   res.status(400).send({ message: 'No supported file!' });
-    // }
-
-    // if (sendMessageToChannelDTO.fileUrl) {
-    //   res.status(400).send({ message: 'No supported file!' });
-    // }
 
     if (!sendMessageToChannelDTO.message) {
       res.status(400).send({ message: 'Message can not be empty!' });

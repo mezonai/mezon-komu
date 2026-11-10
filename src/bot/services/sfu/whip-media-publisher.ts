@@ -42,7 +42,6 @@ export class WhipMediaPublisher {
   private readonly abortController = new AbortController();
   private stopping = false;
   private finished = false;
-  private audioMediaSamples = 0;
   private audioStarted = false;
   private audioFinished = false;
 
@@ -336,44 +335,116 @@ export class WhipMediaPublisher {
     let videoTime = 0;
     let keyframeFound = false;
 
-    // 1. Prime stream and flush edge jitter buffer with silence
-    for (let i = 0; i < 20; i++) {
-      this.audioTrack.writeRtp(
-        new RtpPacket(
-          new RtpHeader({
-            marker: firstPacket,
-            payloadType: 111,
-            sequenceNumber,
-            timestamp,
-            ssrc,
-          }),
-          SILENCE_OPUS_PACKET,
-        ),
-      );
-      firstPacket = false;
-      sequenceNumber = (sequenceNumber + 1) & 0xffff;
-      timestamp = (timestamp + SILENCE_SAMPLES) >>> 0;
-      sentSamples += SILENCE_SAMPLES;
-    }
-    this.lastAudioSequenceNumber = sequenceNumber;
-    this.lastAudioTimestamp = timestamp;
-
-    this.audioMediaSamples = 0;
-    this.audioStarted = true;
     let packetCount = 0;
     let lastProgressLog = Date.now();
 
-    console.log('[WhipMediaPublisher] Starting unified audio-driven media loop (Mezube pattern)...');
+    // Decoupled in-memory producer queues (Mezube high-performance architecture)
+    // Reading from disk is done asynchronously in the background so that
+    // the real-time RTP sending loop is NEVER blocked by disk I/O.
+    interface QueuedAudio {
+      payload: Buffer;
+      duration: number;
+    }
+    const audioQueue: QueuedAudio[] = [];
+    let audioProducerDone = false;
+    let audioProducerError: any = null;
+
+    const runAudioProducer = async () => {
+      try {
+        for await (const payload of readOggOpusPackets(this.options.audioStream)) {
+          if (this.abortController.signal.aborted) break;
+          const duration = getOpusDurationSamples(payload);
+          audioQueue.push({ payload, duration });
+          while (audioQueue.length >= 150 && !this.abortController.signal.aborted) {
+            await delay(15, undefined, { signal: this.abortController.signal });
+          }
+        }
+      } catch (err) {
+        if (!this.abortController.signal.aborted) {
+          audioProducerError = err;
+        }
+      } finally {
+        audioProducerDone = true;
+      }
+    };
+
+    interface QueuedVideo {
+      data: Buffer;
+      isKeyframe: boolean;
+    }
+    const videoQueue: QueuedVideo[] = [];
+    let videoProducerDone = false;
+    let videoProducerError: any = null;
+
+    const runVideoProducer = async () => {
+      if (!videoReader) {
+        videoProducerDone = true;
+        return;
+      }
+      try {
+        while (!this.abortController.signal.aborted) {
+          const frame = await videoReader.readFrame();
+          if (!frame) break;
+          videoQueue.push(frame);
+          while (videoQueue.length >= 90 && !this.abortController.signal.aborted) {
+            await delay(15, undefined, { signal: this.abortController.signal });
+          }
+        }
+      } catch (err) {
+        if (!this.abortController.signal.aborted) {
+          videoProducerError = err;
+        }
+      } finally {
+        videoProducerDone = true;
+      }
+    };
+
+    const audioWorker = runAudioProducer();
+    const videoWorker = runVideoProducer();
+
+    console.log('[WhipMediaPublisher] Pre-buffering in-memory audio/video queue...');
+    // Pre-fill memory queue with audio (~600ms) and video (~500ms) before starting RTP send loop
+    while (
+      !this.abortController.signal.aborted &&
+      ((!audioProducerDone && audioQueue.length < 30) ||
+        (videoSender && !videoProducerDone && videoQueue.length < 15))
+    ) {
+      await delay(10, undefined, { signal: this.abortController.signal });
+    }
+
+    console.log(
+      `[WhipMediaPublisher] Starting decoupled real-time send loop (queue=${audioQueue.length}, videoQueue=${videoQueue.length})...`,
+    );
+    timelineStartedAt = performance.now();
+    sentSamples = 0;
+    this.audioStarted = true;
+
     try {
-      for await (const payload of readOggOpusPackets(this.options.audioStream)) {
+      while (!this.abortController.signal.aborted) {
+        if (audioQueue.length === 0 && audioProducerDone) {
+          if (audioProducerError) throw audioProducerError;
+          break; // Normal stream EOF
+        }
+
+        let item = audioQueue.shift();
+        if (!item) {
+          // Underflow protection (Mezube pattern):
+          // If disk read or FFmpeg had a momentary stutter, emit silence to keep WebRTC clock moving!
+          item = { payload: SILENCE_OPUS_PACKET, duration: SILENCE_SAMPLES };
+        }
+
         packetCount++;
         const dueAt =
           timelineStartedAt + (sentSamples * 1000) / OPUS_CLOCK_RATE;
-        const waitMs = dueAt - performance.now();
-        if (waitMs > 0) {
-          await delay(waitMs, undefined, {
+        const now = performance.now();
+        const waitMs = dueAt - now;
+        if (waitMs > 1) {
+          await delay(waitMs - 0.5, undefined, {
             signal: this.abortController.signal,
           });
+        }
+        while (performance.now() < dueAt) {
+          // sub-millisecond precision
         }
 
         this.audioTrack.writeRtp(
@@ -385,16 +456,14 @@ export class WhipMediaPublisher {
               timestamp,
               ssrc,
             }),
-            payload,
+            item.payload,
           ),
         );
 
         firstPacket = false;
         sequenceNumber = (sequenceNumber + 1) & 0xffff;
-        const duration = getOpusDurationSamples(payload);
-        timestamp = (timestamp + duration) >>> 0;
-        sentSamples += duration;
-        this.audioMediaSamples += duration;
+        timestamp = (timestamp + item.duration) >>> 0;
+        sentSamples += item.duration;
         this.lastAudioSequenceNumber = sequenceNumber;
         this.lastAudioTimestamp = timestamp;
 
@@ -405,17 +474,18 @@ export class WhipMediaPublisher {
           timelineStartedAt += lag;
         }
 
-        // 2. Video sync: Audio drives video release (Mezube single-loop pattern)
-        if (videoReader && videoSender) {
+        // Video sync: audio timeline drives video frame release from RAM queue
+        if (videoSender && videoQueue.length > 0) {
           const audioTime =
-            (this.audioMediaSamples * VIDEO_CLOCK_RATE) / OPUS_CLOCK_RATE;
+            (sentSamples * VIDEO_CLOCK_RATE) / OPUS_CLOCK_RATE;
+          let framesSentThisTick = 0;
           while (
             videoTime < audioTime &&
+            videoQueue.length > 0 &&
+            framesSentThisTick < 2 &&
             !this.abortController.signal.aborted
           ) {
-            const frame = await videoReader.readFrame();
-            if (!frame) break;
-
+            const frame = videoQueue.shift()!;
             if (!keyframeFound) {
               if (!frame.isKeyframe) continue;
               keyframeFound = true;
@@ -427,6 +497,7 @@ export class WhipMediaPublisher {
                 : VIDEO_FRAME_DURATION_TIMESTAMP;
             videoSender.sendFrame(frame.data, frameDuration);
             videoTime += frameDuration;
+            framesSentThisTick++;
           }
         }
 
@@ -434,7 +505,7 @@ export class WhipMediaPublisher {
           lastProgressLog = Date.now();
           const streamedSec = (sentSamples / OPUS_CLOCK_RATE).toFixed(1);
           console.log(
-            `[WhipMediaPublisher] Streamed: ${streamedSec}s (${packetCount} audio packets, videoTime=${(videoTime / VIDEO_CLOCK_RATE).toFixed(1)}s)`,
+            `[WhipMediaPublisher] Streamed: ${streamedSec}s (${packetCount} audio packets, queue=${audioQueue.length}, videoQueue=${videoQueue.length})`,
           );
         }
       }
@@ -468,6 +539,9 @@ export class WhipMediaPublisher {
       throw error;
     } finally {
       this.audioFinished = true;
+      try {
+        await Promise.allSettled([audioWorker, videoWorker]);
+      } catch {}
     }
   }
 
