@@ -1,9 +1,13 @@
-import {ApiProperty} from '@nestjs/swagger';
-import {IsOptional} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
 import { ChannelMessageContent } from 'mezon-sdk';
 
 export class SendMessageToUserDTO {
-    @ApiProperty({required: true})
+    @ApiPropertyOptional()
+    @IsOptional()
+    readonly userId?: string = '';
+
+    @ApiPropertyOptional()
     @IsOptional()
     readonly username?: string = '';
 
