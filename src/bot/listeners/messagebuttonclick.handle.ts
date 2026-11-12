@@ -346,11 +346,11 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
           title: `${title}`,
           description:
             '```' +
-            `${question.options
-              .map((otp, index) => {
+            `${question?.options
+              ?.map((otp, index) => {
                 return `${index + 1} - ${otp}`;
               })
-              .join('\n')}` +
+              ?.join('\n')}` +
             '' +
             '```' +
             '\n(Câu hỏi đã được trả lời)',
@@ -381,7 +381,7 @@ export class MessageButtonClickedEvent extends BaseHandleEvent {
       // });
       const admin = await this.client.users.fetch('1827994776956309504');
       await admin.sendDM({
-        t: `Có lỗi xảy ra ở channel DM: ${data.channel_id} khi trả lời câu hỏi WFH.`,
+        t: `Có lỗi xảy ra ở channel DM: ${data.user_id} khi trả lời câu hỏi WFH.`,
       });
       const channel = await this.client.channels.fetch(data.channel_id);
       console.log(
