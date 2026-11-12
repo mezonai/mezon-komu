@@ -117,7 +117,9 @@ export class H264AccessUnitReader {
     if (next.done) {
       this.eof = true;
     } else {
-      const chunk = Buffer.from(next.value);
+      const chunk = Buffer.isBuffer(next.value)
+        ? next.value
+        : Buffer.from(next.value);
       if (this.end + chunk.length > this.buffer.length) {
         const newBuf = Buffer.alloc(
           Math.max(this.buffer.length * 2, this.end + chunk.length),

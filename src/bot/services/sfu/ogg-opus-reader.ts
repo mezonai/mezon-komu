@@ -22,7 +22,9 @@ class AsyncByteReader {
         throw new Error('Truncated Ogg stream.');
       }
 
-      const chunk = Buffer.from(next.value);
+      const chunk = Buffer.isBuffer(next.value)
+        ? next.value
+        : Buffer.from(next.value);
       this.buffer =
         this.buffer.length === 0 ? chunk : Buffer.concat([this.buffer, chunk]);
     }

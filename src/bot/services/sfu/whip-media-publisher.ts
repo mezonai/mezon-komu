@@ -18,7 +18,7 @@ const VIDEO_CLOCK_RATE = 90_000;
 const VIDEO_FPS = 30;
 const VIDEO_FRAME_DURATION_TIMESTAMP = VIDEO_CLOCK_RATE / VIDEO_FPS; // 3000
 const VIDEO_FRAME_SAMPLES = OPUS_CLOCK_RATE / VIDEO_FPS; // 1600
-const MAX_CATCH_UP_MS = 40;
+const MAX_CATCH_UP_MS = 80;
 const SILENCE_OPUS_PACKET = Buffer.from([0xf8, 0xff, 0xfe]);
 const SILENCE_SAMPLES = 960;
 
@@ -34,6 +34,8 @@ export class WhipMediaPublisher {
   private peerConnection?: RTCPeerConnection;
   private audioTrack?: MediaStreamTrack;
   private videoTrack?: MediaStreamTrack;
+  private audioSender?: any;
+  private videoRtpSender?: any;
   private audioSsrc?: number;
   private videoSsrc?: number;
   private resourceUrl?: string;
@@ -68,6 +70,7 @@ export class WhipMediaPublisher {
               clockRate: 48000,
               channels: 2,
               payloadType: 111,
+              parameters: 'minptime=10;useinbandfec=1',
             }),
           ],
           video: hasVideo
@@ -118,8 +121,10 @@ export class WhipMediaPublisher {
         videoTransceiver = pc.addTransceiver(videoTrack, { direction: 'sendonly' });
       }
 
+      this.audioSender = audioTransceiver.sender;
       this.audioSsrc = audioTransceiver.sender.ssrc;
       if (videoTransceiver) {
+        this.videoRtpSender = videoTransceiver.sender;
         this.videoSsrc = videoTransceiver.sender.ssrc;
       }
 
@@ -216,8 +221,9 @@ export class WhipMediaPublisher {
     this.stopping = true;
     this.abortController.abort();
 
-    // 0. Overwrite edge server ring buffer with silence before terminating session
+    // 0. If no WHIP resourceUrl exists to DELETE cleanly, send brief silence to avoid looping last frame
     if (
+      !this.resourceUrl &&
       this.audioTrack &&
       this.audioSsrc !== undefined &&
       this.lastAudioSequenceNumber !== undefined &&
@@ -226,7 +232,7 @@ export class WhipMediaPublisher {
       try {
         let seq = (this.lastAudioSequenceNumber + 1) & 0xffff;
         let ts = (this.lastAudioTimestamp + SILENCE_SAMPLES) >>> 0;
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 10; i++) {
           this.audioTrack.writeRtp(
             new RtpPacket(
               new RtpHeader({
@@ -336,6 +342,9 @@ export class WhipMediaPublisher {
     let keyframeFound = false;
 
     let packetCount = 0;
+    let underflows = 0;
+    let lagSkips = 0;
+    let maxLagMs = 0;
     let lastProgressLog = Date.now();
 
     // Decoupled in-memory producer queues (Mezube high-performance architecture)
@@ -355,7 +364,7 @@ export class WhipMediaPublisher {
           if (this.abortController.signal.aborted) break;
           const duration = getOpusDurationSamples(payload);
           audioQueue.push({ payload, duration });
-          while (audioQueue.length >= 150 && !this.abortController.signal.aborted) {
+          while (audioQueue.length >= 300 && !this.abortController.signal.aborted) {
             await delay(15, undefined, { signal: this.abortController.signal });
           }
         }
@@ -386,7 +395,7 @@ export class WhipMediaPublisher {
           const frame = await videoReader.readFrame();
           if (!frame) break;
           videoQueue.push(frame);
-          while (videoQueue.length >= 90 && !this.abortController.signal.aborted) {
+          while (videoQueue.length >= 180 && !this.abortController.signal.aborted) {
             await delay(15, undefined, { signal: this.abortController.signal });
           }
         }
@@ -403,11 +412,11 @@ export class WhipMediaPublisher {
     const videoWorker = runVideoProducer();
 
     console.log('[WhipMediaPublisher] Pre-buffering in-memory audio/video queue...');
-    // Pre-fill memory queue with audio (~600ms) and video (~500ms) before starting RTP send loop
+    // Pre-fill memory queue with audio (~1s) and video (~1s) before starting RTP send loop
     while (
       !this.abortController.signal.aborted &&
-      ((!audioProducerDone && audioQueue.length < 30) ||
-        (videoSender && !videoProducerDone && videoQueue.length < 15))
+      ((!audioProducerDone && audioQueue.length < 50) ||
+        (videoSender && !videoProducerDone && videoQueue.length < 30))
     ) {
       await delay(10, undefined, { signal: this.abortController.signal });
     }
@@ -430,6 +439,7 @@ export class WhipMediaPublisher {
         if (!item) {
           // Underflow protection (Mezube pattern):
           // If disk read or FFmpeg had a momentary stutter, emit silence to keep WebRTC clock moving!
+          underflows++;
           item = { payload: SILENCE_OPUS_PACKET, duration: SILENCE_SAMPLES };
         }
 
@@ -438,13 +448,16 @@ export class WhipMediaPublisher {
           timelineStartedAt + (sentSamples * 1000) / OPUS_CLOCK_RATE;
         const now = performance.now();
         const waitMs = dueAt - now;
-        if (waitMs > 1) {
-          await delay(waitMs - 0.5, undefined, {
+        if (waitMs > 2) {
+          await delay(waitMs - 1, undefined, {
             signal: this.abortController.signal,
           });
         }
-        while (performance.now() < dueAt) {
-          // sub-millisecond precision
+        const spinRemaining = dueAt - performance.now();
+        if (spinRemaining > 0 && spinRemaining < 2) {
+          while (performance.now() < dueAt) {
+            // sub-millisecond precision
+          }
         }
 
         this.audioTrack.writeRtp(
@@ -470,8 +483,18 @@ export class WhipMediaPublisher {
         const expectedNow =
           timelineStartedAt + (sentSamples * 1000) / OPUS_CLOCK_RATE;
         const lag = performance.now() - expectedNow;
+        if (lag > maxLagMs) {
+          maxLagMs = lag;
+        }
         if (lag > MAX_CATCH_UP_MS) {
-          timelineStartedAt += lag;
+          const skipSamples =
+            Math.floor((lag * OPUS_CLOCK_RATE) / 1000 / SILENCE_SAMPLES) *
+            SILENCE_SAMPLES;
+          if (skipSamples > 0) {
+            timestamp = (timestamp + skipSamples) >>> 0;
+            sentSamples += skipSamples;
+            lagSkips++;
+          }
         }
 
         // Video sync: audio timeline drives video frame release from RAM queue
@@ -491,12 +514,8 @@ export class WhipMediaPublisher {
               keyframeFound = true;
             }
 
-            const frameDuration =
-              audioTime - videoTime > 2 * VIDEO_FRAME_DURATION_TIMESTAMP
-                ? audioTime - videoTime
-                : VIDEO_FRAME_DURATION_TIMESTAMP;
-            videoSender.sendFrame(frame.data, frameDuration);
-            videoTime += frameDuration;
+            videoSender.sendFrame(frame.data, VIDEO_FRAME_DURATION_TIMESTAMP);
+            videoTime += VIDEO_FRAME_DURATION_TIMESTAMP;
             framesSentThisTick++;
           }
         }
@@ -504,8 +523,11 @@ export class WhipMediaPublisher {
         if (Date.now() - lastProgressLog > 10000) {
           lastProgressLog = Date.now();
           const streamedSec = (sentSamples / OPUS_CLOCK_RATE).toFixed(1);
+          const audioNacks = this.audioSender?.nackCount ?? 0;
+          const videoNacks = this.videoRtpSender?.nackCount ?? 0;
+          const videoPlis = this.videoRtpSender?.pliCount ?? 0;
           console.log(
-            `[WhipMediaPublisher] Streamed: ${streamedSec}s (${packetCount} audio packets, queue=${audioQueue.length}, videoQueue=${videoQueue.length})`,
+            `[WhipMediaPublisher] Streamed: ${streamedSec}s (${packetCount} audio pkts, q=${audioQueue.length}, vq=${videoQueue.length}, underflow=${underflows}, lagSkip=${lagSkips}, maxLag=${maxLagMs.toFixed(1)}ms, nack=${audioNacks}/${videoNacks}, pli=${videoPlis})`,
           );
         }
       }

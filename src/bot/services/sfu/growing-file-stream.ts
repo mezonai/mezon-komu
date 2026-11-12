@@ -1,11 +1,15 @@
 import { Readable } from 'stream';
 import * as fs from 'fs';
+import { promisify } from 'util';
+
+const readAsync = promisify(fs.read);
 
 export class GrowingFileStream extends Readable {
   private fd: number | null = null;
   private position = 0;
   private isStreamClosed = false;
   private reading = false;
+  private scratchBuffer = Buffer.allocUnsafe(64 * 1024);
 
   constructor(
     private readonly filePath: string,
@@ -47,11 +51,22 @@ export class GrowingFileStream extends Readable {
         this.fd = fs.openSync(this.filePath, 'r');
       }
 
-      const buffer = Buffer.alloc(Math.max(size, 64 * 1024));
+      const targetSize = Math.max(size, 64 * 1024);
+      if (this.scratchBuffer.length < targetSize) {
+        this.scratchBuffer = Buffer.allocUnsafe(targetSize);
+      }
+
       while (!this.isStreamClosed) {
         let bytesRead = 0;
         try {
-          bytesRead = fs.readSync(this.fd, buffer, 0, buffer.length, this.position);
+          const res = await readAsync(
+            this.fd,
+            this.scratchBuffer,
+            0,
+            targetSize,
+            this.position,
+          );
+          bytesRead = res.bytesRead;
         } catch (err: any) {
           if (this.isWriterFinished()) {
             const writerErr = this.getWriterError();
@@ -65,7 +80,7 @@ export class GrowingFileStream extends Readable {
 
         if (bytesRead > 0) {
           this.position += bytesRead;
-          const chunk = Buffer.from(buffer.subarray(0, bytesRead));
+          const chunk = Buffer.from(this.scratchBuffer.subarray(0, bytesRead));
           this.reading = false;
           this.push(chunk);
           return;

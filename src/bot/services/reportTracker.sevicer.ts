@@ -581,18 +581,22 @@ export class ReportTrackerService {
     const wfhUserEmail = wfhResult
       .filter((item) => ['Morning', 'Fullday'].includes(item.dateTypeName))
       .map((item) => getUserNameByEmail(item.emailAddress));
-    const findUserWfh = await this.userRepository
-      .createQueryBuilder('user')
-      .leftJoin(
-        'komu_user_clan_profile',
-        'ncc_profile',
-        'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
-        { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
-      )
-      .where(nccProfileMatchesListSql('wfhUserEmail'), { wfhUserEmail })
-      .andWhere('"user".user_type = :userType', { userType: EUserType.MEZON })
-      .andWhere('"user".deactive = :deactive', { deactive: false })
-      .getMany();
+    const findUserWfh = wfhUserEmail.length
+      ? await this.userRepository
+          .createQueryBuilder('user')
+          .leftJoin(
+            'komu_user_clan_profile',
+            'ncc_profile',
+            'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+            { nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID },
+          )
+          .where(nccProfileMatchesListSql('wfhUserEmail'), { wfhUserEmail })
+          .andWhere('"user".user_type = :userType', {
+            userType: EUserType.MEZON,
+          })
+          .andWhere('"user".deactive = :deactive', { deactive: false })
+          .getMany()
+      : [];
 
     const userIdWfhList = findUserWfh.map((user) => user.userId);
     // get data tracker
@@ -608,20 +612,30 @@ export class ReportTrackerService {
     >();
 
     for (const session of findUserTracker) {
-      if (!session.userId || session.leaveAt === null) continue;
+      if (
+        !session.userId ||
+        session.leaveAt === null ||
+        session.leaveAt === undefined
+      ) {
+        continue;
+      }
 
-      const timeSpent = session.leaveAt - session.joinAt;
+      const joinAt = Number(session.joinAt);
+      const leaveAt = Number(session.leaveAt);
+      if (!Number.isFinite(joinAt) || !Number.isFinite(leaveAt)) continue;
+
+      const timeSpent = Math.max(0, leaveAt - joinAt);
       const prev = userSessionMap.get(session.userId);
 
       if (prev) {
         userSessionMap.set(session.userId, {
           totalTime: prev.totalTime + timeSpent,
-          firstJoin: Math.min(prev.firstJoin ?? session.joinAt, session.joinAt),
+          firstJoin: Math.min(prev.firstJoin ?? joinAt, joinAt),
         });
       } else {
         userSessionMap.set(session.userId, {
           totalTime: timeSpent,
-          firstJoin: session.joinAt,
+          firstJoin: joinAt,
         });
       }
     }

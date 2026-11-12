@@ -10,6 +10,7 @@ export class NCC8Service {
   private readonly logger = new Logger(NCC8Service.name);
   private publisher?: WhipMediaPublisher;
   private currentPipeline?: StreamPipeline;
+  private currentCleanUrl?: string;
   private operation: Promise<void> = Promise.resolve();
 
   constructor(private clientService: MezonClientService) {
@@ -21,12 +22,16 @@ export class NCC8Service {
     return this.enqueue(async () => {
       const cleanUrl = fileUrl.split('?')[0];
       this.logger.log(`[NCC8Service] Starting playNcc8 for ${cleanUrl} (originChannelId: ${originChannelId})...`);
-      await this.stopCurrentPublisher();
 
       const channelId = process.env.MEZON_NCC8_CHANNEL_ID;
       this.logger.log(`[NCC8Service] MEZON_NCC8_CHANNEL_ID: ${channelId}`);
       if (!channelId) {
         throw new Error('MEZON_NCC8_CHANNEL_ID is not configured.');
+      }
+
+      // If replaying the exact same source URL, stop first so cache/.part files don't collide
+      if (this.currentCleanUrl === cleanUrl) {
+        await this.stopCurrentPublisher();
       }
 
       let playUrl = fileUrl;
@@ -60,9 +65,16 @@ export class NCC8Service {
         }
       }
 
+      // Prepare new FFmpeg/stream pipeline while old track keeps playing to minimize switch gap
       this.logger.log(`[NCC8Service] Opening real-time stream from URL ${cleanUrl}...`);
       const pipeline = await MediaPreparer.openPipeline(playUrl);
-      this.currentPipeline = pipeline;
+
+      try {
+        await this.stopCurrentPublisher();
+      } catch (stopErr) {
+        await pipeline.cleanup();
+        throw stopErr;
+      }
 
       this.logger.log(
         `[NCC8Service] Pipeline ready (hasVideo=${pipeline.hasVideo}). Requesting WHIP grant for channel ${channelId}...`,
@@ -87,6 +99,9 @@ export class NCC8Service {
         throw new Error(`Mezon did not return a valid WHIP endpoint or token. Response: ${JSON.stringify(response)}`);
       }
 
+      this.currentPipeline = pipeline;
+      this.currentCleanUrl = cleanUrl;
+
       const publisher = new WhipMediaPublisher({
         whipUrl: response.whip_url,
         token: response.token,
@@ -95,6 +110,10 @@ export class NCC8Service {
         onEnded: (error) => {
           if (this.publisher === publisher) {
             this.publisher = undefined;
+            this.currentCleanUrl = undefined;
+          }
+          if (this.currentPipeline === pipeline) {
+            this.currentPipeline = undefined;
           }
           void pipeline.cleanup();
           if (error) {
@@ -118,6 +137,10 @@ export class NCC8Service {
         this.logger.error('[NCC8Service] publisher.start() failed:', error);
         if (this.publisher === publisher) {
           this.publisher = undefined;
+          this.currentCleanUrl = undefined;
+        }
+        if (this.currentPipeline === pipeline) {
+          this.currentPipeline = undefined;
         }
         void pipeline.cleanup();
         throw error;
@@ -138,6 +161,7 @@ export class NCC8Service {
   private async stopCurrentPublisher(): Promise<void> {
     const publisher = this.publisher;
     this.publisher = undefined;
+    this.currentCleanUrl = undefined;
     if (this.currentPipeline) {
       await this.currentPipeline.cleanup();
       this.currentPipeline = undefined;
@@ -145,8 +169,8 @@ export class NCC8Service {
     if (!publisher) return;
 
     await publisher.close();
-    // Allow mezon-streaming-server to teardown edge session and clear HLS/WebRTC jitter buffer
-    await new Promise((r) => setTimeout(r, 600));
+    // Brief pause after awaited WHIP DELETE while getStreamPlayback + ICE/SDP finishes setup
+    await new Promise((r) => setTimeout(r, 200));
     this.logger.log('NCC8 WHIP publisher stopped.');
   }
 

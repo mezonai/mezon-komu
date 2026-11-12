@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Events, StreamingJoinedEvent, StreamingLeavedEvent } from 'mezon-sdk';
 import { BaseHandleEvent } from './base.handle';
@@ -53,6 +54,7 @@ export class StreamingEvent extends BaseHandleEvent {
   @OnEvent(Events.StreamingJoinedEvent)
   async handleJoinNCC8(data: StreamingJoinedEvent) {
     if (
+      !data.user_id ||
       data.user_id === process.env.BOT_KOMU_ID ||
       data.streaming_channel_id !== process.env.MEZON_NCC8_CHANNEL_ID
     )
@@ -68,27 +70,34 @@ export class StreamingEvent extends BaseHandleEvent {
           return getUserNameByEmail(item.emailAddress);
         });
 
-      const findUserWfh = await this.userRepository
-        .createQueryBuilder('user')
-        .leftJoin(
-          'komu_user_clan_profile',
-          'ncc_profile',
-          'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
-        )
-        .where(nccProfileMatchesListSql('wfhUserEmail'))
-        .andWhere('"user".user_type = :userType')
-        .setParameters({
-          nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
-          wfhUserEmail,
-          userType: EUserType.MEZON,
-        })
-        .getMany();
+      const findUserWfh = wfhUserEmail.length
+        ? await this.userRepository
+            .createQueryBuilder('user')
+            .leftJoin(
+              'komu_user_clan_profile',
+              'ncc_profile',
+              'ncc_profile."userId" = "user"."userId" AND ncc_profile.clan_id = :nccClanId',
+            )
+            .where(nccProfileMatchesListSql('wfhUserEmail'))
+            .andWhere('"user".user_type = :userType')
+            .setParameters({
+              nccClanId: process.env.KOMUBOTREST_CLAN_NCC_ID,
+              wfhUserEmail,
+              userType: EUserType.MEZON,
+            })
+            .getMany()
+        : [];
       const userIdList = findUserWfh.map((user) => user.userId);
 
-      const user = await this.client.users.fetch(data.user_id);
-      user.sendDM({
-        t: "🎉 Joining NCC8 successfully. Let's chill with NCC8!",
-      });
+      try {
+        const user = await this.client.users.fetch(data.user_id);
+        await user?.sendDM({
+          t: "🎉 Joining NCC8 successfully. Let's chill with NCC8!",
+        });
+      } catch (dmError) {
+        console.warn('handleJoinNCC8 sendDM failed:', dmError);
+      }
+
       if (!userIdList.includes(data.user_id)) return; // check user wfh
 
       const existing = await this.mezonTrackerStreamingRepository.findOne({
@@ -101,7 +110,10 @@ export class StreamingEvent extends BaseHandleEvent {
 
       if (!existing) {
         const dataInsert = new MezonTrackerStreaming();
-        dataInsert.id = data.id || `${data.user_id}-${dateNow}`;
+        dataInsert.id =
+          data.id && data.id !== '0'
+            ? `${data.id}-${data.user_id}-${dateNow}`
+            : `${data.user_id}-${dateNow}-${randomUUID().slice(0, 8)}`;
         dataInsert.channelId = data.streaming_channel_id;
         dataInsert.clanId = data.clan_id;
         dataInsert.userId = data.user_id;
@@ -118,19 +130,19 @@ export class StreamingEvent extends BaseHandleEvent {
   @OnEvent(Events.StreamingLeavedEvent)
   async handleLeaveNCC8(data: StreamingLeavedEvent) {
     if (
+      !data.streaming_user_id ||
       data.streaming_user_id === process.env.BOT_KOMU_ID ||
       data.streaming_channel_id !== process.env.MEZON_NCC8_CHANNEL_ID
     )
       return;
     try {
       const dateNow = Date.now();
-      if (this.isOutsideTimeRangeNcc8(dateNow)) return;
 
       const existing = await this.mezonTrackerStreamingRepository.findOne({
         where: {
           userId: data.streaming_user_id,
           channelId: data.streaming_channel_id,
-          leaveAt: null,
+          leaveAt: IsNull(),
         },
         order: { joinAt: 'DESC' },
       });
@@ -139,24 +151,29 @@ export class StreamingEvent extends BaseHandleEvent {
         await this.mezonTrackerStreamingRepository.save(existing);
         console.log(`Session của user ${data.streaming_user_id} đã được đóng.`);
       } else {
+        if (this.isOutsideTimeRangeNcc8(dateNow)) return;
         console.warn(
           `Không tìm thấy session đang mở cho user ${data.streaming_user_id}.`,
         );
       }
-      const user = await this.client.users.fetch(data.streaming_user_id);
-      user.sendDM({ t: '❗Bạn đã rời khỏi channel NCC8-Radio!' });
+      try {
+        const user = await this.client.users.fetch(data.streaming_user_id);
+        await user?.sendDM({ t: '❗Bạn đã rời khỏi channel NCC8-Radio!' });
+      } catch (dmError) {
+        console.warn('handleLeaveNCC8 sendDM failed:', dmError);
+      }
     } catch (error) {
       console.log('handleLeaveNCC8', error);
     }
   }
 
-  @Cron('1 12 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
+  @Cron('15 12 * * *', { timeZone: 'Asia/Ho_Chi_Minh' })
   async handleAutoFillTimeLeave() {
     try {
       const dateNow = Date.now();
       await this.mezonTrackerStreamingRepository.update(
         { leaveAt: IsNull() },
-        { leaveAt: dateNow - 40000 },
+        { leaveAt: dateNow },
       );
     } catch (error) {
       console.log('handleAutoFillTimeLeave', error);
