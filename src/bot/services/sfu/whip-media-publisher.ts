@@ -2,6 +2,7 @@ import axios from 'axios';
 import { randomBytes } from 'crypto';
 import { setTimeout as delay } from 'timers/promises';
 import {
+  MediaStream,
   MediaStreamTrack,
   RTCPeerConnection,
   RTCRtpCodecParameters,
@@ -18,7 +19,7 @@ const VIDEO_CLOCK_RATE = 90_000;
 const VIDEO_FPS = 30;
 const VIDEO_FRAME_DURATION_TIMESTAMP = VIDEO_CLOCK_RATE / VIDEO_FPS; // 3000
 const VIDEO_FRAME_SAMPLES = OPUS_CLOCK_RATE / VIDEO_FPS; // 1600
-const MAX_CATCH_UP_MS = 80;
+const MAX_CATCH_UP_MS = 150;
 const SILENCE_OPUS_PACKET = Buffer.from([0xf8, 0xff, 0xfe]);
 const SILENCE_SAMPLES = 960;
 
@@ -108,17 +109,27 @@ export class WhipMediaPublisher {
         }
       });
 
+      // Bind both tracks to the same MediaStream so SDP includes a shared a=msid
+      // for WebRTC A/V lip-sync (RtpStreamsSynchronizer).
+      const mediaStream = new MediaStream();
+
       // Add audio transceiver
       const audioTrack = new MediaStreamTrack({ kind: 'audio' });
       this.audioTrack = audioTrack;
-      const audioTransceiver = pc.addTransceiver(audioTrack, { direction: 'sendonly' });
+      const audioTransceiver = pc.addTransceiver(audioTrack, {
+        direction: 'sendonly',
+        streams: [mediaStream],
+      });
 
       // Add video transceiver if video is provided
       let videoTransceiver: any;
       if (hasVideo) {
         const videoTrack = new MediaStreamTrack({ kind: 'video' });
         this.videoTrack = videoTrack;
-        videoTransceiver = pc.addTransceiver(videoTrack, { direction: 'sendonly' });
+        videoTransceiver = pc.addTransceiver(videoTrack, {
+          direction: 'sendonly',
+          streams: [mediaStream],
+        });
       }
 
       this.audioSender = audioTransceiver.sender;
@@ -324,6 +335,7 @@ export class WhipMediaPublisher {
     let timestamp = randomBytes(4).readUInt32BE(0);
     const ssrc = this.audioSsrc ?? randomBytes(4).readUInt32BE(0);
     let sentSamples = 0;
+    let realAudioSamples = 0;
     let timelineStartedAt = performance.now();
     let firstPacket = true;
 
@@ -436,6 +448,7 @@ export class WhipMediaPublisher {
         }
 
         let item = audioQueue.shift();
+        const isUnderflow = !item;
         if (!item) {
           // Underflow protection (Mezube pattern):
           // If disk read or FFmpeg had a momentary stutter, emit silence to keep WebRTC clock moving!
@@ -473,10 +486,14 @@ export class WhipMediaPublisher {
           ),
         );
 
+        const realAudioSamplesAtSend = realAudioSamples;
         firstPacket = false;
         sequenceNumber = (sequenceNumber + 1) & 0xffff;
         timestamp = (timestamp + item.duration) >>> 0;
         sentSamples += item.duration;
+        if (!isUnderflow) {
+          realAudioSamples += item.duration;
+        }
         this.lastAudioSequenceNumber = sequenceNumber;
         this.lastAudioTimestamp = timestamp;
 
@@ -487,25 +504,24 @@ export class WhipMediaPublisher {
           maxLagMs = lag;
         }
         if (lag > MAX_CATCH_UP_MS) {
-          const skipSamples =
-            Math.floor((lag * OPUS_CLOCK_RATE) / 1000 / SILENCE_SAMPLES) *
-            SILENCE_SAMPLES;
-          if (skipSamples > 0) {
-            timestamp = (timestamp + skipSamples) >>> 0;
-            sentSamples += skipSamples;
-            lagSkips++;
-          }
+          // Re-anchor timeline without inserting an RTP timestamp hole in audio
+          // so WebRTC NetEQ does not glitch/reset when resynchronizing after a stall.
+          timelineStartedAt += lag;
+          lagSkips++;
         }
 
-        // Video sync: audio timeline drives video frame release from RAM queue
-        if (videoSender && videoQueue.length > 0) {
+        // Video sync: real (non-underflow) audio timeline drives video frame release
+        // at the packet's actual send time so video never runs ahead of audio.
+        if (videoSender && videoQueue.length > 0 && !isUnderflow) {
           const audioTime =
-            (sentSamples * VIDEO_CLOCK_RATE) / OPUS_CLOCK_RATE;
+            (realAudioSamplesAtSend * VIDEO_CLOCK_RATE) / OPUS_CLOCK_RATE;
+          const maxFramesThisTick =
+            audioTime - videoTime > 2 * VIDEO_FRAME_DURATION_TIMESTAMP ? 2 : 1;
           let framesSentThisTick = 0;
           while (
-            videoTime < audioTime &&
+            videoTime <= audioTime &&
             videoQueue.length > 0 &&
-            framesSentThisTick < 2 &&
+            framesSentThisTick < maxFramesThisTick &&
             !this.abortController.signal.aborted
           ) {
             const frame = videoQueue.shift()!;
