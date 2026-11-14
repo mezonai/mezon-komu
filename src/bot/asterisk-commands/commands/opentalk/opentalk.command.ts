@@ -110,11 +110,15 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'list') {
       const query = this.eventRepo
         .createQueryBuilder('e')
+        .where(
+          'e.channelVoiceId IS NOT NULL AND e.channelVoiceId != :empty AND e.channelVoiceId != :zero',
+          { empty: '', zero: '0' },
+        )
         .orderBy('e.id', 'DESC')
         .limit(15);
 
       if (args[1]?.toLowerCase() === 'active') {
-        query.where('e.active = :active', { active: true });
+        query.andWhere('e.active = :active', { active: true });
       }
 
       const events = await query.getMany();
@@ -151,15 +155,31 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'up') {
       const userId = args[1];
       const min = +args[2];
+      const dateStr = args[3];
+
+      if (dateStr && !this.isValidDateFormat(dateStr)) {
+        const text =
+          'Định dạng ngày không hợp lệ! Vui lòng dùng: dd/MM/yyyy (ví dụ: 15/10/2026)';
+        return this.replyMessageGenerate(
+          {
+            messageContent: text,
+            mk: [{ type: 'pre', s: 0, e: text.length }],
+          },
+          message,
+        );
+      }
+
       const adjusted =
         await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
           userId,
           min,
           UpdateTimeType.UP,
+          dateStr,
         );
+      const displayDate = dateStr ? ` ngày ${dateStr}` : '';
       const messageContent = adjusted
-        ? `Tăng ${min} success! ${userId}`
-        : `Không thể tăng thời gian cho ${userId}. Kiểm tra user ID và số phút.`;
+        ? `Tăng ${min} phút${displayDate} success! ${userId}`
+        : `Không thể tăng thời gian cho ${userId}. Kiểm tra user ID, số phút hoặc ngày.`;
       return this.replyMessageGenerate(
         {
           messageContent,
@@ -172,15 +192,31 @@ export class OpentalkCommand extends CommandMessage {
     if (args[0] === 'down') {
       const userId = args[1];
       const min = +args[2];
+      const dateStr = args[3];
+
+      if (dateStr && !this.isValidDateFormat(dateStr)) {
+        const text =
+          'Định dạng ngày không hợp lệ! Vui lòng dùng: dd/MM/yyyy (ví dụ: 15/10/2026)';
+        return this.replyMessageGenerate(
+          {
+            messageContent: text,
+            mk: [{ type: 'pre', s: 0, e: text.length }],
+          },
+          message,
+        );
+      }
+
       const adjusted =
         await this.voiceSessionTrackingService.adjustUserVoiceSessionTime(
           userId,
           min,
           UpdateTimeType.DOWN,
+          dateStr,
         );
+      const displayDate = dateStr ? ` ngày ${dateStr}` : '';
       const messageContent = adjusted
-        ? `Giảm ${min} success! ${userId}`
-        : `Không thể giảm thời gian cho ${userId}. Kiểm tra user ID và số phút.`;
+        ? `Giảm ${min} phút${displayDate} success! ${userId}`
+        : `Không thể giảm thời gian cho ${userId}. Kiểm tra user ID, số phút hoặc ngày.`;
       return this.replyMessageGenerate(
         {
           messageContent,

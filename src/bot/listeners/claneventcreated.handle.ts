@@ -34,55 +34,70 @@ export class EventClanEventCreated extends BaseHandleEvent {
   @OnEvent(Events.ClanEventCreated)
   async handleClanEventCreated(data) {
     try {
-      if (data.event_status === 0 && data.action === 1) {
-        const EventMezonData = new EventMezon();
-        EventMezonData.id = data.event_id;
-        EventMezonData.logo = data.logo;
-        EventMezonData.address = data.address;
-        EventMezonData.clandId = data.clan_id;
-        EventMezonData.channelId = data.channel_id;
-        EventMezonData.channelVoiceId = data.channel_voice_id;
-        EventMezonData.timeStart = +data.start_time_seconds * 1000;
-        EventMezonData.timeEnd = +data.end_time_seconds * 1000;
-        EventMezonData.activeBet = true;
-        EventMezonData.title = data.title;
-        EventMezonData.description = data.description;
-        EventMezonData.active = data.channel_id === '0' || !data.channel_id;
-        await this.eventMezonRepository.insert(EventMezonData);
+      const timeStart = data.start_time_seconds
+        ? +data.start_time_seconds * 1000
+        : data.start_time
+          ? new Date(data.start_time).getTime()
+          : undefined;
+
+      const timeEnd = data.end_time_seconds
+        ? +data.end_time_seconds * 1000
+        : data.end_time
+          ? new Date(data.end_time).getTime()
+          : undefined;
+
+      if (data.action === 1) {
+        const eventData =
+          (await this.eventMezonRepository.findOne({
+            where: { id: data.event_id },
+          })) || new EventMezon();
+
+        eventData.id = data.event_id;
+        eventData.logo = data.logo;
+        eventData.address = data.address;
+        eventData.clandId = data.clan_id;
+        eventData.channelId = data.channel_id;
+        eventData.channelVoiceId = data.channel_voice_id;
+        if (timeStart !== undefined) eventData.timeStart = timeStart;
+        if (timeEnd !== undefined) eventData.timeEnd = timeEnd;
+        eventData.activeBet = true;
+        eventData.title = data.title;
+        eventData.description = data.description;
+        eventData.active = data.channel_id === '0' || !data.channel_id;
+        await this.eventMezonRepository.save(eventData);
       }
-      if (data.event_status === 0 && data.action === 3) {
+
+      if (data.action === 3) {
         await this.eventMezonRepository.update(
           { id: data.event_id },
           { active: false },
         );
       }
-      if (data.event_status === 0 && data.action === 2) {
+
+      if (data.action === 2) {
         const eventFound = await this.eventMezonRepository.findOne({
           where: { id: data.event_id },
         });
-        const EventMezonData = new EventMezon();
-        EventMezonData.id = data.event_id;
-        EventMezonData.logo = data.logo;
-        EventMezonData.address = data.address;
-        EventMezonData.clandId = data.clan_id;
-        EventMezonData.channelId = data.channel_id;
-        EventMezonData.channelVoiceId = data.channel_voice_id;
-        EventMezonData.timeStart = data.start_time
-          ? new Date(data.start_time).getTime()
-          : EventMezonData.timeStart;
-        EventMezonData.timeEnd = data.end_time
-          ? new Date(data.end_time).getTime()
-          : EventMezonData.timeEnd;
-        EventMezonData.title = data.title;
-        EventMezonData.description = data.description;
-        if (eventFound) {
-          await this.eventMezonRepository.update(
-            { id: data.event_id },
-            { ...EventMezonData },
-          );
-        } else {
-          await this.eventMezonRepository.insert(EventMezonData);
+
+        const eventData = eventFound || new EventMezon();
+        eventData.id = data.event_id;
+        eventData.logo = data.logo;
+        eventData.address = data.address;
+        eventData.clandId = data.clan_id;
+        eventData.channelId = data.channel_id;
+        eventData.channelVoiceId = data.channel_voice_id;
+        if (timeStart !== undefined) eventData.timeStart = timeStart;
+        if (timeEnd !== undefined) eventData.timeEnd = timeEnd;
+        eventData.title = data.title;
+        eventData.description = data.description;
+
+        // If event was missed during creation, initialize active flags
+        if (!eventFound) {
+          eventData.activeBet = true;
+          eventData.active = data.channel_id === '0' || !data.channel_id;
         }
+
+        await this.eventMezonRepository.save(eventData);
       }
     } catch (error) {
       console.log('handleClanEventCreated', error);

@@ -4,7 +4,7 @@ import { Repository, IsNull, In, Not } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { EventMezon, User, VoiceSession } from '../models';
 import { Cron } from '@nestjs/schedule';
-import { endOfDay, format, parse, startOfDay } from 'date-fns';
+import { endOfDay, format, isValid, parse, startOfDay } from 'date-fns';
 import { VoiceUsersCacheService } from './voiceUserCache.services';
 import { EMarkdownType, MezonClient } from 'mezon-sdk';
 import { MezonClientService } from 'src/mezon/services/client.service';
@@ -433,46 +433,120 @@ export class VoiceSessionTrackingService {
     userId: string,
     minute: number,
     type: UpdateTimeType,
+    dateStr?: string,
   ): Promise<boolean> {
     if (!Number.isFinite(minute) || minute <= 0) return false;
 
-    const latestSession = await this.voiceSessionRepo.findOne({
-      where: {
-        user_id: userId,
-        left_at: Not(IsNull()),
-        is_in_event: true,
-      } as any,
-      order: {
-        left_at: 'DESC',
-      } as any,
-    });
+    const targetDate = dateStr
+      ? parse(dateStr, 'dd/MM/yyyy', new Date())
+      : new Date();
+    if (!isValid(targetDate)) return false;
 
-    if (!latestSession) return false;
+    const targetDayStart = startOfDay(targetDate);
+    const targetDayEnd = endOfDay(targetDate);
 
-    const currentAdjustment = latestSession.manual_adjustment_minutes ?? 0;
+    let session = await this.voiceSessionRepo
+      .createQueryBuilder('s')
+      .where('s.user_id = :userId', { userId })
+      .andWhere('s.is_in_event = true')
+      .andWhere(
+        '(s.joined_at BETWEEN :targetDayStart AND :targetDayEnd OR s.left_at BETWEEN :targetDayStart AND :targetDayEnd OR (s.joined_at <= :targetDayEnd AND s.left_at IS NULL))',
+        { targetDayStart, targetDayEnd },
+      )
+      .orderBy('COALESCE(s.left_at, s.joined_at)', 'DESC')
+      .getOne();
+
+    if (!session) {
+      if (type === UpdateTimeType.DOWN) {
+        return false;
+      }
+
+      const targetDayStartMs = targetDayStart.getTime();
+      const targetDayEndMs = targetDayEnd.getTime();
+
+      let event = await this.eventRepo
+        .createQueryBuilder('e')
+        .where('e.timeStart IS NOT NULL')
+        .andWhere('e.active IS TRUE')
+        .andWhere('e.timeStart <= :targetDayEnd', { targetDayEnd: targetDayEndMs })
+        .andWhere('(e.timeEnd IS NULL OR e.timeEnd >= :targetDayStart)', {
+          targetDayStart: targetDayStartMs,
+        })
+        .orderBy('e.timeStart', 'DESC')
+        .getOne();
+
+      if (!event) {
+        event = await this.eventRepo
+          .createQueryBuilder('e')
+          .where('e.timeStart IS NOT NULL')
+          .andWhere('e.timeStart <= :targetDayEnd', { targetDayEnd: targetDayEndMs })
+          .andWhere('(e.timeEnd IS NULL OR e.timeEnd >= :targetDayStart)', {
+            targetDayStart: targetDayStartMs,
+          })
+          .orderBy('e.timeStart', 'DESC')
+          .getOne();
+      }
+
+      if (!event) {
+        event = await this.eventRepo
+          .createQueryBuilder('e')
+          .where('e.timeStart IS NOT NULL')
+          .orderBy('e.timeStart', 'DESC')
+          .getOne();
+      }
+
+      // Default to 12:00:00 of the target day so it is strictly between dayStart and dayEnd
+      let sessionTime = new Date(targetDayStartMs + 12 * 60 * 60 * 1000);
+      if (event?.timeStart) {
+        const eventStartMs = Number(event.timeStart);
+        if (eventStartMs >= targetDayStartMs && eventStartMs <= targetDayEndMs) {
+          sessionTime = new Date(eventStartMs);
+        }
+      }
+
+      const newSession = new VoiceSession();
+      newSession.id = randomUUID();
+      newSession.user_id = userId;
+      newSession.clan_id =
+        event?.clandId || process.env.KOMUBOTREST_CLAN_NCC_ID || '';
+      newSession.voice_channel_id = event?.channelVoiceId || '';
+      newSession.event_id = event?.id ?? null;
+      newSession.is_in_event = true;
+      newSession.joined_at = sessionTime;
+      newSession.left_at = sessionTime;
+      newSession.manual_adjustment_minutes = minute;
+
+      await this.voiceSessionRepo.save(newSession);
+      this.logger.log(
+        `Created voice session for user=${userId} with minute=${minute} on event=${event?.id} (date=${targetDayStart.toISOString()})`,
+      );
+      return true;
+    }
+
+    const currentAdjustment = session.manual_adjustment_minutes ?? 0;
 
     if (type === UpdateTimeType.UP) {
-      latestSession.manual_adjustment_minutes = currentAdjustment + minute;
+      session.manual_adjustment_minutes = currentAdjustment + minute;
     } else {
       const adjustmentReduction = Math.min(currentAdjustment, minute);
-      latestSession.manual_adjustment_minutes =
+      session.manual_adjustment_minutes =
         currentAdjustment - adjustmentReduction;
 
       const remainingMinute = minute - adjustmentReduction;
-      if (remainingMinute > 0) {
+      if (remainingMinute > 0 && session.left_at) {
         const newLeftAtMs =
-          latestSession.left_at!.getTime() - remainingMinute * 60 * 1000;
-        latestSession.left_at =
-          newLeftAtMs <= latestSession.joined_at.getTime()
-            ? latestSession.joined_at
+          session.left_at.getTime() - remainingMinute * 60 * 1000;
+        session.left_at =
+          newLeftAtMs <= session.joined_at.getTime()
+            ? session.joined_at
             : new Date(newLeftAtMs);
       }
     }
 
-    await this.voiceSessionRepo.save(latestSession);
+    await this.voiceSessionRepo.save(session);
 
     this.logger.log(
-      `Adjusted voice time user=${userId} type=${type} minute=${minute}`,
+      `Adjusted voice time user=${userId} type=${type} minute=${minute} date=${targetDayStart.toISOString()}`,
     );
     return true;
   }
