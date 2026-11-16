@@ -73,7 +73,7 @@ export class MediaPreparer {
     }
 
     const cleanUrl = urlOrPath.split('?')[0];
-    const urlHash = createHash('md5').update(`v3:${cleanUrl}`).digest('hex');
+    const urlHash = createHash('md5').update(`v4:${cleanUrl}`).digest('hex');
     const oggFinalPath = path.join(this.tempDir, `${urlHash}.ogg`);
     const h264FinalPath = path.join(this.tempDir, `${urlHash}.h264`);
 
@@ -172,8 +172,8 @@ export class MediaPreparer {
         '-profile:v', 'baseline',
         '-level:v', '4.0',
         '-bf', '0',
-        '-g', '30',
-        '-keyint_min', '30',
+        '-g', '60',
+        '-keyint_min', '60',
         '-sc_threshold', '0',
         '-b:v', '1000k',
         '-maxrate', '1200k',
