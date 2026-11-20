@@ -148,7 +148,9 @@ export class MediaPreparer {
       ffmpegArgs.push(
         '-reconnect', '1',
         '-reconnect_streamed', '1',
+        '-reconnect_at_eof', '1',
         '-reconnect_delay_max', '5',
+        '-multiple_requests', '1',
       );
     }
     ffmpegArgs.push(
@@ -293,7 +295,7 @@ export class MediaPreparer {
     h264Path: string | null,
     isFinished: () => boolean,
     getError: () => Error | null,
-    timeoutMs = 25000,
+    timeoutMs = 60000,
   ): Promise<void> {
     const start = Date.now();
     let lastLogTime = 0;
@@ -315,8 +317,8 @@ export class MediaPreparer {
       const oggOk =
         oggMarkers >= 25 ||
         (fs.existsSync(oggPath) && fs.statSync(oggPath).size >= 32 * 1024);
-      // For H264: 45 markers = 45 AUD frames (~1.5s of 30fps video for safety buffer)
-      const h264Ok = !h264Path || h264Markers >= 45;
+      // For H264: 30 markers = 30 AUD frames (~1s of 30fps video for safety buffer)
+      const h264Ok = !h264Path || h264Markers >= 30;
 
       if (oggOk && h264Ok) {
         logger.log(
