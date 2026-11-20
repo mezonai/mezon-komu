@@ -25,7 +25,10 @@ export class ToggleActiveService {
   }
 
   async ActiveAcc(id) {
-    return await this.userRepository.update(id, { deactive: false });
+    return await this.userRepository.update(id, {
+      deactive: false,
+      user_type: EUserType.MEZON,
+    });
   }
 
   async toggleClanCommandPermission(

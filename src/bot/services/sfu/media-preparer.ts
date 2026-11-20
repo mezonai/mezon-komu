@@ -73,12 +73,21 @@ export class MediaPreparer {
     }
 
     const cleanUrl = urlOrPath.split('?')[0];
-    const urlHash = createHash('md5').update(`v4:${cleanUrl}`).digest('hex');
+    const isVideoExtension = /\.(mp4|mov|mkv|webm|avi|flv)$/i.test(cleanUrl);
+    const urlHash = createHash('md5').update(`v5:${cleanUrl}`).digest('hex');
     const oggFinalPath = path.join(this.tempDir, `${urlHash}.ogg`);
     const h264FinalPath = path.join(this.tempDir, `${urlHash}.h264`);
 
+    // Automatically purge broken audio-only cache for video files on prod/dev
+    if (isVideoExtension && fs.existsSync(oggFinalPath) && !fs.existsSync(h264FinalPath)) {
+      try {
+        fs.unlinkSync(oggFinalPath);
+      } catch {}
+    }
+
     // 1. Check if complete cached files already exist on disk
-    if (fs.existsSync(oggFinalPath)) {
+    // If media is a video format, only use cache when both audio (.ogg) and video (.h264) are present.
+    if (fs.existsSync(oggFinalPath) && (!isVideoExtension || fs.existsSync(h264FinalPath))) {
       const hasCachedVideo = fs.existsSync(h264FinalPath);
       logger.log(
         `Using cached media files for ${cleanUrl} (hasVideo=${hasCachedVideo}). Instant 0ms playback!`,
@@ -132,7 +141,7 @@ export class MediaPreparer {
     try {
       if (fs.existsSync(oggPartPath)) fs.unlinkSync(oggPartPath);
       if (fs.existsSync(h264PartPath)) fs.unlinkSync(h264PartPath);
-    } catch {}
+    } catch { }
 
     const ffmpegArgs: string[] = ['-y'];
     if (/^https?:\/\//i.test(urlOrPath)) {
@@ -235,7 +244,7 @@ export class MediaPreparer {
     });
 
     // Don't let unhandled rejections crash node if pipeline was already opened
-    writerPromise.catch(() => {});
+    writerPromise.catch(() => { });
 
     // 5. Wait for initial header markers before starting playback (Mezube WaitUntilPlayable pattern)
     logger.log(`Buffering initial media chunks...`);
@@ -255,10 +264,10 @@ export class MediaPreparer {
 
     const videoStream = info.hasVideo
       ? GrowingFileStream.open(
-          h264PartPath,
-          () => isFinished,
-          () => procError,
-        )
+        h264PartPath,
+        () => isFinished,
+        () => procError,
+      )
       : undefined;
 
     return {
@@ -268,13 +277,13 @@ export class MediaPreparer {
       cleanup: async () => {
         try {
           proc.kill('SIGKILL');
-        } catch {}
+        } catch { }
         audioStream.destroy();
         videoStream?.destroy();
         try {
           if (fs.existsSync(oggPartPath)) fs.unlinkSync(oggPartPath);
           if (info.hasVideo && fs.existsSync(h264PartPath)) fs.unlinkSync(h264PartPath);
-        } catch {}
+        } catch { }
       },
     };
   }
@@ -367,6 +376,12 @@ export class MediaPreparer {
 
   private static probeMediaInfo(urlOrPath: string): Promise<MediaStreamInfo> {
     return new Promise((resolve) => {
+      const isVideoExtension = /\.(mp4|mov|mkv|webm|avi|flv)(\?|$)/i.test(urlOrPath);
+      const fallbackResult: MediaStreamInfo = {
+        hasAudio: true,
+        hasVideo: isVideoExtension,
+      };
+
       const ffprobeBin = resolveBinary('ffprobe');
       logger.log(`[MediaPreparer] Probing codecs with ffprobe (${ffprobeBin})...`);
       const proc = spawn(ffprobeBin, [
@@ -381,20 +396,24 @@ export class MediaPreparer {
       let out = '';
       let errOut = '';
       const timer = setTimeout(() => {
-        logger.warn('[MediaPreparer] ffprobe timed out after 6000ms. Fallback to audio-only.');
+        logger.warn(
+          `[MediaPreparer] ffprobe timed out after 15000ms. Fallback to (hasVideo=${isVideoExtension}).`,
+        );
         try {
           proc.kill('SIGKILL');
-        } catch {}
-        resolve({ hasAudio: true, hasVideo: false });
-      }, 6000);
+        } catch { }
+        resolve(fallbackResult);
+      }, 15000);
 
       proc.stdout.on('data', (d) => (out += d.toString()));
       proc.stderr.on('data', (d) => (errOut += d.toString()));
       proc.on('close', (code) => {
         clearTimeout(timer);
         if (code !== 0) {
-          logger.warn(`[MediaPreparer] ffprobe exited with code ${code}. Stderr: ${errOut.trim()}`);
-          return resolve({ hasAudio: true, hasVideo: false });
+          logger.warn(
+            `[MediaPreparer] ffprobe exited with code ${code}. Stderr: ${errOut.trim()}. Fallback to (hasVideo=${isVideoExtension}).`,
+          );
+          return resolve(fallbackResult);
         }
         try {
           const parsed = JSON.parse(out);
@@ -403,22 +422,26 @@ export class MediaPreparer {
           const audio = streams.find((s) => s.codec_type === 'audio');
           const video = streams.find((s) => s.codec_type === 'video');
 
-          logger.log(`[MediaPreparer] Probe success: audio=${audio?.codec_name || 'none'}, video=${video?.codec_name || 'none'}`);
+          logger.log(
+            `[MediaPreparer] Probe success: audio=${audio?.codec_name || 'none'}, video=${video?.codec_name || 'none'}`,
+          );
           resolve({
-            hasAudio: !!audio,
+            hasAudio: !!audio || true,
             audioCodec: audio?.codec_name?.toLowerCase(),
-            hasVideo: !!video,
+            hasVideo: !!video || isVideoExtension,
             videoCodec: video?.codec_name?.toLowerCase(),
           });
         } catch (jsonErr) {
-          logger.warn(`[MediaPreparer] Could not parse ffprobe output: ${jsonErr}`);
-          resolve({ hasAudio: true, hasVideo: false });
+          logger.warn(
+            `[MediaPreparer] Could not parse ffprobe output: ${jsonErr}. Fallback to (hasVideo=${isVideoExtension}).`,
+          );
+          resolve(fallbackResult);
         }
       });
       proc.on('error', (err) => {
         clearTimeout(timer);
         logger.error('[MediaPreparer] ffprobe process spawn error:', err);
-        resolve({ hasAudio: true, hasVideo: false });
+        resolve(fallbackResult);
       });
     });
   }

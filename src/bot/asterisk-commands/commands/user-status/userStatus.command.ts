@@ -8,7 +8,7 @@ import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EUserType } from 'src/bot/constants/configs';
 import { User } from 'src/bot/models';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 
 @Command('userstatus')
 export class UserStatusCommand extends CommandMessage {
@@ -34,26 +34,38 @@ export class UserStatusCommand extends CommandMessage {
         args[0]?.startsWith('@')
       ) {
         const findUser = await this.userRepository.findOne({
-          where: {
-            userId: message.mentions[0].user_id,
-            user_type: EUserType.MEZON,
-          },
+          where: [
+            {
+              userId: message.mentions[0].user_id,
+              user_type: EUserType.MEZON,
+            },
+            {
+              userId: message.mentions[0].user_id,
+              user_type: IsNull(),
+            },
+          ],
         });
         userQuery = findUser?.userId;
       } else {
         userQuery = args.length ? args[0] : message.sender_id;
       }
 
+      const emailWithDomain = args[0]?.includes('@')
+        ? args[0]
+        : `${args[0]}@ncc.asia`;
+
       //check fist arg
       const findUserArg = await this.userRepository
         .createQueryBuilder('user')
         .where(
-          '(user.clan_nick = :query OR user.username = :query OR user.userId = :query)',
-          { query: args[0] },
+          '(user.clan_nick = :query OR user.username = :query OR user.userId = :query OR user.email = :query OR user.email = :emailWithDomain OR user.display_name = :query)',
+          { query: args[0], emailWithDomain },
         )
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+        .andWhere('(user.user_type = :userType OR user.user_type IS NULL)', {
+          userType: EUserType.MEZON,
+        })
         .orderBy(
-          'CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 ELSE 3 END',
+          'CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 WHEN user.email = :query THEN 3 ELSE 4 END',
         )
         .getOne();
       if (findUserArg) {
@@ -61,20 +73,28 @@ export class UserStatusCommand extends CommandMessage {
       }
     }
 
+    const emailWithDomainUserQuery = userQuery.includes('@')
+      ? userQuery
+      : `${userQuery}@ncc.asia`;
+
     const findUser = await this.userRepository
       .createQueryBuilder('user')
       .where(
-        '(user.clan_nick = :query OR user.username = :query OR user.userId = :query)',
-        { query: userQuery },
+        '(user.clan_nick = :query OR user.username = :query OR user.userId = :query OR user.email = :query OR user.email = :emailWithDomain OR user.display_name = :query)',
+        { query: userQuery, emailWithDomain: emailWithDomainUserQuery },
       )
-      .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+      .andWhere('(user.user_type = :userType OR user.user_type IS NULL)', {
+        userType: EUserType.MEZON,
+      })
       .getOne();
 
     if (!findUser) {
       messageContent = EUserStatusCommand.WRONG_EMAIL;
     } else {
-      const username = findUser?.clan_nick || findUser?.username;
-      const url = `${this.clientConfig.user_status.api_url_userstatus}?emailAddress=${username}@ncc.asia`;
+      const username =
+        findUser?.clan_nick || findUser?.email || findUser?.username;
+      const cleanUsername = username.replace(/@ncc\.asia$/i, '').toLowerCase();
+      const url = `${this.clientConfig.user_status.api_url_userstatus}?emailAddress=${cleanUsername}@ncc.asia`;
       const response = await this.axiosClientService.get(url);
 
       const getUserStatus = response.data;

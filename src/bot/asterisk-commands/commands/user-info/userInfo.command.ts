@@ -5,7 +5,7 @@ import { ClientConfigService } from 'src/bot/config/client-config.service';
 import { AxiosClientService } from 'src/bot/services/axiosClient.services';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserClanProfile } from 'src/bot/models';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { EmbedProps, EUserType, MEZON_EMBED_FOOTER } from 'src/bot/constants/configs';
 import { EUserError } from 'src/bot/constants/error';
 import moment from 'moment';
@@ -36,38 +36,58 @@ export class UserInfoCommand extends CommandMessage {
         args[0]?.startsWith('@')
       ) {
         const findUser = await this.userRepository.findOne({
-          where: {
-            userId: message.mentions[0].user_id,
-            user_type: EUserType.MEZON,
-          },
+          where: [
+            {
+              userId: message.mentions[0].user_id,
+              user_type: EUserType.MEZON,
+            },
+            {
+              userId: message.mentions[0].user_id,
+              user_type: IsNull(),
+            },
+          ],
         });
         userQuery = findUser?.userId;
       } else {
         userQuery = args.length ? args[0] : message.sender_id;
       }
 
+      const emailWithDomain = args[0]?.includes('@')
+        ? args[0]
+        : `${args[0]}@ncc.asia`;
+
       //check fist arg
       const findUserArg = await this.userRepository
         .createQueryBuilder('user')
         .where(
-          '(user.clan_nick = :query OR user.username = :query OR user.userId = :query)',
-          { query: args[0] },
+          '(user.clan_nick = :query OR user.username = :query OR user.userId = :query OR user.email = :query OR user.email = :emailWithDomain OR user.display_name = :query)',
+          { query: args[0], emailWithDomain },
         )
-        .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
-        .orderBy('CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 ELSE 3 END')
+        .andWhere('(user.user_type = :userType OR user.user_type IS NULL)', {
+          userType: EUserType.MEZON,
+        })
+        .orderBy(
+          'CASE WHEN user.clan_nick = :query THEN 1 WHEN user.username = :query THEN 2 WHEN user.email = :query THEN 3 ELSE 4 END',
+        )
         .getOne();
       if (findUserArg) {
         userQuery = findUserArg.userId;
       }
     }
 
+    const emailWithDomainUserQuery = userQuery.includes('@')
+      ? userQuery
+      : `${userQuery}@ncc.asia`;
+
     const findUser = await this.userRepository
       .createQueryBuilder('user')
       .where(
-        '(user.clan_nick = :query OR user.username = :query OR user.userId = :query)',
-        { query: userQuery },
+        '(user.clan_nick = :query OR user.username = :query OR user.userId = :query OR user.email = :query OR user.email = :emailWithDomain OR user.display_name = :query)',
+        { query: userQuery, emailWithDomain: emailWithDomainUserQuery },
       )
-      .andWhere('user.user_type = :userType', { userType: EUserType.MEZON })
+      .andWhere('(user.user_type = :userType OR user.user_type IS NULL)', {
+        userType: EUserType.MEZON,
+      })
       .getOne();
 
     if (!findUser)
@@ -86,9 +106,14 @@ export class UserInfoCommand extends CommandMessage {
       },
     });
 
-    const username = clanProfile?.clan_nick || findUser.clan_nick || findUser.username
+    const username =
+      clanProfile?.clan_nick ||
+      findUser.clan_nick ||
+      findUser.email ||
+      findUser.username;
 
-    const email = username.toLowerCase() + '@ncc.asia';
+    const cleanUsername = username.replace(/@ncc\.asia$/i, '').toLowerCase();
+    const email = cleanUsername + '@ncc.asia';
     const { wiki, project, wikiApiKeySecret } = this.clientConfigService;
     const httpsAgent = this.clientConfigService.https;
     const headers = { 'X-Secret-Key': wikiApiKeySecret };
